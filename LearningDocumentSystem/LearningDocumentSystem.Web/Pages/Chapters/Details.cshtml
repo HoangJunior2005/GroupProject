@@ -4,6 +4,7 @@
     ViewData["Title"] = "Chi tiết chương học";
 }
 
+<div id="chapter-detail-content">
 <div class="page-header">
     <div>
         <h1 class="page-title"><i class="bi bi-journal-bookmark-fill me-2"></i>Chi tiết chương học</h1>
@@ -53,3 +54,46 @@
         </div>
     </div>
 </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener("realtimeUpdate", function(e) {
+        const type = e.detail.messageType;
+        const payload = e.detail.payload;
+        const currentChapterId = @Model.Chapter.ChapterID;
+
+        if (type.startsWith("Chapter")) {
+            if (type === "ChapterDeleted" && payload.chapterId === currentChapterId) {
+                console.log("Current chapter deleted in realtime. Redirecting...");
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Chương học đã bị xóa',
+                        text: 'Chương học này đã bị xóa bởi người dùng khác. Bạn sẽ được chuyển hướng về danh sách.',
+                        timer: 3000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.href = '/Chapters/Index';
+                    });
+                } else {
+                    window.location.href = '/Chapters/Index';
+                }
+            } else {
+                console.log("Chapter updated. Refreshing details...");
+                setTimeout(() => {
+                    refreshPageFragments(["#chapter-detail-content"])
+                        .catch(err => console.error("Chapter detail realtime refresh failed:", err));
+                }, 1000);
+            }
+        } else if (type.startsWith("Subject")) {
+            // Refresh if parent subject changes (since subject name is shown)
+            console.log("Parent subject changed. Refreshing chapter details...");
+            setTimeout(() => {
+                refreshPageFragments(["#chapter-detail-content"])
+                    .catch(err => console.error("Chapter detail realtime refresh failed:", err));
+            }, 1000);
+        }
+    });
+</script>
+}

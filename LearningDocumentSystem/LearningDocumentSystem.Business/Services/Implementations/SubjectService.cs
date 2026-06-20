@@ -78,8 +78,13 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
         public async Task DeleteAsync(int id)
         {
-            var subject = await _uow.Subjects.GetByIdAsync(id)
+            var subject = await _uow.Subjects.GetWithChaptersAsync(id)
                 ?? throw new NotFoundException("Subject", id);
+
+            if (subject.Chapters.Any(c => c.Documents.Any()))
+            {
+                throw new BusinessException("Không được phép xóa môn học này vì đã có tài liệu.");
+            }
 
             _uow.Subjects.Remove(subject);
             await _uow.SaveChangesAsync();

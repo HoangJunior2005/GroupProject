@@ -16,7 +16,7 @@
 @{
     var cardClass = User.IsInRole("Teacher") ? "col-xl-6 col-md-6" : "col-xl-4 col-md-4";
 }
-<div class="row g-4 mb-4">
+<div class="row g-4 mb-4" id="dashboard-stats-panel">
     <div class="@cardClass">
         <div class="stat-card stat-card-primary">
             <div class="stat-icon"><i class="bi bi-file-earmark-text-fill"></i></div>
@@ -85,7 +85,7 @@
 @if (!User.IsInRole("Admin"))
 {
 <!-- Index Status + Recent Docs -->
-<div class="row g-4">
+<div class="row g-4" id="dashboard-status-docs-panel">
     <div class="col-lg-5">
         <div class="card-custom">
             <div class="card-custom-header">
@@ -346,10 +346,13 @@
                 });
             }
 
-            // Listen to realtime updates to dynamically refresh Dashboard if needed
+            // Listen to realtime updates to dynamically refresh Dashboard fragments
             document.addEventListener('realtimeUpdate', function(e) {
                 console.log("Dashboard notified of realtime update:", e.detail);
-                // Dynamically reload dashboard data or signal the user to reload
+                setTimeout(() => {
+                    refreshPageFragments(["#dashboard-stats-panel", "#dashboard-status-docs-panel"])
+                        .catch(err => console.error("Dashboard realtime refresh failed:", err));
+                }, 1000);
             });
         });
     </script>
