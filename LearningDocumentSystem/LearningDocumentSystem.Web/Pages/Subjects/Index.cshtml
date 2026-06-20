@@ -9,7 +9,7 @@
         <h1 class="page-title"><i class="bi bi-book-fill me-2"></i>Môn học</h1>
         <p class="page-subtitle">Quản lý các môn học trong hệ thống</p>
     </div>
-    @if (User.IsInRole("Teacher"))
+    @if (User.IsInRole("Admin") || User.IsInRole("Teacher"))
     {
         <a asp-page="/Subjects/Create" class="btn btn-primary btn-action">
             <i class="bi bi-plus-circle me-2"></i>Thêm môn học
@@ -17,7 +17,7 @@
     }
 </div>
 
-<div class="card-custom">
+<div class="card-custom" id="subjects-list-panel">
     <div class="card-custom-body p-0">
         @if (!Model.Subjects.Any())
         {
@@ -37,7 +37,7 @@
                             <th>Mã học phần</th>
                             <th>Số chương</th>
                             <th>Ngày tạo</th>
-                            @if (User.IsInRole("Teacher")) { <th class="text-end">Thao tác</th> }
+                            @if (User.IsInRole("Admin") || User.IsInRole("Teacher")) { <th class="text-end">Thao tác</th> }
                         </tr>
                     </thead>
                     <tbody>
@@ -62,7 +62,7 @@
                                     </span>
                                 </td>
                                 <td class="text-muted small">@s.CreatedAt.ToString("dd/MM/yyyy")</td>
-                                @if (User.IsInRole("Teacher"))
+                                @if (User.IsInRole("Admin") || User.IsInRole("Teacher"))
                                 {
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm">
@@ -74,7 +74,7 @@
                                                 <i class="bi bi-pencil-fill"></i>
                                             </a>
                                             <button type="button" class="btn btn-outline-danger"
-                                                    onclick="confirmDelete(@s.SubjectID, '@s.SubjectName')"
+                                                    onclick="confirmDelete(@s.SubjectID, '@s.SubjectName', @s.DocumentCount)"
                                                     title="Xóa">
                                                 <i class="bi bi-trash-fill"></i>
                                             </button>
@@ -115,20 +115,30 @@
 
 @section Scripts {
 <script>
-    function confirmDelete(id, name) {
+    function confirmDelete(id, name, docCount) {
+        if (docCount > 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Không thể xóa',
+                text: `Môn học "${name}" đã có ${docCount} tài liệu. Bạn phải xóa hết tài liệu trước khi xóa môn học này.`,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Đóng'
+            });
+            return;
+        }
         document.getElementById('delName').textContent = name;
         document.getElementById('delForm').action = '/Subjects/Delete/' + id;
         new bootstrap.Modal(document.getElementById('deleteModal')).show();
     }
 
-    // Realtime update listener to reload subjects list
+    // Realtime update listener to refresh subjects list without full page reload
     document.addEventListener("realtimeUpdate", function(e) {
         const type = e.detail.messageType;
         if (type.startsWith("Subject")) {
-            console.log("Realtime event matched in Subjects Index. Reloading...");
-            // Briefly wait for DB changes to persist and reload
+            console.log("Realtime event matched in Subjects Index. Refreshing table...");
             setTimeout(() => {
-                window.location.reload();
+                refreshPageFragments(["#subjects-list-panel"])
+                    .catch(err => console.error("Subjects realtime refresh failed:", err));
             }, 1000);
         }
     });

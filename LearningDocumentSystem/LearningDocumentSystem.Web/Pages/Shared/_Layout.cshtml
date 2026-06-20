@@ -78,7 +78,7 @@
                     </li>
                 }
 
-                @if (User.IsInRole("Teacher") || User.IsInRole("Student"))
+                @if (User.IsInRole("Admin") || User.IsInRole("Teacher") || User.IsInRole("Student"))
                 {
                     <li class="menu-section">Quản lý nội dung</li>
                     <li class="@(activePage.StartsWith("/Subjects") ? "active" : "")">
