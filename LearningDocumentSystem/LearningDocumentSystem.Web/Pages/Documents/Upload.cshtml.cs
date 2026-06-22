@@ -90,7 +90,17 @@ namespace LearningDocumentSystem.Web.Pages.Documents
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Upload failed.");
-                ModelState.AddModelError(string.Empty, ex.Message);
+                if (ex.Message.StartsWith("Phát hiện mâu thuẫn kiến thức!"))
+                {
+                    var prefix = "Phát hiện mâu thuẫn kiến thức!";
+                    var detail = ex.Message.Substring(prefix.Length).Trim();
+                    var conflicts = detail.Split(new[] { " | " }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                    ViewData["ConflictErrors"] = conflicts;
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, ex.Message);
+                }
                 await PopulateUploadDropdownsAsync();
                 return Page();
             }

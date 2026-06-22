@@ -32,6 +32,37 @@
     </div>
 </div>
 
+@if (Model.Document.Conflicts.Any())
+{
+    <div class="alert alert-danger border-0 shadow-sm d-flex align-items-start gap-3 p-3 mb-4 text-dark" style="border-radius: 12px; background-color: #fef2f2;">
+        <i class="bi bi-exclamation-triangle-fill text-danger fs-3 mt-1"></i>
+        <div class="flex-grow-1">
+            <h5 class="alert-heading fw-bold text-danger mb-2"><i class="bi bi-robot me-2"></i>AI Phát hiện Mâu thuẫn Kiến thức</h5>
+            <p class="mb-3 small">Hệ thống AI đã phát hiện ra các thông tin mâu thuẫn trực tiếp giữa tài liệu này và các tài liệu khác thuộc cùng môn học:</p>
+            <div class="d-flex flex-column gap-2">
+                @foreach (var conflict in Model.Document.Conflicts)
+                {
+                    <div class="p-3 rounded border border-danger-subtle bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-danger">Mâu thuẫn</span>
+                            <span class="small text-muted"><i class="bi bi-clock me-1"></i>@conflict.DetectedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                        <div class="fw-semibold text-danger small mb-1">
+                            Mâu thuẫn với tài liệu: 
+                            <a asp-page="./Detail" asp-route-id="@conflict.ConflictingDocumentID" class="text-decoration-underline text-danger fw-bold">
+                                "@conflict.ConflictingDocumentTitle"
+                            </a>
+                        </div>
+                        <div class="text-secondary small mt-1">
+                            <i class="bi bi-arrow-return-right me-1"></i><strong>Chi tiết mâu thuẫn:</strong> @conflict.Description
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
 <div class="row g-4">
     <!-- Document Info -->
     <div class="col-lg-4">
@@ -212,6 +243,23 @@
                     refreshPageFragments(["#document-detail-content"])
                         .catch(err => console.error("Document detail realtime refresh failed:", err));
                 }, 1000);
+            }
+        } else if (type === "DocumentConflictDetected" && payload.documentId === currentDocId) {
+            console.log("Conflict detected for current document. Displaying alert...");
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Phát hiện mâu thuẫn kiến thức!',
+                    html: `Hệ thống vừa phát hiện mâu thuẫn giữa tài liệu này và tài liệu <strong>"${payload.conflictingDocTitle}"</strong>.<br><br>
+                           <span class="text-danger small">${payload.description}</span>`,
+                    confirmButtonText: 'Xem chi tiết',
+                    confirmButtonColor: '#4f46e5'
+                }).then(() => {
+                    refreshPageFragments(["#document-detail-content"])
+                        .catch(err => console.error("Refresh failed:", err));
+                });
+            } else {
+                location.reload();
             }
         } else if (type.startsWith("Subject") || type.startsWith("Chapter")) {
             // Refresh if parent subject or chapter changes (since they are shown in page header & info)

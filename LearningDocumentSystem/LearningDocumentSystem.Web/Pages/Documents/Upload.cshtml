@@ -21,7 +21,31 @@
                 <form method="post" enctype="multipart/form-data" id="uploadForm">
                     @Html.AntiForgeryToken()
 
-                    @if (!ViewData.ModelState.IsValid)
+                    @if (ViewData["ConflictErrors"] is List<string> conflictErrors && conflictErrors.Any())
+                    {
+                        <div class="alert alert-danger border-0 shadow-sm d-flex align-items-start gap-3 p-4 mb-4 text-dark" style="border-radius: 12px; background-color: #fef2f2; border-left: 5px solid #ef4444 !important;">
+                            <i class="bi bi-robot text-danger fs-3 mt-1"></i>
+                            <div class="flex-grow-1">
+                                <h5 class="alert-heading fw-bold text-danger mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i>AI Phát hiện Mâu thuẫn Kiến thức</h5>
+                                <p class="mb-3 small text-secondary">Tài liệu của bạn không thể tải lên vì hệ thống AI phát hiện các thông tin mâu thuẫn trực tiếp với tài liệu hiện có trong môn học:</p>
+                                <div class="d-flex flex-column gap-3">
+                                    @foreach (var conflict in conflictErrors)
+                                    {
+                                        <div class="p-3 rounded border border-danger-subtle bg-white shadow-sm" style="border-radius: 8px;">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <span class="badge bg-danger px-2.5 py-1.5 rounded-pill me-2 small">Mâu thuẫn</span>
+                                                <strong class="text-danger small">Phát hiện sai lệch thông tin</strong>
+                                            </div>
+                                            <div class="text-secondary small mt-1 font-monospace" style="line-height: 1.6; white-space: pre-line; font-size: 0.875rem;">
+                                                @conflict
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else if (!ViewData.ModelState.IsValid)
                     {
                         <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4"></div>
                     }
