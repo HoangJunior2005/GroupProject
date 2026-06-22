@@ -3,6 +3,32 @@
 // Sidebar toggle, toast auto-dismiss, misc helpers
 // ================================================================
 
+window.refreshPageFragments = async function (selectors, afterRefresh) {
+    const response = await fetch(window.location.href, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        cache: 'no-store'
+    });
+
+    if (!response.ok) {
+        throw new Error(`Refresh failed with status ${response.status}`);
+    }
+
+    const html = await response.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+
+    selectors.forEach(selector => {
+        const current = document.querySelector(selector);
+        const incoming = doc.querySelector(selector);
+        if (current && incoming) {
+            current.replaceWith(incoming);
+        }
+    });
+
+    if (typeof afterRefresh === 'function') {
+        afterRefresh();
+    }
+};
+
 document.addEventListener('DOMContentLoaded', function () {
 
     // ============================================================
@@ -10,7 +36,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // ============================================================
     const toggleBtn = document.getElementById('sidebarToggle');
     const sidebar   = document.getElementById('sidebar');
-
     if (toggleBtn && sidebar) {
         toggleBtn.addEventListener('click', function () {
             sidebar.classList.toggle('open');
@@ -20,12 +45,11 @@ document.addEventListener('DOMContentLoaded', function () {
         document.addEventListener('click', function (e) {
             if (window.innerWidth <= 992
                 && !sidebar.contains(e.target)
-                && e.target !== toggleBtn) {
+                && !toggleBtn.contains(e.target)) {
                 sidebar.classList.remove('open');
             }
         });
     }
-
     // ============================================================
     // Auto dismiss toasts after 4 seconds
     // ============================================================
