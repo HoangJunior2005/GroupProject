@@ -3,13 +3,6 @@ using LearningDocumentSystem.Business.DTOs;
 
 namespace LearningDocumentSystem.Web.ViewModels
 {
-    public class ChapterListViewModel
-    {
-        public IEnumerable<ChapterDto> Chapters { get; set; } = [];
-        public IEnumerable<SubjectDto> Subjects { get; set; } = [];
-        public int? SelectedSubjectId { get; set; }
-    }
-
     public class ChapterFormViewModel
     {
         public int ChapterID { get; set; }

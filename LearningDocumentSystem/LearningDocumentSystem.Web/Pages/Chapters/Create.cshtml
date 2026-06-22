@@ -62,4 +62,32 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        function reloadSubjectsDropdown(selectId, currentSelectedValue) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            
+            fetch('/Documents/Index?handler=GetSubjects')
+                .then(r => r.json())
+                .then(data => {
+                    const val = currentSelectedValue || select.value;
+                    const firstOptionText = select.options[0] ? select.options[0].text : "— Chọn môn học —";
+                    select.innerHTML = `<option value="">${firstOptionText}</option>`;
+                    data.forEach(s => {
+                        const isSelected = String(s.subjectID) === String(val) ? "selected" : "";
+                        select.innerHTML += `<option value="${s.subjectID}" ${isSelected}>[${s.subjectCode}] ${s.subjectName}</option>`;
+                    });
+                })
+                .catch(err => console.error("Error reloading subjects:", err));
+        }
+
+        document.addEventListener("realtimeUpdate", function(e) {
+            const type = e.detail.messageType;
+            if (type.startsWith("Subject")) {
+                console.log("Subjects list updated. Refreshing dropdown in real-time...");
+                reloadSubjectsDropdown('Input_SubjectID');
+            }
+        });
+    </script>
 }

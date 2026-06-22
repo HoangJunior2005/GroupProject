@@ -81,5 +81,12 @@ namespace LearningDocumentSystem.Web.Pages.Documents
             var chapters = await _chapterService.GetBySubjectAsync(subjectId);
             return new JsonResult(chapters.Select(c => new { c.ChapterID, c.ChapterName, c.ChapterNumber }));
         }
+
+        // AJAX handler to load all subjects
+        public async Task<IActionResult> OnGetGetSubjectsAsync()
+        {
+            var subjects = await _subjectService.GetAllAsync();
+            return new JsonResult(subjects.Select(s => new { s.SubjectID, s.SubjectName, s.SubjectCode }));
+        }
     }
 }

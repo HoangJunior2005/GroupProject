@@ -38,7 +38,7 @@
         </div>
     </div>
 
-    <div class="card-custom-body p-0 mt-3">
+    <div class="card-custom-body p-0 mt-3" id="users-list-panel">
         @if (!Model.ModelData.Users.Any())
         {
             <div class="empty-state py-5">
@@ -137,9 +137,9 @@
         // Retrieve anti-forgery token from the page
         const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
-        // Auto-save upload permission toggle via AJAX
-        document.querySelectorAll('.upload-permission-switch').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
+        function bindUploadPermissionSwitches() {
+            document.querySelectorAll('.upload-permission-switch').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
                 const userId = this.getAttribute('data-user-id');
                 const canUpload = this.checked;
                 
@@ -170,7 +170,8 @@
                     this.checked = !canUpload; // Revert checkbox state
                 });
             });
-        });
+            });
+        }
 
         // Client-side search and filtering logic
         const searchInput = document.getElementById('userSearchInput');
@@ -200,16 +201,20 @@
             });
         }
 
+        bindUploadPermissionSwitches();
         if (searchInput) searchInput.addEventListener('input', filterUsers);
         if (roleFilter) roleFilter.addEventListener('change', filterUsers);
 
-        // Realtime update listener to reload users list
+        // Realtime update listener to refresh users list without full page reload
         document.addEventListener("realtimeUpdate", function(e) {
             const type = e.detail.messageType;
             if (type === "UserChanged") {
-                console.log("Realtime event matched in Users Index. Reloading...");
+                console.log("Realtime event matched in Users Index. Refreshing table...");
                 setTimeout(() => {
-                    window.location.reload();
+                    refreshPageFragments(["#users-list-panel"], function() {
+                        bindUploadPermissionSwitches();
+                        filterUsers();
+                    }).catch(err => console.error("Users realtime refresh failed:", err));
                 }, 1000);
             }
         });

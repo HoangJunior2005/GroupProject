@@ -19,7 +19,7 @@
 </div>
 
 <!-- Search & Filter -->
-<div class="card-custom mb-4">
+<div class="card-custom mb-4" id="documents-filter-panel">
     <div class="card-custom-body">
         <form method="get" id="searchForm">
             <div class="row g-2 align-items-end">
@@ -81,7 +81,7 @@
 </div>
 
 <!-- Results Info -->
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3" id="documents-result-info">
     <p class="text-muted mb-0 small">
         Hiển thị <strong>@Model.Documents.Count()</strong> / <strong>@Model.TotalCount</strong> tài liệu
         @if (!string.IsNullOrEmpty(Model.Keyword)) { <span> — Kết quả tìm kiếm: "<em>@Model.Keyword</em>"</span> }
@@ -93,7 +93,7 @@
 </div>
 
 <!-- Document Table -->
-<div class="card-custom">
+<div class="card-custom" id="documents-list-panel">
     <div class="card-custom-body p-0">
         @if (!Model.Documents.Any())
         {
@@ -302,13 +302,14 @@
             });
     }
 
-    // Realtime update listener to reload documents list
+    // Realtime update listener to refresh documents list without full page reload
     document.addEventListener("realtimeUpdate", function(e) {
         const type = e.detail.messageType;
-        if (type === "DocumentChanged") {
-            console.log("Realtime event matched in Documents Index. Reloading...");
+        if (type === "DocumentChanged" || type.startsWith("Subject") || type.startsWith("Chapter")) {
+            console.log("Realtime event matched in Documents Index. Refreshing table...");
             setTimeout(() => {
-                window.location.reload();
+                refreshPageFragments(["#documents-filter-panel", "#documents-result-info", "#documents-list-panel"])
+                    .catch(err => console.error("Documents realtime refresh failed:", err));
             }, 1000);
         }
     });

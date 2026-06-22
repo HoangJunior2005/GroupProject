@@ -18,7 +18,7 @@
 </div>
 
 <!-- Filter by Subject -->
-<div class="card-custom mb-4">
+<div class="card-custom mb-4" id="chapters-filter-panel">
     <div class="card-custom-body">
         <form method="get" class="row g-3 align-items-end">
             <div class="col-lg-4 col-md-6">
@@ -37,7 +37,7 @@
     </div>
 </div>
 
-<div class="card-custom">
+<div class="card-custom" id="chapters-list-panel">
     <div class="card-custom-body p-0">
         @if (!Model.Chapters.Any())
         {
@@ -133,13 +133,14 @@
         new bootstrap.Modal(document.getElementById('deleteModal')).show();
     }
 
-    // Realtime update listener to reload chapters list
+    // Realtime update listener to refresh chapters list without full page reload
     document.addEventListener("realtimeUpdate", function(e) {
         const type = e.detail.messageType;
-        if (type.startsWith("Chapter")) {
-            console.log("Realtime event matched in Chapters Index. Reloading...");
+        if (type.startsWith("Chapter") || type.startsWith("Subject")) {
+            console.log("Realtime event matched in Chapters Index. Refreshing table...");
             setTimeout(() => {
-                window.location.reload();
+                refreshPageFragments(["#chapters-filter-panel", "#chapters-list-panel"])
+                    .catch(err => console.error("Chapters realtime refresh failed:", err));
             }, 1000);
         }
     });

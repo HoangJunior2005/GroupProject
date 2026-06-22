@@ -3,11 +3,6 @@ using LearningDocumentSystem.Business.DTOs;
 
 namespace LearningDocumentSystem.Web.ViewModels
 {
-    public class SubjectListViewModel
-    {
-        public IEnumerable<SubjectDto> Subjects { get; set; } = [];
-    }
-
     public class SubjectFormViewModel
     {
         public int SubjectID { get; set; }

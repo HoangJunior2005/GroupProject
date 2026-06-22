@@ -4,6 +4,7 @@
     ViewData["Title"] = "Chi tiết môn học";
 }
 
+<div id="subject-detail-content">
 <div class="page-header">
     <div>
         <h1 class="page-title"><i class="bi bi-book-fill me-2"></i>Chi tiết môn học</h1>
@@ -13,7 +14,7 @@
         <a asp-page="./Index" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i> Quay lại
         </a>
-        @if (User.IsInRole("Teacher"))
+        @if (User.IsInRole("Admin") || User.IsInRole("Teacher"))
         {
             <a asp-page="./Edit" asp-route-id="@Model.Subject.SubjectID" class="btn btn-warning">
                 <i class="bi bi-pencil-fill me-1"></i> Sửa môn học
@@ -74,3 +75,39 @@
         </div>
     </div>
 </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener("realtimeUpdate", function(e) {
+        const type = e.detail.messageType;
+        const payload = e.detail.payload;
+        const currentSubjectId = @Model.Subject.SubjectID;
+
+        if (type.startsWith("Subject")) {
+            if (type === "SubjectDeleted" && payload.subjectId === currentSubjectId) {
+                console.log("Current subject deleted in realtime. Redirecting...");
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Môn học đã bị xóa',
+                        text: 'Môn học này đã bị xóa bởi người dùng khác. Bạn sẽ được chuyển hướng về danh sách.',
+                        timer: 3000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.href = '/Subjects/Index';
+                    });
+                } else {
+                    window.location.href = '/Subjects/Index';
+                }
+            } else {
+                console.log("Subject updated. Refreshing details...");
+                setTimeout(() => {
+                    refreshPageFragments(["#subject-detail-content"])
+                        .catch(err => console.error("Subject detail realtime refresh failed:", err));
+                }, 1000);
+            }
+        }
+    });
+</script>
+}

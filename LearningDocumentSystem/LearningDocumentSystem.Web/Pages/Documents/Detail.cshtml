@@ -5,6 +5,7 @@
     ViewData["Title"] = Model.Document.Title;
 }
 
+<div id="document-detail-content">
 <div class="page-header">
     <div>
         <h1 class="page-title">@Model.Document.Title</h1>
@@ -150,6 +151,7 @@
         </div>
     </div>
 </div>
+</div>
 
 <!-- Delete Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1">
@@ -181,5 +183,44 @@
         document.getElementById('deleteForm').action = '/Documents/Delete/' + id;
         new bootstrap.Modal(document.getElementById('deleteModal')).show();
     }
+
+    // Realtime update listener to refresh details or redirect on deletion
+    document.addEventListener("realtimeUpdate", function(e) {
+        const type = e.detail.messageType;
+        const payload = e.detail.payload;
+        const currentDocId = @Model.Document.DocumentID;
+
+        if (type === "DocumentChanged") {
+            if (payload.action === "Delete" && payload.documentId === currentDocId) {
+                console.log("Current document deleted in realtime. Redirecting...");
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Tài liệu đã bị xóa',
+                        text: 'Tài liệu này đã bị xóa bởi người dùng khác. Bạn sẽ được chuyển hướng về trang danh sách.',
+                        timer: 3000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.href = '/Documents/Index';
+                    });
+                } else {
+                    window.location.href = '/Documents/Index';
+                }
+            } else if (payload.action === "Upload" && payload.document && payload.document.documentID === currentDocId) {
+                console.log("Current document updated/indexed in realtime. Refreshing detail...");
+                setTimeout(() => {
+                    refreshPageFragments(["#document-detail-content"])
+                        .catch(err => console.error("Document detail realtime refresh failed:", err));
+                }, 1000);
+            }
+        } else if (type.startsWith("Subject") || type.startsWith("Chapter")) {
+            // Refresh if parent subject or chapter changes (since they are shown in page header & info)
+            console.log("Parent subject or chapter changed. Refreshing detail...");
+            setTimeout(() => {
+                refreshPageFragments(["#document-detail-content"])
+                    .catch(err => console.error("Document detail realtime refresh failed:", err));
+            }, 1000);
+        }
+    });
 </script>
 }

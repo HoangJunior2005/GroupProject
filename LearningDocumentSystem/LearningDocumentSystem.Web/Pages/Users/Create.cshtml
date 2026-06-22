@@ -36,16 +36,27 @@
                         <span asp-validation-for="Input.FullName" class="text-danger small"></span>
                     </div>
 
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <label asp-for="Input.Password" class="form-label fw-semibold">Mật khẩu khởi tạo</label>
                         <div class="input-group">
-                            <input asp-for="Input.Password" class="form-control form-control-lg" type="password" id="teacherPassword" placeholder="******"/>
-                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                            <input asp-for="Input.Password" class="form-control form-control-lg" placeholder="******"/>
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('Input_Password', 'teacherPwdIcon')">
                                 <i class="bi bi-eye" id="teacherPwdIcon"></i>
                             </button>
                         </div>
                         <span asp-validation-for="Input.Password" class="text-danger small"></span>
                         <div class="form-text">Mật khẩu phải chứa ít nhất 6 ký tự.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Input.ConfirmPassword" class="form-label fw-semibold">Nhập lại mật khẩu</label>
+                        <div class="input-group">
+                            <input asp-for="Input.ConfirmPassword" class="form-control form-control-lg" placeholder="******"/>
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('Input_ConfirmPassword', 'teacherConfirmPwdIcon')">
+                                <i class="bi bi-eye" id="teacherConfirmPwdIcon"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Input.ConfirmPassword" class="text-danger small"></span>
                     </div>
 
                     <div class="d-flex gap-3">
@@ -64,9 +75,9 @@
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script>
-        function togglePassword() {
-            const pwdInput = document.getElementById('Input_Password');
-            const pwdIcon = document.getElementById('teacherPwdIcon');
+        function togglePassword(inputId, iconId) {
+            const pwdInput = document.getElementById(inputId);
+            const pwdIcon = document.getElementById(iconId);
             if (pwdInput.type === 'password') {
                 pwdInput.type = 'text';
                 pwdIcon.className = 'bi bi-eye-slash';

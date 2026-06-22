@@ -46,7 +46,7 @@
     </div>
 
     <!-- Statistics Card -->
-    <div class="col-md-7">
+    <div class="col-md-7" id="allowed-email-stats-panel">
         <div class="card-custom h-100">
             <div class="card-custom-header d-flex justify-content-between align-items-center">
                 <h5><i class="bi bi-info-circle-fill me-2 text-primary"></i>Thông tin Whitelist</h5>
@@ -86,7 +86,7 @@
 </div>
 
 <!-- Whitelist Table -->
-<div class="card-custom">
+<div class="card-custom" id="allowed-email-list-panel">
     <div class="card-custom-header">
         <h5><i class="bi bi-list-ul me-2"></i>Danh sách Email Whitelist</h5>
     </div>
@@ -159,9 +159,9 @@
 
 @section Scripts {
     <script>
-        // Intercept delete form submissions and display SweetAlert2 confirmation modal
-        document.querySelectorAll('.delete-confirm-form').forEach(form => {
-            form.addEventListener('submit', function(e) {
+        function bindDeleteConfirmForms() {
+            document.querySelectorAll('.delete-confirm-form').forEach(form => {
+                form.addEventListener('submit', function(e) {
                 e.preventDefault();
                 const message = this.getAttribute('data-message') || 'Bạn có chắc chắn muốn xóa không?';
                 
@@ -183,15 +183,19 @@
                     }
                 });
             });
-        });
+            });
+        }
 
-        // Realtime update listener to reload AllowedEmails
+        bindDeleteConfirmForms();
+
+        // Realtime update listener to refresh AllowedEmails without full page reload
         document.addEventListener("realtimeUpdate", function(e) {
             const type = e.detail.messageType;
             if (type === "AllowedEmailChanged") {
-                console.log("Realtime event matched in Whitelist Index. Reloading...");
+                console.log("Realtime event matched in Whitelist Index. Refreshing table...");
                 setTimeout(() => {
-                    window.location.reload();
+                    refreshPageFragments(["#allowed-email-stats-panel", "#allowed-email-list-panel"], bindDeleteConfirmForms)
+                        .catch(err => console.error("Allowed emails realtime refresh failed:", err));
                 }, 1000);
             }
         });
