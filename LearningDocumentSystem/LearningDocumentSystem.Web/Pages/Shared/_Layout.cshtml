@@ -97,12 +97,15 @@
                         </a>
                     </li>
 
-                    <li class="menu-section">Trợ lý AI</li>
-                    <li class="@(activePage.StartsWith("/Chat") ? "active" : "")">
-                        <a asp-page="/Chat/Index">
-                            <i class="bi bi-robot"></i> Hỏi đáp AI
-                        </a>
-                    </li>
+                    @if (!User.IsInRole("Admin"))
+                    {
+                        <li class="menu-section">Trợ lý AI</li>
+                        <li class="@(activePage.StartsWith("/Chat") ? "active" : "")">
+                            <a asp-page="/Chat/Index">
+                                <i class="bi bi-robot"></i> Hỏi đáp AI
+                            </a>
+                        </li>
+                    }
                 }
 
                 @if (User.IsInRole("Teacher"))
