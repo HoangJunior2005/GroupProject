@@ -8,20 +8,214 @@
 
 <!-- Custom Styles for Premium Chat Interface -->
 <style>
+    /* ─── Layout ────────────────────────────────────────────────── */
     .chat-container {
-        height: 75vh;
+        height: 80vh;
         display: flex;
-        gap: 20px;
+        gap: 16px;
     }
-    
+
+    /* ─── Left Sidebar ──────────────────────────────────────────── */
     .chat-sidebar {
-        width: 320px;
+        width: 300px;
         flex-shrink: 0;
         display: flex;
         flex-direction: column;
-        gap: 20px;
+        gap: 14px;
+        overflow: hidden;
     }
-    
+
+    /* ─── Session Panel ─────────────────────────────────────────── */
+    .session-panel {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        background: rgba(255,255,255,0.75);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 14px;
+        box-shadow: 0 4px 20px rgba(31,38,135,0.07);
+        overflow: hidden;
+    }
+
+    .session-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .session-panel-header h6 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 0.88rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-new-session {
+        border: 1px solid rgba(255,255,255,0.5);
+        background: rgba(255,255,255,0.15);
+        color: white;
+        border-radius: 8px;
+        padding: 4px 10px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s;
+    }
+
+    .btn-new-session:hover {
+        background: rgba(255,255,255,0.3);
+        border-color: white;
+    }
+
+    .session-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .session-list::-webkit-scrollbar { width: 4px; }
+    .session-list::-webkit-scrollbar-track { background: transparent; }
+    .session-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
+    .session-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.18s;
+        border: 1px solid transparent;
+        position: relative;
+    }
+
+    .session-item:hover {
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+    }
+
+    .session-item.active {
+        background: linear-gradient(135deg, rgba(79,70,229,0.08) 0%, rgba(59,130,246,0.08) 100%);
+        border-color: rgba(79,70,229,0.3);
+    }
+
+    .session-item-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.75rem;
+        flex-shrink: 0;
+    }
+
+    .session-item.active .session-item-icon {
+        box-shadow: 0 2px 8px rgba(79,70,229,0.4);
+    }
+
+    .session-item-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .session-item-title {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #1e293b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.3;
+    }
+
+    .session-item.active .session-item-title { color: #4f46e5; }
+
+    .session-item-date {
+        font-size: 0.7rem;
+        color: #94a3b8;
+        margin-top: 2px;
+    }
+
+    .session-item-preview {
+        font-size: 0.75rem;
+        color: #64748b;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .session-item.active .session-item-preview {
+        color: #4f46e5;
+        opacity: 0.85;
+    }
+
+    .btn-delete-session {
+        width: 22px;
+        height: 22px;
+        border: none;
+        background: transparent;
+        color: #94a3b8;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        opacity: 0;
+        cursor: pointer;
+        transition: all 0.15s;
+        font-size: 0.75rem;
+    }
+
+    .session-item:hover .btn-delete-session { opacity: 1; }
+    .btn-delete-session:hover { background: #fee2e2; color: #ef4444; }
+
+    .session-empty {
+        text-align: center;
+        padding: 24px 12px;
+        color: #94a3b8;
+        font-size: 0.82rem;
+    }
+
+    /* ─── Filter Card ────────────────────────────────────────────── */
+    .filter-card {
+        background: rgba(255,255,255,0.75);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 14px;
+        box-shadow: 0 4px 20px rgba(31,38,135,0.07);
+        padding: 14px;
+        flex-shrink: 0;
+    }
+
+    .filter-card-title {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #475569;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* ─── Main Chat Area ─────────────────────────────────────────── */
     .chat-main {
         flex-grow: 1;
         display: flex;
@@ -32,24 +226,34 @@
         border-radius: 16px;
         box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
         overflow: hidden;
+        position: relative;
     }
-    
+
     .chat-header {
-        padding: 16px 24px;
+        padding: 14px 24px;
         background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
         color: white;
         display: flex;
         align-items: center;
         justify-content: space-between;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        flex-shrink: 0;
     }
-    
+
     .chat-header-title h5 {
         margin: 0;
         font-weight: 700;
         letter-spacing: -0.5px;
+        font-size: 1rem;
     }
-    
+
+    .chat-header-title .session-title-badge {
+        font-size: 0.72rem;
+        font-weight: 500;
+        opacity: 0.8;
+        margin-top: 1px;
+    }
+
     .chat-header-status {
         display: flex;
         align-items: center;
@@ -59,7 +263,7 @@
         padding: 4px 12px;
         border-radius: 20px;
     }
-    
+
     .status-dot {
         width: 8px;
         height: 8px;
@@ -69,13 +273,13 @@
         box-shadow: 0 0 8px #10b981;
         animation: pulse 2s infinite;
     }
-    
+
     @@keyframes pulse {
         0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
         70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
         100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
-    
+
     .chat-messages {
         flex-grow: 1;
         padding: 24px;
@@ -85,28 +289,28 @@
         gap: 20px;
         scroll-behavior: smooth;
     }
-    
+
     .message {
         display: flex;
         gap: 12px;
         max-width: 80%;
         animation: fadeIn 0.3s ease;
     }
-    
+
     @@keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
     }
-    
+
     .message.user {
         align-self: flex-end;
         flex-direction: row-reverse;
     }
-    
+
     .message.assistant {
         align-self: flex-start;
     }
-    
+
     .message-avatar {
         width: 38px;
         height: 38px;
@@ -116,19 +320,20 @@
         justify-content: center;
         font-weight: 700;
         flex-shrink: 0;
+        font-size: 0.8rem;
     }
-    
+
     .message.user .message-avatar {
         background: #4f46e5;
         color: white;
     }
-    
+
     .message.assistant .message-avatar {
         background: #e2e8f0;
         color: #4f46e5;
         border: 1px solid rgba(0,0,0,0.05);
     }
-    
+
     .message-content {
         padding: 12px 18px;
         border-radius: 14px;
@@ -136,13 +341,13 @@
         line-height: 1.5;
         position: relative;
     }
-    
+
     .message.user .message-content {
         background: #4f46e5;
         color: white;
         border-top-right-radius: 2px;
     }
-    
+
     .message.assistant .message-content {
         background: white;
         color: #1e293b;
@@ -150,7 +355,7 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         border: 1px solid rgba(0,0,0,0.05);
     }
-    
+
     .message-sources {
         margin-top: 10px;
         display: flex;
@@ -158,7 +363,7 @@
         gap: 6px;
         font-size: 0.8rem;
     }
-    
+
     .source-tag {
         background: #f1f5f9;
         border: 1px solid #e2e8f0;
@@ -171,13 +376,13 @@
         align-items: center;
         gap: 4px;
     }
-    
+
     .source-tag:hover {
         background: #e2e8f0;
         color: #1e293b;
         transform: translateY(-1px);
     }
-    
+
     .source-score {
         background: #3b82f6;
         color: white;
@@ -186,13 +391,14 @@
         border-radius: 4px;
         font-size: 0.7rem;
     }
-    
+
     .chat-input-area {
-        padding: 16px 24px;
+        padding: 14px 24px;
         background: white;
         border-top: 1px solid rgba(0,0,0,0.05);
+        flex-shrink: 0;
     }
-    
+
     .chat-input-wrapper {
         display: flex;
         gap: 12px;
@@ -203,13 +409,13 @@
         align-items: center;
         transition: all 0.3s;
     }
-    
+
     .chat-input-wrapper:focus-within {
         border-color: #4f46e5;
         box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
         background: white;
     }
-    
+
     .chat-input {
         flex-grow: 1;
         border: none;
@@ -219,7 +425,7 @@
         color: #1e293b;
         outline: none;
     }
-    
+
     .btn-send {
         width: 40px;
         height: 40px;
@@ -233,61 +439,29 @@
         cursor: pointer;
         transition: all 0.2s;
     }
-    
-    .btn-send:hover {
-        background: #3730a3;
-        transform: scale(1.05);
-    }
-    
-    .btn-send:disabled {
-        background: #cbd5e1;
-        cursor: not-allowed;
-        transform: none;
-    }
-    
-    /* Loading thinking dots */
-    .thinking {
-        display: flex;
-        gap: 4px;
-        padding: 8px 10px;
-        align-items: center;
-    }
-    
-    .dot {
-        width: 8px;
-        height: 8px;
-        background: #94a3b8;
-        border-radius: 50%;
-        animation: bounce 1.4s infinite ease-in-out both;
-    }
-    
+
+    .btn-send:hover { background: #3730a3; transform: scale(1.05); }
+    .btn-send:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; }
+
+    /* Loading dots */
+    .thinking { display: flex; gap: 4px; padding: 8px 10px; align-items: center; }
+    .dot { width: 8px; height: 8px; background: #94a3b8; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
     .dot:nth-child(1) { animation-delay: -0.32s; }
     .dot:nth-child(2) { animation-delay: -0.16s; }
-    
+
     @@keyframes bounce {
         0%, 80%, 100% { transform: scale(0); }
         40% { transform: scale(1); }
     }
 
-    /* Message markdown styling */
+    /* Markdown */
     .message-content p { margin-bottom: 8px; }
     .message-content p:last-child { margin-bottom: 0; }
-    .message-content code {
-        background: rgba(0,0,0,0.05);
-        padding: 2px 4px;
-        border-radius: 4px;
-        font-family: monospace;
-        font-size: 0.9em;
-    }
-    .message-content ul, .message-content ol {
-        margin-bottom: 8px;
-        padding-left: 20px;
-    }
-    .hover-white:hover {
-        color: #ffffff !important;
-    }
+    .message-content code { background: rgba(0,0,0,0.05); padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+    .message-content ul, .message-content ol { margin-bottom: 8px; padding-left: 20px; }
+    .hover-white:hover { color: #ffffff !important; }
 
-    /* Chat lock overlay */
+    /* Lock overlay */
     .chat-lock-overlay {
         position: absolute;
         inset: 0;
@@ -297,55 +471,39 @@
         align-items: center;
         justify-content: center;
         gap: 16px;
-        background: rgba(255, 255, 255, 0.82);
+        background: rgba(255, 255, 255, 0.85);
         backdrop-filter: blur(6px);
         border-radius: 16px;
         transition: opacity 0.35s ease, visibility 0.35s ease;
         opacity: 1;
         visibility: visible;
     }
-    .chat-lock-overlay.hidden {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-    }
+    .chat-lock-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
     .chat-lock-icon {
-        width: 68px;
-        height: 68px;
-        border-radius: 50%;
+        width: 68px; height: 68px; border-radius: 50%;
         background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 8px 24px rgba(79,70,229,0.35);
         animation: lockPulse 2.5s ease-in-out infinite;
     }
     @@keyframes lockPulse {
-        0%, 100% { box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35); transform: scale(1); }
-        50% { box-shadow: 0 8px 36px rgba(79, 70, 229, 0.55); transform: scale(1.06); }
+        0%, 100% { box-shadow: 0 8px 24px rgba(79,70,229,0.35); transform: scale(1); }
+        50% { box-shadow: 0 8px 36px rgba(79,70,229,0.55); transform: scale(1.06); }
     }
-    .chat-lock-icon i {
-        font-size: 1.8rem;
-        color: white;
-    }
-    .chat-lock-text {
-        text-align: center;
-        max-width: 280px;
-    }
-    .chat-lock-text h6 {
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 6px;
-        font-size: 1rem;
-    }
-    .chat-lock-text p {
-        color: #64748b;
-        font-size: 0.875rem;
-        margin: 0;
-        line-height: 1.5;
-    }
-    .chat-main {
-        position: relative;
+    .chat-lock-icon i { font-size: 1.8rem; color: white; }
+    .chat-lock-text { text-align: center; max-width: 280px; }
+    .chat-lock-text h6 { font-weight: 700; color: #1e293b; margin-bottom: 6px; font-size: 1rem; }
+    .chat-lock-text p { color: #64748b; font-size: 0.875rem; margin: 0; line-height: 1.5; }
+
+    /* Session saving indicator */
+    .save-indicator {
+        font-size: 0.7rem;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 24px;
+        background: white;
     }
 </style>
 
@@ -357,111 +515,106 @@
 </div>
 
 <div class="chat-container">
-    
-    <!-- LEFT SIDEBAR: FILTERS -->
+
+    <!-- ═══ LEFT SIDEBAR ═══ -->
     <div class="chat-sidebar">
-        <div class="card-custom">
-            <div class="card-custom-header">
-                <h5><i class="bi bi-sliders me-2"></i>Phạm vi tài liệu</h5>
-            </div>
-            <div class="card-custom-body">
-                <!-- Subject selection -->
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Môn học</label>
-                    <select class="form-select" id="chatSubjectSelect" onchange="loadChatChapters(this.value)">
-                        <option value="">— Tất cả môn học —</option>
-                        @foreach (var s in subjects)
-                        {
-                            <option value="@s.SubjectID">[@s.SubjectCode] @s.SubjectName</option>
-                        }
-                    </select>
-                </div>
-                
-                <!-- Chapter selection -->
-                <div class="mb-4">
-                    <label class="form-label small fw-semibold">Chương học</label>
-                    <select class="form-select" id="chatChapterSelect" disabled>
-                        <option value="">— Tất cả chương —</option>
-                    </select>
-                </div>
-                
-                <button type="button" class="btn btn-outline-secondary w-100" onclick="resetChatFilters()">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i>Xóa bộ lọc
+
+        <!-- Phiên hội thoại Panel -->
+        <div class="session-panel">
+            <div class="session-panel-header">
+                <h6><i class="bi bi-clock-history"></i> Lịch sử phiên</h6>
+                <button class="btn-new-session" id="btnNewSession" onclick="createNewSession()">
+                    <i class="bi bi-plus-lg"></i> Phiên mới
                 </button>
             </div>
-        </div>
-        
-        <!-- Helpful Tips -->
-        <div class="card-custom">
-            <div class="card-custom-header">
-                <h6><i class="bi bi-lightbulb me-2"></i>Mẹo đặt câu hỏi</h6>
-            </div>
-            <div class="card-custom-body text-muted small">
-                <ul class="ps-3 mb-0">
-                    <li class="mb-2">Chọn đúng môn học để AI tìm kiếm phân cảnh tài liệu chính xác nhất.</li>
-                    <li class="mb-2">Đặt câu hỏi cụ thể, bám sát các khái niệm, định nghĩa trong bài giảng.</li>
-                    <li>Sử dụng các từ khóa như: "định nghĩa", "phân biệt", "các bước triển khai".</li>
-                </ul>
+            <div class="session-list" id="sessionList">
+                <div class="session-empty" id="sessionEmpty">
+                    <i class="bi bi-chat-dots mb-2 d-block fs-4 opacity-50"></i>
+                    Chưa có phiên hội thoại nào.<br>Nhấn <strong>"Phiên mới"</strong> để bắt đầu.
+                </div>
             </div>
         </div>
+
+        <!-- Bộ lọc tài liệu -->
+        <div class="filter-card">
+            <div class="filter-card-title"><i class="bi bi-sliders"></i> Phạm vi tài liệu</div>
+            <div class="mb-2">
+                <label class="form-label small fw-semibold" style="font-size:0.8rem;">Môn học</label>
+                <select class="form-select form-select-sm" id="chatSubjectSelect" onchange="onSubjectChanged(this.value)">
+                    <option value="">— Tất cả môn học —</option>
+                    @foreach (var s in subjects)
+                    {
+                        <option value="@s.SubjectID">[@s.SubjectCode] @s.SubjectName</option>
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-semibold" style="font-size:0.8rem;">Chương học</label>
+                <select class="form-select form-select-sm" id="chatChapterSelect" disabled>
+                    <option value="">— Tất cả chương —</option>
+                </select>
+            </div>
+            <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="resetChatFilters()">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Xóa bộ lọc
+            </button>
+        </div>
+
     </div>
-    
-    <!-- RIGHT MAIN: CHATBOX -->
+
+    <!-- ═══ MAIN CHATBOX ═══ -->
     <div class="chat-main">
 
-        <!-- Lock overlay: shown until user picks a subject -->
+        <!-- Lock overlay -->
         <div class="chat-lock-overlay" id="chatLockOverlay">
-            <div class="chat-lock-icon">
-                <i class="bi bi-lock-fill"></i>
-            </div>
+            <div class="chat-lock-icon"><i class="bi bi-chat-square-dots-fill"></i></div>
             <div class="chat-lock-text">
-                <h6>Chọn môn học để bắt đầu</h6>
-                <p>Vui lòng chọn <strong>Môn học</strong> ở cột bên trái để AI tìm kiếm đúng tài liệu và trả lời chính xác hơn.</p>
+                <h6>Chọn hoặc tạo phiên hội thoại</h6>
+                <p>Nhấn <strong>"Phiên mới"</strong> ở cột trái để bắt đầu cuộc hội thoại mới, hoặc chọn phiên cũ để xem lại.</p>
             </div>
         </div>
 
-        <!-- Header status -->
+        <!-- Header -->
         <div class="chat-header">
-            <div class="chat-header-title d-flex align-items-center gap-3">
+            <div class="chat-header-title">
                 <h5>LDS AI Assistant</h5>
-                <button type="button" class="btn btn-sm btn-link text-white-50 p-0 text-decoration-none hover-white" onclick="clearChatHistory()" title="Xóa lịch sử đoạn chat" style="font-size: 0.85rem; transition: color 0.2s;">
-                    <i class="bi bi-trash3 me-1"></i>Xóa lịch sử
-                </button>
+                <div class="session-title-badge" id="activeSessionTitle">Chưa chọn phiên</div>
             </div>
             <div class="chat-header-status">
                 <span class="status-dot"></span>
                 <span>AI Engine Sẵn sàng</span>
             </div>
         </div>
-        
-        <!-- Messages list -->
+
+        <!-- Messages -->
         <div class="chat-messages" id="chatMessages">
-            
-            <!-- AI Welcome message -->
-            <div class="message assistant">
+            <div class="message assistant" id="welcomeMessage">
                 <div class="message-avatar">AI</div>
                 <div class="message-content">
-                    <p>Chào bạn! Tôi là Trợ lý Học tập AI (LDS AI Assistant).</p>
-                    <p>Tôi đã sẵn sàng quét toàn bộ giáo trình, tệp PDF, Word, Slide bài giảng bạn đã tải lên để giải đáp mọi câu hỏi ôn tập. Hãy chọn môn học ở cột bên trái và nhập câu hỏi để bắt đầu thảo luận nhé!</p>
+                    <p>Chào bạn! Tôi là <strong>LDS AI Assistant</strong>.</p>
+                    <p>Chọn một phiên hội thoại ở cột trái hoặc tạo phiên mới để bắt đầu. Tôi sẽ trả lời dựa trên các tài liệu học tập đã được tải lên.</p>
                 </div>
             </div>
-            
         </div>
 
-        <!-- Input bottom -->
+        <!-- Save indicator -->
+        <div class="save-indicator" id="saveIndicator" style="display:none;">
+            <i class="bi bi-cloud-check text-success"></i> Đã lưu vào phiên hội thoại
+        </div>
+
+        <!-- Input -->
         <div class="chat-input-area">
             <form id="chatForm" onsubmit="sendChatMessage(event)">
                 @Html.AntiForgeryToken()
                 <div class="chat-input-wrapper">
-                    <input type="text" class="chat-input" id="chatInput" 
-                           placeholder="Chọn môn học trước để bắt đầu hỏi..." autocomplete="off" disabled />
+                    <input type="text" class="chat-input" id="chatInput"
+                           placeholder="Chọn hoặc tạo phiên hội thoại trước..." autocomplete="off" disabled />
                     <button type="submit" class="btn-send" id="btnSend" disabled>
                         <i class="bi bi-send-fill"></i>
                     </button>
                 </div>
             </form>
         </div>
-        
+
     </div>
 </div>
 
@@ -481,9 +634,9 @@
                 <div class="mb-3 small text-muted">
                     <i class="bi bi-file-text me-1"></i>Vị trí trích xuất: <strong id="sourcePage">Trang 1</strong>
                 </div>
-                <div class="p-3 bg-light border rounded text-dark" style="font-family: Inter, sans-serif; font-size: 0.95rem; line-height: 1.6; max-height: 40vh; overflow-y: auto; white-space: pre-wrap;" id="sourceText">
-                    Nội dung trích dẫn...
-                </div>
+                <div class="p-3 bg-light border rounded text-dark"
+                     style="font-family: Inter, sans-serif; font-size: 0.95rem; line-height: 1.6; max-height: 40vh; overflow-y: auto; white-space: pre-wrap;"
+                     id="sourceText">Nội dung trích dẫn...</div>
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
@@ -494,28 +647,38 @@
 
 @section Scripts {
 <script>
-    // Unique key per logged-in user to partition chat history
-    const CHAT_HISTORY_KEY = 'lds_chat_history_' + '@User.Identity?.Name';
+    // ── State ─────────────────────────────────────────────────────
+    let activeSessionId = null;
+    let isFirstMessageInSession = true;
 
-    // Auto-scroll to bottom of chat
     const messagesContainer = document.getElementById('chatMessages');
+    const antiForgeryToken   = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+
     function scrollToBottom() {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
-    
-    // Initial scroll
-    scrollToBottom();
 
-    // Toggle chat lock state
-    function setChatLocked(locked) {
+    // ── Lock / Unlock ─────────────────────────────────────────────
+    function setChatLocked(locked, placeholderText) {
         const overlay = document.getElementById('chatLockOverlay');
         const input   = document.getElementById('chatInput');
         const btnSend = document.getElementById('btnSend');
         if (locked) {
             overlay.classList.remove('hidden');
             input.disabled = true;
-            input.placeholder = 'Chọn môn học trước để bắt đầu hỏi...';
+            input.placeholder = placeholderText || 'Chọn hoặc tạo phiên hội thoại trước...';
             btnSend.disabled = true;
+            
+            // Cập nhật text trong lock overlay phù hợp
+            const overlayTitle = overlay.querySelector('.chat-lock-text h6');
+            const overlayDesc = overlay.querySelector('.chat-lock-text p');
+            if (placeholderText && placeholderText.includes('môn học')) {
+                if (overlayTitle) overlayTitle.textContent = 'Chọn môn học để trò chuyện';
+                if (overlayDesc) overlayDesc.textContent = 'Vui lòng chọn môn học ở danh sách bên trái để giới hạn phạm vi tài liệu và bắt đầu trò chuyện với AI.';
+            } else {
+                if (overlayTitle) overlayTitle.textContent = 'Chọn hoặc tạo phiên hội thoại';
+                if (overlayDesc) overlayDesc.textContent = 'Nhấn "Phiên mới" ở cột trái để bắt đầu cuộc hội thoại mới, hoặc chọn phiên cũ để xem lại.';
+            }
         } else {
             overlay.classList.add('hidden');
             input.disabled = false;
@@ -525,21 +688,293 @@
         }
     }
 
-    // Load chapters by subject
+    function updateChatLockState() {
+        const subjectSelect = document.getElementById('chatSubjectSelect');
+        const subjectId = subjectSelect.value;
+        
+        if (!activeSessionId) {
+            setChatLocked(true, 'Chọn hoặc tạo phiên hội thoại trước...');
+            return;
+        }
+        
+        if (!subjectId) {
+            setChatLocked(true, 'Vui lòng chọn môn học ở cột trái để bắt đầu hỏi đáp...');
+            return;
+        }
+        
+        setChatLocked(false);
+    }
+
+    async function onSubjectChanged(subjectId) {
+        loadChatChapters(subjectId);
+        updateChatLockState();
+        
+        // Nếu có phiên đang hoạt động, tự động lưu môn học này vào DB cho phiên đó
+        if (activeSessionId) {
+            try {
+                const form = new FormData();
+                form.append('sessionId', activeSessionId);
+                if (subjectId) form.append('subjectId', subjectId);
+                form.append('__RequestVerificationToken', antiForgeryToken);
+                
+                await fetch('/Chat?handler=UpdateSessionSubject', { method: 'POST', body: form });
+                
+                // Tải lại danh sách phiên để đồng bộ thuộc tính subjectId trong JS
+                await loadUserSessions();
+                setActiveSessionItem(activeSessionId);
+            } catch (e) {
+                console.error('Failed to update session subject', e);
+            }
+        }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────
+    function formatDate(iso) {
+        const d = new Date(iso);
+        const pad = n => String(n).padStart(2,'0');
+        return `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function renderMarkdown(text) {
+        let f = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        f = f.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        const lines = f.split('\n');
+        let inList = false;
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].trim().startsWith('- ')) {
+                const content = lines[i].trim().substring(2);
+                lines[i] = inList ? `<li>${content}</li>` : `<ul><li>${content}</li>`;
+                inList = true;
+            } else if (lines[i].trim().startsWith('>') && lines[i].includes('"')) {
+                const quote = lines[i].trim().substring(1).replace(/"/g,'').trim();
+                lines[i] = `<blockquote class="border-start border-primary border-4 ps-3 py-1 my-2 bg-light text-muted" style="font-style:italic;">"${quote}"</blockquote>`;
+            } else {
+                if (inList) { lines[i] = '</ul>' + lines[i]; inList = false; }
+            }
+        }
+        if (inList) lines[lines.length-1] += '</ul>';
+        return lines.join('\n').replace(/\n/g, '<br/>');
+    }
+
+    function showSourceDetails(title, page, score, content) {
+        document.getElementById('sourceDocTitle').textContent = title;
+        document.getElementById('sourcePage').textContent = page ? 'Trang ' + page : 'Phân đoạn văn bản';
+        document.getElementById('sourceScore').textContent = parseFloat(score).toFixed(1) + '% Độ tương đồng';
+        document.getElementById('sourceText').textContent = content;
+        new bootstrap.Modal(document.getElementById('sourceModal')).show();
+    }
+
+    // ── Session List Rendering ────────────────────────────────────
+    function renderSessionList(sessions) {
+        const list  = document.getElementById('sessionList');
+        const empty = document.getElementById('sessionEmpty');
+
+        // Remove all items except the empty placeholder
+        Array.from(list.querySelectorAll('.session-item')).forEach(el => el.remove());
+
+        if (!sessions || sessions.length === 0) {
+            empty.style.display = 'block';
+            return;
+        }
+        empty.style.display = 'none';
+
+        sessions.forEach(s => {
+            const item = document.createElement('div');
+            item.className = 'session-item' + (s.sessionID === activeSessionId ? ' active' : '');
+            item.dataset.sessionId = s.sessionID;
+            item.innerHTML = `
+                <div class="session-item-icon"><i class="bi bi-chat-text"></i></div>
+                <div class="session-item-body" style="flex: 1; min-width: 0;">
+                    <div class="d-flex justify-content-between align-items-baseline">
+                        <div class="session-item-title" title="${escapeHtml(s.title)}" style="flex: 1; min-width: 0; text-align: left; font-weight: 600;">${escapeHtml(s.title)}</div>
+                        <span class="session-item-date ms-2" style="flex-shrink: 0; font-size: 0.7rem; color: #94a3b8;">${formatDate(s.updatedAt)}</span>
+                    </div>
+                    <div class="session-item-preview text-muted small" style="text-align: left; font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
+                        ${escapeHtml(s.lastMessagePreview || 'Chưa có tin nhắn')}
+                    </div>
+                </div>
+                <button class="btn-delete-session" onclick="deleteSession(event, ${s.sessionID})" title="Xóa phiên này">
+                    <i class="bi bi-trash3"></i>
+                </button>`;
+            item.addEventListener('click', (e) => {
+                if (!e.target.closest('.btn-delete-session')) loadSession(s.sessionID, s.title, s.subjectId);
+            });
+            list.insertBefore(item, empty);
+        });
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function setActiveSessionItem(sessionId) {
+        document.querySelectorAll('.session-item').forEach(el => {
+            el.classList.toggle('active', parseInt(el.dataset.sessionId) === sessionId);
+        });
+    }
+
+    // ── Load sessions on startup ──────────────────────────────────
+    async function loadUserSessions() {
+        try {
+            const res = await fetch('/Chat?handler=Sessions');
+            const data = await res.json();
+            renderSessionList(data);
+        } catch(e) {
+            console.error('Failed to load sessions', e);
+        }
+    }
+
+    // ── Create new session ────────────────────────────────────────
+    async function createNewSession() {
+        const subjectId = document.getElementById('chatSubjectSelect').value || null;
+        try {
+            document.getElementById('btnNewSession').disabled = true;
+            const form = new FormData();
+            if (subjectId) form.append('subjectId', subjectId);
+            form.append('__RequestVerificationToken', antiForgeryToken);
+
+            const res  = await fetch('/Chat?handler=CreateSession', { method: 'POST', body: form });
+            const sess = await res.json();
+
+            if (sess.error) { alert(sess.error); return; }
+
+            activeSessionId = sess.sessionID;
+            isFirstMessageInSession = true;
+
+            // Update header
+            document.getElementById('activeSessionTitle').textContent = sess.title;
+
+            // Clear messages area
+            messagesContainer.innerHTML = `
+                <div class="message assistant" id="welcomeMessage">
+                    <div class="message-avatar">AI</div>
+                    <div class="message-content">
+                        <p>Phiên mới đã được tạo! Hãy chọn môn học ở cột trái và nhập câu hỏi để bắt đầu. 🚀</p>
+                    </div>
+                </div>`;
+
+            // Lock/unlock based on subject selection
+            updateChatLockState();
+
+            // Reload sessions list
+            await loadUserSessions();
+            setActiveSessionItem(activeSessionId);
+        } catch(e) {
+            console.error('Error creating session', e);
+        } finally {
+            document.getElementById('btnNewSession').disabled = false;
+        }
+    }
+
+    // ── Load session messages ─────────────────────────────────────
+    async function loadSession(sessionId, title, subjectId) {
+        try {
+            activeSessionId = sessionId;
+            isFirstMessageInSession = false;
+
+            document.getElementById('activeSessionTitle').textContent = title;
+            setActiveSessionItem(sessionId);
+
+            // Tự động chọn môn học đã lưu của phiên này
+            const subjectSelect = document.getElementById('chatSubjectSelect');
+            subjectSelect.value = subjectId || '';
+            
+            // Tải danh sách chương tương ứng và cập nhật trạng thái khóa chat
+            loadChatChapters(subjectId);
+            updateChatLockState();
+
+            const res  = await fetch(`/Chat?handler=SessionMessages&sessionId=${sessionId}`);
+            const msgs = await res.json();
+
+            // Clear and render
+            messagesContainer.innerHTML = '';
+
+            if (msgs.length === 0) {
+                messagesContainer.innerHTML = `
+                    <div class="message assistant">
+                        <div class="message-avatar">AI</div>
+                        <div class="message-content"><p>Phiên này chưa có tin nhắn nào.</p></div>
+                    </div>`;
+            } else {
+                msgs.forEach(m => appendMessage(m.role, m.content, m.sources, false));
+            }
+
+            scrollToBottom();
+        } catch(e) {
+            console.error('Error loading session', e);
+        }
+    }
+
+    // ── Delete session ────────────────────────────────────────────
+    async function deleteSession(event, sessionId) {
+        event.stopPropagation();
+        
+        const result = await Swal.fire({
+            title: 'Xóa phiên hội thoại?',
+            text: 'Toàn bộ lịch sử tin nhắn trong phiên này sẽ bị xóa vĩnh viễn và không thể khôi phục.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy',
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdrop: 'rgba(15, 23, 42, 0.3)'
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            const form = new FormData();
+            form.append('sessionId', sessionId);
+            form.append('__RequestVerificationToken', antiForgeryToken);
+
+            await fetch('/Chat?handler=DeleteSession', { method: 'POST', body: form });
+
+            if (activeSessionId === sessionId) {
+                activeSessionId = null;
+                document.getElementById('activeSessionTitle').textContent = 'Chưa chọn phiên';
+                messagesContainer.innerHTML = `
+                    <div class="message assistant">
+                        <div class="message-avatar">AI</div>
+                        <div class="message-content"><p>Phiên đã bị xóa. Hãy chọn hoặc tạo phiên mới.</p></div>
+                    </div>`;
+                setChatLocked(true);
+            }
+
+            await loadUserSessions();
+
+            Swal.fire({
+                title: 'Đã xóa!',
+                text: 'Phiên hội thoại đã được xóa thành công.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        } catch(e) {
+            console.error('Error deleting session', e);
+            Swal.fire({
+                title: 'Lỗi!',
+                text: 'Không thể xóa phiên hội thoại này.',
+                icon: 'error'
+            });
+        }
+    }
+
+    // ── Filter: Load chapters ─────────────────────────────────────
     function loadChatChapters(subjectId) {
         const select = document.getElementById('chatChapterSelect');
         select.innerHTML = '<option value="">— Đang tải... —</option>';
         select.disabled = true;
-        
+
         if (!subjectId) {
             select.innerHTML = '<option value="">— Tất cả chương —</option>';
-            setChatLocked(true);
+            if (activeSessionId) setChatLocked(false);
             return;
         }
 
-        // Unlock chat as soon as a subject is picked
-        setChatLocked(false);
-        
+        if (activeSessionId) setChatLocked(false);
+
         fetch('/Documents/Index?handler=GetChapters&subjectId=' + subjectId)
             .then(r => r.json())
             .then(data => {
@@ -551,156 +986,143 @@
             });
     }
 
-    // Reset filters
     function resetChatFilters() {
         document.getElementById('chatSubjectSelect').value = '';
-        const chapterSelect = document.getElementById('chatChapterSelect');
-        chapterSelect.innerHTML = '<option value="">— Tất cả chương —</option>';
-        chapterSelect.value = '';
-        chapterSelect.disabled = true;
-        setChatLocked(true);
+        const cs = document.getElementById('chatChapterSelect');
+        cs.innerHTML = '<option value="">— Tất cả chương —</option>';
+        cs.value = '';
+        cs.disabled = true;
     }
 
-    // Render basic markdown tags (bold and lists)
-    function renderMarkdown(text) {
-        // Render bold **text**
-        let formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        // Render italic *text*
-        formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
-        
-        // Render bullet lists - lines starting with '- ' or '* '
-        const lines = formatted.split('\n');
-        let inList = false;
-        for (let i = 0; i < lines.length; i++) {
-            if (lines[i].trim().startsWith('- ')) {
-                let content = lines[i].trim().substring(2);
-                if (!inList) {
-                    lines[i] = '<ul><li>' + content + '</li>';
-                    inList = true;
-                } else {
-                    lines[i] = '<li>' + content + '</li>';
-                }
-            } else if (lines[i].trim().startsWith('>') && lines[i].trim().includes('"')) {
-                // Style Blockquotes
-                let quote = lines[i].trim().substring(1).replace(/"/g, '').trim();
-                lines[i] = `<blockquote class="border-start border-primary border-4 ps-3 py-1 my-2 bg-light text-muted" style="font-style: italic;">"${quote}"</blockquote>`;
-            } else {
-                if (inList) {
-                    lines[i] = '</ul>' + lines[i];
-                    inList = false;
-                }
-            }
-        }
-        if (inList) {
-            lines[lines.length - 1] += '</ul>';
-        }
-        
-        return lines.join('\n').replace(/\n/g, '<br/>');
-    }
-
-    // Modal Source details popup
-    function showSourceDetails(title, page, score, content) {
-        document.getElementById('sourceDocTitle').textContent = title;
-        document.getElementById('sourcePage').textContent = page ? 'Trang ' + page : 'Phân đoạn văn bản';
-        document.getElementById('sourceScore').textContent = parseFloat(score).toFixed(1) + '% Độ tương đồng';
-        document.getElementById('sourceText').textContent = content;
-        new bootstrap.Modal(document.getElementById('sourceModal')).show();
-    }
-
-    // Send Chat message
+    // ── Send message ──────────────────────────────────────────────
     function sendChatMessage(event) {
         event.preventDefault();
-        
+        if (!activeSessionId) { alert('Vui lòng chọn hoặc tạo phiên hội thoại trước!'); return; }
+
         const input = document.getElementById('chatInput');
         const questionText = input.value.trim();
         if (!questionText) return;
-        
-        // Disable input during request
+
         input.value = '';
         input.disabled = true;
         document.getElementById('btnSend').disabled = true;
-        
-        // 1. Append User Message
-        appendMessage('user', questionText, null, true);
-        
-        // 2. Append Loading Thinking Indicator
+
+        appendMessage('user', questionText, null, false);
         const loadingId = appendLoadingIndicator();
         scrollToBottom();
-        
-        // 3. Prepare Form Data
+
+        const targetSessionId = activeSessionId;
+        const isFirst = isFirstMessageInSession;
+        if (isFirst) {
+            isFirstMessageInSession = false;
+        }
+
         const formData = new FormData();
         formData.append('question', questionText);
         formData.append('subjectId', document.getElementById('chatSubjectSelect').value);
         formData.append('chapterId', document.getElementById('chatChapterSelect').value);
-        
-        // Anti forgery token
-        const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
-        if (tokenInput) {
-            formData.append('__RequestVerificationToken', tokenInput.value);
-        }
-        
-        // 4. Fetch Response via AJAX
-        fetch('/Chat?handler=Ask', {
-            method: 'POST',
-            body: formData
-        })
-        .then(r => r.json())
-        .then(data => {
-            // Remove loading indicator
-            removeLoadingIndicator(loadingId);
-            
-            // 5. Append Assistant Response
-            appendMessage('assistant', data.answer, data.sources, true);
-            scrollToBottom();
-        })
-        .catch(err => {
-            console.error(err);
-            removeLoadingIndicator(loadingId);
-            appendMessage('assistant', 'Đã xảy ra lỗi kết nối máy chủ. Bạn vui lòng tải lại trang và thử lại.', null, true);
-            scrollToBottom();
-        })
-        .finally(() => {
-            input.disabled = false;
-            document.getElementById('btnSend').disabled = false;
-            input.focus();
-        });
+        formData.append('__RequestVerificationToken', antiForgeryToken);
+
+        fetch('/Chat?handler=Ask', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                removeLoadingIndicator(loadingId);
+                
+                if (activeSessionId === targetSessionId) {
+                    appendMessage('assistant', data.answer, data.sources, false);
+                    scrollToBottom();
+                }
+
+                // Save both messages and auto-rename session asynchronously in the background
+                saveAndRefreshSessions(targetSessionId, questionText, data.answer, data.sources, isFirst);
+            })
+            .catch(err => {
+                console.error(err);
+                removeLoadingIndicator(loadingId);
+                if (activeSessionId === targetSessionId) {
+                    appendMessage('assistant', 'Đã xảy ra lỗi kết nối. Vui lòng thử lại.', null, false);
+                    scrollToBottom();
+                }
+            })
+            .finally(() => {
+                input.disabled = false;
+                document.getElementById('btnSend').disabled = false;
+                input.focus();
+            });
     }
 
-    // Helper: Append a message bubble to Chatbox
-    function appendMessage(sender, text, sources = null, saveToStorage = true) {
-        const chatMessages = document.getElementById('chatMessages');
-        
+    async function saveAndRefreshSessions(sessionId, userContent, assistantContent, sources, isFirst) {
+        try {
+            const saveForm = new FormData();
+            saveForm.append('sessionId', sessionId);
+            saveForm.append('userContent', userContent);
+            saveForm.append('assistantContent', assistantContent);
+            if (sources && sources.length > 0) saveForm.append('sourcesJson', JSON.stringify(sources));
+            saveForm.append('__RequestVerificationToken', antiForgeryToken);
+
+            let renamePromise = Promise.resolve();
+            if (isFirst) {
+                const autoTitle = userContent.split(' ').slice(0, 6).join(' ') + (userContent.split(' ').length > 6 ? '...' : '');
+                
+                if (activeSessionId === sessionId) {
+                    document.getElementById('activeSessionTitle').textContent = autoTitle;
+                }
+                
+                const renameForm = new FormData();
+                renameForm.append('sessionId', sessionId);
+                renameForm.append('title', autoTitle);
+                renameForm.append('__RequestVerificationToken', antiForgeryToken);
+                
+                renamePromise = fetch('/Chat?handler=UpdateSessionTitle', { method: 'POST', body: renameForm });
+            }
+
+            const savePromise = fetch('/Chat?handler=SaveMessages', { method: 'POST', body: saveForm });
+
+            // Run both in parallel
+            await Promise.all([renamePromise, savePromise]);
+
+            if (activeSessionId === sessionId) {
+                const ind = document.getElementById('saveIndicator');
+                if (ind) {
+                    ind.style.display = 'flex';
+                    setTimeout(() => { ind.style.display = 'none'; }, 2000);
+                }
+            }
+
+            // Refresh session list once
+            await loadUserSessions();
+            setActiveSessionItem(activeSessionId);
+        } catch(e) {
+            console.error('Failed to save messages/rename session in background', e);
+        }
+    }
+
+    // ── Message rendering ─────────────────────────────────────────
+    function appendMessage(sender, text, sources, _unused) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}`;
-        
+
         const avatarDiv = document.createElement('div');
         avatarDiv.className = 'message-avatar';
         avatarDiv.textContent = sender === 'user' ? 'U' : 'AI';
-        
+
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
         contentDiv.innerHTML = renderMarkdown(text);
-        
-        // Include Sources if present
+
         if (sources && sources.length > 0) {
             const sourcesDiv = document.createElement('div');
             sourcesDiv.className = 'message-sources';
             sourcesDiv.innerHTML = '<span class="text-muted d-block w-100 mb-1 small"><i class="bi bi-info-circle me-1"></i>Trích dẫn từ tài liệu học tập:</span>';
-            
-            // Deduplicate sources by Document Title and Page Number to avoid showing duplicate tags
+
             const uniqueSources = [];
             sources.forEach(src => {
                 const key = `${src.documentTitle}_${src.pageNumber ?? 'N/A'}`;
                 const existing = uniqueSources.find(x => `${x.documentTitle}_${x.pageNumber ?? 'N/A'}` === key);
-                
                 if (existing) {
-                    // Concatenate snippets so clicking the tag shows both text segments beautifully
-                    existing.contentSnippet += "\n\n[Đoạn trích liên quan khác từ cùng trang này]:\n" + src.contentSnippet;
-                    if (src.similarityScore > existing.similarityScore) {
-                        existing.similarityScore = src.similarityScore;
-                    }
+                    existing.contentSnippet += "\n\n[Đoạn trích liên quan khác]:\n" + src.contentSnippet;
+                    if (src.similarityScore > existing.similarityScore) existing.similarityScore = src.similarityScore;
                 } else {
-                    // Deep copy the source object to avoid mutating the original array
                     uniqueSources.push({ ...src });
                 }
             });
@@ -710,108 +1132,43 @@
                 sourcesDiv.innerHTML += `
                     <div class="source-tag" onclick="showSourceDetails('${src.documentTitle}', ${src.pageNumber}, ${src.similarityScore}, '${cleanSnippet}')">
                         <i class="bi bi-file-earmark-text-fill"></i>
-                        <span>${src.documentTitle.length > 35 ? src.documentTitle.substring(0, 32) + '...' : src.documentTitle}</span>
+                        <span>${src.documentTitle.length > 35 ? src.documentTitle.substring(0,32)+'...' : src.documentTitle}</span>
                         ${src.pageNumber ? `<span class="text-secondary small">(Tr.${src.pageNumber})</span>` : ''}
-                    </div>
-                `;
+                    </div>`;
             });
             contentDiv.appendChild(sourcesDiv);
         }
-        
+
         messageDiv.appendChild(avatarDiv);
         messageDiv.appendChild(contentDiv);
-        chatMessages.appendChild(messageDiv);
+        messagesContainer.appendChild(messageDiv);
         scrollToBottom();
-
-        // Save to LocalStorage if requested
-        if (saveToStorage) {
-            let history = [];
-            try {
-                const existingHistory = localStorage.getItem(CHAT_HISTORY_KEY);
-                if (existingHistory) {
-                    history = JSON.parse(existingHistory);
-                }
-            } catch (e) {
-                console.error("Failed to parse chat history from localStorage", e);
-            }
-            history.push({ sender, text, sources });
-            localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
-        }
     }
 
-    // Helper: Append loading dots
     function appendLoadingIndicator() {
-        const chatMessages = document.getElementById('chatMessages');
         const id = 'loading_' + Date.now();
-        
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message assistant';
-        messageDiv.id = id;
-        
-        const avatarDiv = document.createElement('div');
-        avatarDiv.className = 'message-avatar';
-        avatarDiv.textContent = 'AI';
-        
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'message-content';
-        contentDiv.innerHTML = `
-            <div class="thinking">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <span class="text-muted small ms-2">Assistant is searching chunks...</span>
-            </div>
-        `;
-        
-        messageDiv.appendChild(avatarDiv);
-        messageDiv.appendChild(contentDiv);
-        chatMessages.appendChild(messageDiv);
+        const div = document.createElement('div');
+        div.className = 'message assistant';
+        div.id = id;
+        div.innerHTML = `
+            <div class="message-avatar">AI</div>
+            <div class="message-content">
+                <div class="thinking">
+                    <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                    <span class="text-muted small ms-2">Đang phân tích tài liệu...</span>
+                </div>
+            </div>`;
+        messagesContainer.appendChild(div);
         return id;
     }
 
-    // Helper: Remove loading dots
     function removeLoadingIndicator(id) {
         const el = document.getElementById(id);
         if (el) el.remove();
     }
 
-    // Load Chat History from LocalStorage
-    function loadChatHistory() {
-        try {
-            const historyJson = localStorage.getItem(CHAT_HISTORY_KEY);
-            if (historyJson) {
-                const history = JSON.parse(historyJson);
-                history.forEach(msg => {
-                    appendMessage(msg.sender, msg.text, msg.sources, false);
-                });
-            }
-        } catch (e) {
-            console.error("Failed to load chat history", e);
-        }
-    }
-
-    // Clear Chat History from LocalStorage
-    function clearChatHistory() {
-        if (confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử đoạn chat này không?")) {
-            localStorage.removeItem(CHAT_HISTORY_KEY);
-            
-            // Keep only the welcome message
-            const chatMessages = document.getElementById('chatMessages');
-            chatMessages.innerHTML = `
-                <!-- AI Welcome message -->
-                <div class="message assistant">
-                    <div class="message-avatar">AI</div>
-                    <div class="message-content">
-                        <p>Chào bạn! Tôi là Trợ lý Học tập AI (LDS AI Assistant).</p>
-                        <p>Tôi đã sẵn sàng quét toàn bộ giáo trình, tệp PDF, Word, Slide bài giảng bạn đã tải lên để giải đáp mọi câu hỏi ôn tập. Hãy chọn môn học ở cột bên trái và nhập câu hỏi để bắt đầu thảo luận nhé!</p>
-                    </div>
-                </div>
-            `;
-            scrollToBottom();
-        }
-    }
-
-    // Initialize Chat History on load
-    loadChatHistory();
+    // ── Init ──────────────────────────────────────────────────────
+    loadUserSessions();
+    scrollToBottom();
 </script>
 }
