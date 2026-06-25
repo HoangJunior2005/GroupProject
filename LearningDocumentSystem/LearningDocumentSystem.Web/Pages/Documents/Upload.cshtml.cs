@@ -41,9 +41,23 @@ namespace LearningDocumentSystem.Web.Pages.Documents
         [BindProperty]
         public DocumentUploadViewModel Input { get; set; } = new();
 
-        public async Task OnGetAsync(int? subjectId)
+        public async Task<IActionResult> OnGetAsync(int? subjectId)
         {
-            var subjects = (await _subjectService.GetAllAsync()).ToList();
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdStr, out int userId))
+            {
+                return RedirectToPage("/Account/Login");
+            }
+
+            var allSubjects = await _subjectService.GetAllAsync();
+            var subjects = allSubjects.Where(s => s.SubjectLeaderID == userId).ToList();
+
+            if (!subjects.Any())
+            {
+                TempData["Error"] = "Bạn không được phân công phụ trách môn học nào (Subject Leader) nên không có quyền upload tài liệu.";
+                return RedirectToPage("/Index");
+            }
+
             Input.Subjects = subjects;
 
             var selectedSubjectId = subjectId;
@@ -56,23 +70,41 @@ namespace LearningDocumentSystem.Web.Pages.Documents
             Input.Chapters = selectedSubjectId.HasValue
                 ? await _chapterService.GetBySubjectAsync(selectedSubjectId.Value)
                 : [];
+            
+            return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdStr, out int userId))
+            {
+                TempData["Error"] = "Phiên đăng nhập không hợp lệ.";
+                return RedirectToPage("/Account/Login");
+            }
+
             if (!ModelState.IsValid)
             {
-                await PopulateUploadDropdownsAsync();
+                await PopulateUploadDropdownsAsync(userId);
                 return Page();
             }
 
             try
             {
-                var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (!int.TryParse(userIdStr, out int userId))
+                // Kiểm tra quyền: UserId có phải là SubjectLeader của môn học chứa ChapterId này không?
+                var chapter = await _chapterService.GetByIdAsync(Input.ChapterId);
+                if (chapter == null)
                 {
-                    TempData["Error"] = "Phiên đăng nhập không hợp lệ.";
-                    return RedirectToPage("/Account/Login");
+                    ModelState.AddModelError(string.Empty, "Chương không hợp lệ.");
+                    await PopulateUploadDropdownsAsync(userId);
+                    return Page();
+                }
+
+                var subject = await _subjectService.GetByIdAsync(chapter.SubjectID);
+                if (subject == null || subject.SubjectLeaderID != userId)
+                {
+                    TempData["Error"] = "Bạn không có quyền upload tài liệu cho môn học này.";
+                    return RedirectToPage("/Index");
                 }
 
                 // Thiết lập upload path cho DocumentService (đọc từ environment)
@@ -101,14 +133,15 @@ namespace LearningDocumentSystem.Web.Pages.Documents
                 {
                     ModelState.AddModelError(string.Empty, ex.Message);
                 }
-                await PopulateUploadDropdownsAsync();
+                await PopulateUploadDropdownsAsync(userId);
                 return Page();
             }
         }
 
-        private async Task PopulateUploadDropdownsAsync()
+        private async Task PopulateUploadDropdownsAsync(int userId)
         {
-            var subjects = (await _subjectService.GetAllAsync()).ToList();
+            var allSubjects = await _subjectService.GetAllAsync();
+            var subjects = allSubjects.Where(s => s.SubjectLeaderID == userId).ToList();
             Input.Subjects = subjects;
 
             int? selectedSubjectId = Input.SelectedSubjectId;

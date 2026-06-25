@@ -17,5 +17,10 @@ namespace LearningDocumentSystem.Web.ViewModels
         [RegularExpression(@"^[A-Z0-9]+$", ErrorMessage = "Mã học phần chỉ gồm chữ hoa và số (VD: INF205)")]
         [Display(Name = "Mã học phần")]
         public string SubjectCode { get; set; } = string.Empty;
+
+        [Display(Name = "Giảng viên phụ trách (Subject Leader)")]
+        public int? SubjectLeaderID { get; set; }
+
+        public IEnumerable<UserDto> Teachers { get; set; } = Enumerable.Empty<UserDto>();
     }
 }

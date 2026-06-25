@@ -55,6 +55,8 @@ namespace LearningDocumentSystem.Business.DTOs
         public DateTime CreatedAt { get; set; }
         public int ChapterCount { get; set; }
         public int DocumentCount { get; set; }
+        public int? SubjectLeaderID { get; set; }
+        public string? SubjectLeaderName { get; set; }
     }
 
     public class CreateSubjectDto
@@ -67,6 +69,8 @@ namespace LearningDocumentSystem.Business.DTOs
         [MaxLength(50)]
         [RegularExpression(@"^[A-Z0-9]+$", ErrorMessage = "Mã học phần chỉ gồm chữ hoa và số")]
         public string SubjectCode { get; set; } = string.Empty;
+
+        public int? SubjectLeaderID { get; set; }
     }
 
     public class UpdateSubjectDto : CreateSubjectDto

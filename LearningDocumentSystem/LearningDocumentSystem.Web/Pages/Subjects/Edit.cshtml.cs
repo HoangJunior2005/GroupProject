@@ -9,14 +9,16 @@ using System.Threading.Tasks;
 
 namespace LearningDocumentSystem.Web.Pages.Subjects
 {
-    [Authorize(Policy = "TeacherUp")]
+    [Authorize(Roles = "Admin")]
     public class EditModel : PageModel
     {
         private readonly ISubjectService _subjectService;
+        private readonly IAdminUserService _adminUserService;
 
-        public EditModel(ISubjectService subjectService)
+        public EditModel(ISubjectService subjectService, IAdminUserService adminUserService)
         {
             _subjectService = subjectService;
+            _adminUserService = adminUserService;
         }
 
         [BindProperty]
@@ -31,15 +33,21 @@ namespace LearningDocumentSystem.Web.Pages.Subjects
             {
                 SubjectID = s.SubjectID,
                 SubjectName = s.SubjectName,
-                SubjectCode = s.SubjectCode
+                SubjectCode = s.SubjectCode,
+                SubjectLeaderID = s.SubjectLeaderID
             };
 
+            await PopulateTeachersAsync();
             return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            if (!ModelState.IsValid) return Page();
+            if (!ModelState.IsValid) 
+            {
+                await PopulateTeachersAsync();
+                return Page();
+            }
 
             try
             {
@@ -47,7 +55,8 @@ namespace LearningDocumentSystem.Web.Pages.Subjects
                 {
                     SubjectID = Input.SubjectID,
                     SubjectName = Input.SubjectName,
-                    SubjectCode = Input.SubjectCode
+                    SubjectCode = Input.SubjectCode,
+                    SubjectLeaderID = Input.SubjectLeaderID
                 });
                 TempData["Success"] = "Cập nhật môn học thành công.";
                 return RedirectToPage("./Index");
@@ -55,8 +64,15 @@ namespace LearningDocumentSystem.Web.Pages.Subjects
             catch (Exception ex)
             {
                 ModelState.AddModelError(string.Empty, ex.Message);
+                await PopulateTeachersAsync();
                 return Page();
             }
+        }
+
+        private async Task PopulateTeachersAsync()
+        {
+            var users = await _adminUserService.GetAllUsersAsync();
+            Input.Teachers = users.Where(u => u.Roles.Contains("Teacher")).ToList();
         }
     }
 }

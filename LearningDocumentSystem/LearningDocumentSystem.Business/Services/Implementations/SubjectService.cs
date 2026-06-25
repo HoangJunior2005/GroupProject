@@ -48,6 +48,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
             var subject = _mapper.Map<Subject>(dto);
             subject.CreatedAt = DateTime.UtcNow;
+            subject.SubjectLeaderID = dto.SubjectLeaderID;
             await _uow.Subjects.AddAsync(subject);
             await _uow.SaveChangesAsync();
 
@@ -68,6 +69,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
             subject.SubjectName = dto.SubjectName;
             subject.SubjectCode = dto.SubjectCode;
+            subject.SubjectLeaderID = dto.SubjectLeaderID;
             _uow.Subjects.Update(subject);
             await _uow.SaveChangesAsync();
 
