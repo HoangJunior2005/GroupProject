@@ -77,7 +77,7 @@ namespace LearningDocumentSystem.Web.Pages.Users
                     var role = Roles.FirstOrDefault(r => r.RoleName == userRole);
                     if (role != null)
                     {
-                        await _adminUserService.UpdateUserRolesAsync(UserID, new List<int> { role.RoleID }, CanUpload);
+                        await _adminUserService.UpdateUserRolesAsync(UserID, new List<int> { role.RoleID }, user.CanUpload);
                     }
                 }
                 TempData["Success"] = "Cập nhật thành công.";
