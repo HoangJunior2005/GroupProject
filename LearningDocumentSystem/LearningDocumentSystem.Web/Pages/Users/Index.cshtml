@@ -163,7 +163,16 @@
             document.querySelectorAll('.subject-checkbox').forEach(checkbox => {
                 checkbox.addEventListener('change', function() {
                     const userId = this.getAttribute('data-user-id');
+                    const subjectId = this.value;
+                    const isChecked = this.checked;
                     
+                    // Immediately disable/enable this subject in other teachers' dropdowns
+                    document.querySelectorAll(`.subject-checkbox[value="${subjectId}"]`).forEach(cb => {
+                        if (cb.getAttribute('data-user-id') !== userId) {
+                            cb.disabled = isChecked;
+                        }
+                    });
+
                     // get all checked checkboxes for this user
                     const checkedBoxes = document.querySelectorAll(`.subject-checkbox[data-user-id="${userId}"]:checked`);
                     const subjectIds = Array.from(checkedBoxes).map(cb => cb.value);
@@ -175,24 +184,32 @@
                         formData.append('__RequestVerificationToken', token);
                     }
                     
-                    this.disabled = true;
-                    
                     fetch('/Users/Index?handler=AssignSubjects', {
                         method: 'POST',
                         body: formData
                     })
                     .then(response => {
-                        this.disabled = false;
                         if (!response.ok) {
                             alert('Đã xảy ra lỗi khi gán môn học.');
                             this.checked = !this.checked; // Revert checkbox state
+                            // Revert immediate client-side state
+                            document.querySelectorAll(`.subject-checkbox[value="${subjectId}"]`).forEach(cb => {
+                                if (cb.getAttribute('data-user-id') !== userId) {
+                                    cb.disabled = !isChecked;
+                                }
+                            });
                         }
                     })
                     .catch(error => {
-                        this.disabled = false;
                         console.error('Error:', error);
                         alert('Đã xảy ra lỗi kết nối khi gán môn học.');
                         this.checked = !this.checked; // Revert checkbox state
+                        // Revert immediate client-side state
+                        document.querySelectorAll(`.subject-checkbox[value="${subjectId}"]`).forEach(cb => {
+                            if (cb.getAttribute('data-user-id') !== userId) {
+                                cb.disabled = !isChecked;
+                            }
+                        });
                     });
                 });
             });
@@ -233,14 +250,15 @@
         // Realtime update listener to refresh users list without full page reload
         document.addEventListener("realtimeUpdate", function(e) {
             const type = e.detail.messageType;
-            if (type === "UserChanged") {
+            // Refresh on User changes or Subject assignment changes
+            if (type === "UserChanged" || type.startsWith("Subject")) {
                 console.log("Realtime event matched in Users Index. Refreshing table...");
                 setTimeout(() => {
                     refreshPageFragments(["#users-list-panel"], function() {
                         bindSubjectCheckboxes();
                         filterUsers();
                     }).catch(err => console.error("Users realtime refresh failed:", err));
-                }, 1000);
+                }, 300); // 300ms delay to ensure DB commits
             }
         });
     </script>
