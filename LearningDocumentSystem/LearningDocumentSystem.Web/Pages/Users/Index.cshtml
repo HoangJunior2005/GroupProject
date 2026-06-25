@@ -2,7 +2,7 @@
 @model IndexModel
 @using LearningDocumentSystem.Common.Constants
 @{
-    ViewData["Title"] = "Quản lý quyền";
+    ViewData["Title"] = "Người dùng";
 }
 
 <!-- Anti-forgery token for AJAX requests -->
@@ -10,8 +10,8 @@
 
 <div class="page-header d-flex justify-content-between align-items-center">
     <div>
-        <h1 class="page-title"><i class="bi bi-people-fill me-2"></i>Quản lý quyền</h1>
-        <p class="page-subtitle">Cấp quyền và quản lý tài khoản người dùng</p>
+        <h1 class="page-title"><i class="bi bi-people-fill me-2"></i>Người dùng</h1>
+        <p class="page-subtitle">Quản lý tài khoản người dùng và gán môn học</p>
     </div>
     <div>
         <a asp-page="/Users/Create" class="btn btn-primary shadow-sm">
@@ -58,7 +58,7 @@
                             <th>Email</th>
                             <th>Trạng thái</th>
                             <th>Role</th>
-                            <th class="text-center" style="width: 200px;">Quyền Upload (GV)</th>
+                            <th class="text-center" style="width: 250px;">Subject</th>
                             <th class="text-end" style="width: 200px;">Thao tác</th>
                         </tr>
                     </thead>
@@ -101,9 +101,31 @@
                                 <td class="text-center">
                                     @if (currentRole == "Teacher")
                                     {
-                                        <div class="form-check form-switch mb-0 d-inline-block">
-                                            <input class="form-check-input upload-permission-switch" type="checkbox" name="canUpload" value="true" @(u.CanUpload ? "checked" : "") data-user-id="@u.UserID" id="canUpload_@u.UserID" />
-                                            <label class="form-check-label text-muted small ms-1" for="canUpload_@u.UserID">Cho phép</label>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="assignSubjectBtn_@u.UserID" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
+                                                — Gán môn —
+                                            </button>
+                                            <ul class="dropdown-menu p-2 shadow" aria-labelledby="assignSubjectBtn_@u.UserID" style="min-width: 280px; max-height: 300px; overflow-y: auto;">
+                                                @foreach (var subject in Model.ModelData.AllSubjects)
+                                                {
+                                                    var isAssigned = u.AssignedSubjectIds.Contains(subject.SubjectID);
+                                                    var isAssignedToOther = subject.SubjectLeaderID.HasValue && subject.SubjectLeaderID != u.UserID;
+                                                    var assignedToText = isAssignedToOther ? $" (đã giao: {(subject.SubjectLeaderName ?? "Người khác")})" : "";
+                                                    <li>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input subject-checkbox" type="checkbox" 
+                                                                   value="@subject.SubjectID" 
+                                                                   id="subject_@(u.UserID)_@(subject.SubjectID)"
+                                                                   data-user-id="@u.UserID"
+                                                                   @(isAssigned ? "checked" : "")
+                                                                   @(isAssignedToOther ? "disabled" : "")>
+                                                            <label class="form-check-label @(isAssignedToOther ? "text-muted" : "")" for="subject_@(u.UserID)_@(subject.SubjectID)" style="font-size: 0.85rem;">
+                                                                @subject.SubjectName <span style="font-size: 0.75rem;">@assignedToText</span>
+                                                            </label>
+                                                        </div>
+                                                    </li>
+                                                }
+                                            </ul>
                                         </div>
                                     }
                                 </td>
@@ -137,39 +159,59 @@
         // Retrieve anti-forgery token from the page
         const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
-        function bindUploadPermissionSwitches() {
-            document.querySelectorAll('.upload-permission-switch').forEach(checkbox => {
+        function bindSubjectCheckboxes() {
+            document.querySelectorAll('.subject-checkbox').forEach(checkbox => {
                 checkbox.addEventListener('change', function() {
-                const userId = this.getAttribute('data-user-id');
-                const canUpload = this.checked;
-                
-                const formData = new FormData();
-                formData.append('userId', userId);
-                formData.append('canUpload', canUpload);
-                if (token) {
-                    formData.append('__RequestVerificationToken', token);
-                }
-                
-                this.disabled = true;
-                
-                fetch('/Users/Index?handler=UpdateUploadPermission', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    this.disabled = false;
-                    if (!response.ok) {
-                        alert('Đã xảy ra lỗi khi cập nhật quyền upload.');
-                        this.checked = !canUpload; // Revert checkbox state
+                    const userId = this.getAttribute('data-user-id');
+                    const subjectId = this.value;
+                    const isChecked = this.checked;
+                    
+                    // Immediately disable/enable this subject in other teachers' dropdowns
+                    document.querySelectorAll(`.subject-checkbox[value="${subjectId}"]`).forEach(cb => {
+                        if (cb.getAttribute('data-user-id') !== userId) {
+                            cb.disabled = isChecked;
+                        }
+                    });
+
+                    // get all checked checkboxes for this user
+                    const checkedBoxes = document.querySelectorAll(`.subject-checkbox[data-user-id="${userId}"]:checked`);
+                    const subjectIds = Array.from(checkedBoxes).map(cb => cb.value);
+                    
+                    const formData = new FormData();
+                    formData.append('userId', userId);
+                    subjectIds.forEach(id => formData.append('subjectIds', id));
+                    if (token) {
+                        formData.append('__RequestVerificationToken', token);
                     }
-                })
-                .catch(error => {
-                    this.disabled = false;
-                    console.error('Error:', error);
-                    alert('Đã xảy ra lỗi kết nối khi cập nhật quyền upload.');
-                    this.checked = !canUpload; // Revert checkbox state
+                    
+                    fetch('/Users/Index?handler=AssignSubjects', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            alert('Đã xảy ra lỗi khi gán môn học.');
+                            this.checked = !this.checked; // Revert checkbox state
+                            // Revert immediate client-side state
+                            document.querySelectorAll(`.subject-checkbox[value="${subjectId}"]`).forEach(cb => {
+                                if (cb.getAttribute('data-user-id') !== userId) {
+                                    cb.disabled = !isChecked;
+                                }
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Đã xảy ra lỗi kết nối khi gán môn học.');
+                        this.checked = !this.checked; // Revert checkbox state
+                        // Revert immediate client-side state
+                        document.querySelectorAll(`.subject-checkbox[value="${subjectId}"]`).forEach(cb => {
+                            if (cb.getAttribute('data-user-id') !== userId) {
+                                cb.disabled = !isChecked;
+                            }
+                        });
+                    });
                 });
-            });
             });
         }
 
@@ -201,21 +243,22 @@
             });
         }
 
-        bindUploadPermissionSwitches();
+        bindSubjectCheckboxes();
         if (searchInput) searchInput.addEventListener('input', filterUsers);
         if (roleFilter) roleFilter.addEventListener('change', filterUsers);
 
         // Realtime update listener to refresh users list without full page reload
         document.addEventListener("realtimeUpdate", function(e) {
             const type = e.detail.messageType;
-            if (type === "UserChanged") {
+            // Refresh on User changes or Subject assignment changes
+            if (type === "UserChanged" || type.startsWith("Subject")) {
                 console.log("Realtime event matched in Users Index. Refreshing table...");
                 setTimeout(() => {
                     refreshPageFragments(["#users-list-panel"], function() {
-                        bindUploadPermissionSwitches();
+                        bindSubjectCheckboxes();
                         filterUsers();
                     }).catch(err => console.error("Users realtime refresh failed:", err));
-                }, 1000);
+                }, 300); // 300ms delay to ensure DB commits
             }
         });
     </script>

@@ -16,11 +16,13 @@ namespace LearningDocumentSystem.Web.Pages.Users
     public class IndexModel : PageModel
     {
         private readonly IAdminUserService _adminUserService;
+        private readonly ISubjectService _subjectService;
         private readonly ILogger<IndexModel> _logger;
 
-        public IndexModel(IAdminUserService adminUserService, ILogger<IndexModel> logger)
+        public IndexModel(IAdminUserService adminUserService, ISubjectService subjectService, ILogger<IndexModel> logger)
         {
             _adminUserService = adminUserService;
+            _subjectService = subjectService;
             _logger = logger;
         }
 
@@ -30,10 +32,12 @@ namespace LearningDocumentSystem.Web.Pages.Users
         {
             var users = await _adminUserService.GetAllUsersAsync();
             var roles = await _adminUserService.GetAllRolesAsync();
+            var subjects = await _subjectService.GetAllAsync();
 
             ModelData = new UserRoleManageViewModel
             {
                 Roles = roles,
+                AllSubjects = subjects,
                 Users = users.Select(u => new UserRoleItemViewModel
                 {
                     UserID = u.UserID,
@@ -46,22 +50,63 @@ namespace LearningDocumentSystem.Web.Pages.Users
                     AssignedRoleIds = roles
                         .Where(r => u.Roles.Contains(r.RoleName))
                         .Select(r => r.RoleID)
+                        .ToList(),
+                    AssignedSubjectIds = subjects
+                        .Where(s => s.SubjectLeaderID == u.UserID)
+                        .Select(s => s.SubjectID)
                         .ToList()
                 })
             };
         }
 
-        // AJAX POST handler to update upload permission
-        public async Task<IActionResult> OnPostUpdateUploadPermissionAsync(int userId, bool canUpload)
+        // AJAX POST handler to assign subjects
+        public async Task<IActionResult> OnPostAssignSubjectsAsync(int userId, [FromForm] List<int> subjectIds)
         {
             try
             {
-                await _adminUserService.UpdateUploadPermissionAsync(userId, canUpload);
-                return new JsonResult(new { success = true, message = "Cập nhật quyền upload thành công." });
+                var allSubjects = await _subjectService.GetAllAsync();
+                
+                // Get subjects currently assigned to this user
+                var currentlyAssigned = allSubjects.Where(s => s.SubjectLeaderID == userId).ToList();
+                
+                // 1. Remove user from subjects they no longer manage
+                foreach (var subject in currentlyAssigned)
+                {
+                    if (!subjectIds.Contains(subject.SubjectID))
+                    {
+                        var updateDto = new UpdateSubjectDto
+                        {
+                            SubjectID = subject.SubjectID,
+                            SubjectName = subject.SubjectName,
+                            SubjectCode = subject.SubjectCode,
+                            SubjectLeaderID = null // Unassign
+                        };
+                        await _subjectService.UpdateAsync(updateDto);
+                    }
+                }
+
+                // 2. Assign user to selected subjects
+                foreach (var subjectId in subjectIds)
+                {
+                    var subject = allSubjects.FirstOrDefault(s => s.SubjectID == subjectId);
+                    if (subject != null && subject.SubjectLeaderID != userId)
+                    {
+                        var updateDto = new UpdateSubjectDto
+                        {
+                            SubjectID = subject.SubjectID,
+                            SubjectName = subject.SubjectName,
+                            SubjectCode = subject.SubjectCode,
+                            SubjectLeaderID = userId
+                        };
+                        await _subjectService.UpdateAsync(updateDto);
+                    }
+                }
+
+                return new JsonResult(new { success = true, message = "Cập nhật môn học thành công." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating upload permission for user {UserId}.", userId);
+                _logger.LogError(ex, "Error updating subjects for user {UserId}.", userId);
                 return new BadRequestObjectResult(new { error = ex.Message });
             }
         }

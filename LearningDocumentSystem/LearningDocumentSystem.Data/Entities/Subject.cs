@@ -19,7 +19,11 @@ namespace LearningDocumentSystem.Entities.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        [Column("SubjectLeaderID")]
+        public int? SubjectLeaderID { get; set; }
+
         // Navigation properties
         public virtual ICollection<Chapter> Chapters { get; set; } = new List<Chapter>();
+        public virtual User? SubjectLeader { get; set; }
     }
 }

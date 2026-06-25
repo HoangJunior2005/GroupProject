@@ -9,7 +9,7 @@
         <h1 class="page-title"><i class="bi bi-book-fill me-2"></i>Môn học</h1>
         <p class="page-subtitle">Quản lý các môn học trong hệ thống</p>
     </div>
-    @if (User.IsInRole("Admin") || User.IsInRole("Teacher"))
+    @if (User.IsInRole("Admin"))
     {
         <a asp-page="/Subjects/Create" class="btn btn-primary btn-action">
             <i class="bi bi-plus-circle me-2"></i>Thêm môn học
@@ -35,9 +35,10 @@
                             <th>#</th>
                             <th>Tên môn học</th>
                             <th>Mã học phần</th>
+                            <th>Giảng viên PT</th>
                             <th>Số chương</th>
                             <th>Ngày tạo</th>
-                            @if (User.IsInRole("Admin") || User.IsInRole("Teacher")) { <th class="text-end">Thao tác</th> }
+                            @if (User.IsInRole("Admin")) { <th class="text-end">Thao tác</th> }
                         </tr>
                     </thead>
                     <tbody>
@@ -57,12 +58,24 @@
                                     </span>
                                 </td>
                                 <td>
+                                    @if (!string.IsNullOrEmpty(s.SubjectLeaderName))
+                                    {
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill">
+                                            <i class="bi bi-person-fill me-1"></i>@s.SubjectLeaderName
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">Chưa gán</span>
+                                    }
+                                </td>
+                                <td>
                                     <span class="badge bg-secondary-subtle text-secondary">
                                         <i class="bi bi-collection me-1"></i>@s.ChapterCount chương
                                     </span>
                                 </td>
                                 <td class="text-muted small">@s.CreatedAt.ToString("dd/MM/yyyy")</td>
-                                @if (User.IsInRole("Admin") || User.IsInRole("Teacher"))
+                                @if (User.IsInRole("Admin"))
                                 {
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm">

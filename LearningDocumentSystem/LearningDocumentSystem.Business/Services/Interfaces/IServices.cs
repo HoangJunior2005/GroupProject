@@ -46,7 +46,7 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
     public interface IDocumentService
     {
         Task<(IEnumerable<DocumentDto> Items, int TotalCount)> GetPagedAsync(
-            string? keyword, int? subjectId, int? chapterId, string? status, int page, int pageSize);
+            string? keyword, int? subjectId, int? chapterId, string? status, int? teacherId, int page, int pageSize);
         Task<DocumentDetailDto?> GetDetailAsync(int id);
         Task<DocumentDto> UploadAsync(IFormFile file, int chapterId, string title, int uploadedByUserId);
         Task DeleteAsync(int id);

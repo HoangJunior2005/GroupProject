@@ -12,11 +12,13 @@ namespace LearningDocumentSystem.Web.ViewModels
         public bool CanUpload { get; set; }
         public List<string> Roles { get; set; } = new();
         public List<int> AssignedRoleIds { get; set; } = new();
+        public List<int> AssignedSubjectIds { get; set; } = new();
     }
 
     public class UserRoleManageViewModel
     {
         public IEnumerable<RoleDto> Roles { get; set; } = Enumerable.Empty<RoleDto>();
         public IEnumerable<UserRoleItemViewModel> Users { get; set; } = Enumerable.Empty<UserRoleItemViewModel>();
+        public IEnumerable<SubjectDto> AllSubjects { get; set; } = Enumerable.Empty<SubjectDto>();
     }
 }

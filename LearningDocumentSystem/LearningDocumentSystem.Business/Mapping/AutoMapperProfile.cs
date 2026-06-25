@@ -22,7 +22,9 @@ namespace LearningDocumentSystem.Business.Mapping
                 .ForMember(dest => dest.ChapterCount,
                     opt => opt.MapFrom(src => src.Chapters.Count))
                 .ForMember(dest => dest.DocumentCount,
-                    opt => opt.MapFrom(src => src.Chapters.Sum(c => c.Documents.Count)));
+                    opt => opt.MapFrom(src => src.Chapters.Sum(c => c.Documents.Count)))
+                .ForMember(dest => dest.SubjectLeaderName,
+                    opt => opt.MapFrom(src => src.SubjectLeader != null ? src.SubjectLeader.FullName : null));
             CreateMap<CreateSubjectDto, Subject>();
             CreateMap<UpdateSubjectDto, Subject>();
 

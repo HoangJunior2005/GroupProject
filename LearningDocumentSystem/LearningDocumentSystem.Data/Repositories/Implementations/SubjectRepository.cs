@@ -11,6 +11,7 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
 
         public override async Task<IEnumerable<Subject>> GetAllAsync()
             => await _context.Subjects
+                .Include(s => s.SubjectLeader)
                 .Include(s => s.Chapters)
                     .ThenInclude(c => c.Documents)
                 .OrderByDescending(s => s.CreatedAt)
@@ -18,6 +19,7 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
 
         public async Task<Subject?> GetWithChaptersAsync(int subjectId)
             => await _context.Subjects
+                .Include(s => s.SubjectLeader)
                 .Include(s => s.Chapters.OrderBy(c => c.ChapterNumber))
                     .ThenInclude(c => c.Documents)
                 .FirstOrDefaultAsync(s => s.SubjectID == subjectId);

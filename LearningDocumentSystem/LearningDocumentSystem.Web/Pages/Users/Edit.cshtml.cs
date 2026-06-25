@@ -66,22 +66,26 @@ namespace LearningDocumentSystem.Web.Pages.Users
 
         public async Task<IActionResult> OnPostAsync()
         {
-            if (SelectedRoleId <= 0)
-            {
-                ModelState.AddModelError(string.Empty, "Vui lòng chọn vai trò.");
-                Roles = await _adminUserService.GetAllRolesAsync();
-                return Page();
-            }
-
             try
             {
-                await _adminUserService.UpdateUserRolesAsync(UserID, new List<int> { SelectedRoleId }, CanUpload);
-                TempData["Success"] = "Cập nhật quyền thành công.";
+                var users = await _adminUserService.GetAllUsersAsync();
+                var user = users.FirstOrDefault(u => u.UserID == UserID);
+                if (user != null)
+                {
+                    Roles = await _adminUserService.GetAllRolesAsync();
+                    var userRole = user.Roles.FirstOrDefault();
+                    var role = Roles.FirstOrDefault(r => r.RoleName == userRole);
+                    if (role != null)
+                    {
+                        await _adminUserService.UpdateUserRolesAsync(UserID, new List<int> { role.RoleID }, user.CanUpload);
+                    }
+                }
+                TempData["Success"] = "Cập nhật thành công.";
                 return RedirectToPage("./Index");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating roles for user {UserId}.", UserID);
+                _logger.LogError(ex, "Error updating user {UserId}.", UserID);
                 ModelState.AddModelError(string.Empty, ex.Message);
                 Roles = await _adminUserService.GetAllRolesAsync();
                 return Page();

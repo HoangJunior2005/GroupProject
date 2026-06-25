@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace LearningDocumentSystem.Web.Pages.Subjects
 {
-    [Authorize(Policy = "TeacherUp")]
+    [Authorize(Roles = "Admin")]
     public class DeleteModel : PageModel
     {
         private readonly ISubjectService _subjectService;

@@ -104,6 +104,12 @@ namespace LearningDocumentSystem.Data.DbContexts
                 entity.Property(s => s.SubjectCode).IsRequired().HasMaxLength(50);
                 entity.HasIndex(s => s.SubjectCode).IsUnique();
                 entity.Property(s => s.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+                // FK -> Users (SubjectLeader)
+                entity.HasOne(s => s.SubjectLeader)
+                    .WithMany()
+                    .HasForeignKey(s => s.SubjectLeaderID)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // ============================================================

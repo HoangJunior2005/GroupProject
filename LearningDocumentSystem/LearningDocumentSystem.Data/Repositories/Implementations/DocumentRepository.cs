@@ -43,7 +43,7 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
         }
 
         public async Task<(IEnumerable<Document> Items, int TotalCount)> GetPagedAsync(
-            string? keyword, int? subjectId, int? chapterId, string? status, int page, int pageSize)
+            string? keyword, int? subjectId, int? chapterId, string? status, int? teacherId, int page, int pageSize)
         {
             var query = _context.Documents
                 .Include(d => d.Chapter).ThenInclude(c => c.Subject)
@@ -59,6 +59,8 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
                 query = query.Where(d => d.ChapterID == chapterId);
             if (!string.IsNullOrWhiteSpace(status))
                 query = query.Where(d => d.IndexStatus == status);
+            if (teacherId.HasValue)
+                query = query.Where(d => d.Chapter.Subject.SubjectLeaderID == teacherId.Value);
 
             var total = await query.CountAsync();
             var items = await query

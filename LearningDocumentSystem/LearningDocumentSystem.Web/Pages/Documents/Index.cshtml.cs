@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Security.Claims;
 
 namespace LearningDocumentSystem.Web.Pages.Documents
 {
@@ -62,14 +63,29 @@ namespace LearningDocumentSystem.Web.Pages.Documents
                 }
             }
 
+            int? teacherId = null;
+            if (User.IsInRole(AppConstants.RoleTeacher))
+            {
+                var userIdStr = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (int.TryParse(userIdStr, out int userId))
+                {
+                    teacherId = userId;
+                }
+            }
+
             var (items, total) = await _documentService.GetPagedAsync(
-                Keyword, SubjectId, ChapterId, Status, CurrentPage, AppConstants.DefaultPageSize);
+                Keyword, SubjectId, ChapterId, Status, teacherId, CurrentPage, AppConstants.DefaultPageSize);
 
             Documents = items;
             TotalCount = total;
             TotalPages = (int)Math.Ceiling(total / (double)AppConstants.DefaultPageSize);
 
             Subjects = await _subjectService.GetAllAsync();
+            if (teacherId.HasValue)
+            {
+                Subjects = Subjects.Where(s => s.SubjectLeaderID == teacherId.Value).ToList();
+            }
+
             Chapters = SubjectId.HasValue
                 ? await _chapterService.GetBySubjectAsync(SubjectId.Value)
                 : [];
