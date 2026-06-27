@@ -74,14 +74,7 @@ namespace LearningDocumentSystem.Web.Pages.Users
                 {
                     if (!subjectIds.Contains(subject.SubjectID))
                     {
-                        var updateDto = new UpdateSubjectDto
-                        {
-                            SubjectID = subject.SubjectID,
-                            SubjectName = subject.SubjectName,
-                            SubjectCode = subject.SubjectCode,
-                            SubjectLeaderID = null // Unassign
-                        };
-                        await _subjectService.UpdateAsync(updateDto);
+                        await _subjectService.AssignLeaderAsync(subject.SubjectID, null);
                     }
                 }
 
@@ -91,14 +84,7 @@ namespace LearningDocumentSystem.Web.Pages.Users
                     var subject = allSubjects.FirstOrDefault(s => s.SubjectID == subjectId);
                     if (subject != null && subject.SubjectLeaderID != userId)
                     {
-                        var updateDto = new UpdateSubjectDto
-                        {
-                            SubjectID = subject.SubjectID,
-                            SubjectName = subject.SubjectName,
-                            SubjectCode = subject.SubjectCode,
-                            SubjectLeaderID = userId
-                        };
-                        await _subjectService.UpdateAsync(updateDto);
+                        await _subjectService.AssignLeaderAsync(subject.SubjectID, userId);
                     }
                 }
 

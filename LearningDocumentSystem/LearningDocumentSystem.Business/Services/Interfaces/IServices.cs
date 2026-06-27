@@ -31,6 +31,7 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
         Task<SubjectDto> CreateAsync(CreateSubjectDto dto);
         Task<SubjectDto> UpdateAsync(UpdateSubjectDto dto);
         Task DeleteAsync(int id);
+        Task AssignLeaderAsync(int subjectId, int? leaderId);
     }
 
     public interface IChapterService

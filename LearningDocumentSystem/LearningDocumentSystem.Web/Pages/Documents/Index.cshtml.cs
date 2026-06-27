@@ -98,10 +98,21 @@ namespace LearningDocumentSystem.Web.Pages.Documents
             return new JsonResult(chapters.Select(c => new { c.ChapterID, c.ChapterName, c.ChapterNumber }));
         }
 
-        // AJAX handler to load all subjects
+        // AJAX handler to load all subjects (filtered by teacher if applicable)
         public async Task<IActionResult> OnGetGetSubjectsAsync()
         {
             var subjects = await _subjectService.GetAllAsync();
+
+            // If the current user is a Teacher, only return subjects they are leading
+            if (User.IsInRole(AppConstants.RoleTeacher))
+            {
+                var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (int.TryParse(userIdStr, out int userId))
+                {
+                    subjects = subjects.Where(s => s.SubjectLeaderID == userId).ToList();
+                }
+            }
+
             return new JsonResult(subjects.Select(s => new { s.SubjectID, s.SubjectName, s.SubjectCode }));
         }
     }

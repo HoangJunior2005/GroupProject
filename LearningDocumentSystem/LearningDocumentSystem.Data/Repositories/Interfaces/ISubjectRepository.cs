@@ -6,6 +6,7 @@ namespace LearningDocumentSystem.Data.Repositories.Interfaces
     {
         Task<Subject?> GetWithChaptersAsync(int subjectId);
         Task<bool> IsCodeExistsAsync(string code, int? excludeId = null);
+        Task<bool> IsNameExistsAsync(string name, int? excludeId = null);
         Task<IEnumerable<Subject>> GetAllActiveAsync();
     }
 }

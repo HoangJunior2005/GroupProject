@@ -1,10 +1,13 @@
 using LearningDocumentSystem.Business.DTOs;
 using LearningDocumentSystem.Business.Services.Interfaces;
+using LearningDocumentSystem.Common.Constants;
 using LearningDocumentSystem.Web.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System;
+using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace LearningDocumentSystem.Web.Pages.Chapters
@@ -26,7 +29,7 @@ namespace LearningDocumentSystem.Web.Pages.Chapters
 
         public async Task OnGetAsync(int? subjectId)
         {
-            Input.Subjects = await _subjectService.GetAllAsync();
+            Input.Subjects = await GetAllowedSubjectsAsync();
             Input.SubjectID = subjectId ?? 0;
         }
 
@@ -34,7 +37,7 @@ namespace LearningDocumentSystem.Web.Pages.Chapters
         {
             if (!ModelState.IsValid)
             {
-                Input.Subjects = await _subjectService.GetAllAsync();
+                Input.Subjects = await GetAllowedSubjectsAsync();
                 return Page();
             }
 
@@ -52,9 +55,27 @@ namespace LearningDocumentSystem.Web.Pages.Chapters
             catch (Exception ex)
             {
                 ModelState.AddModelError(string.Empty, ex.Message);
-                Input.Subjects = await _subjectService.GetAllAsync();
+                Input.Subjects = await GetAllowedSubjectsAsync();
                 return Page();
             }
         }
+
+        private async Task<IEnumerable<SubjectDto>> GetAllowedSubjectsAsync()
+        {
+            var all = await _subjectService.GetAllAsync();
+
+            if (User.IsInRole(AppConstants.RoleTeacher))
+            {
+                var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (int.TryParse(userIdStr, out int userId))
+                {
+                    return all.Where(s => s.SubjectLeaderID == userId).ToList();
+                }
+            }
+
+            // Admin: hiện tất cả
+            return all;
+        }
     }
 }
+

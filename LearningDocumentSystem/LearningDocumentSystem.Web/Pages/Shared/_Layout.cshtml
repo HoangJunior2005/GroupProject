@@ -224,6 +224,7 @@ else
                 let text = "Hệ thống có cập nhật mới.";
                 if (messageType === "SubjectCreated") text = `Môn học mới được tạo: ${payload.subjectName}`;
                 else if (messageType === "SubjectUpdated") text = `Môn học đã cập nhật: ${payload.subjectName}`;
+                else if (messageType === "SubjectAssigned") text = payload.leaderId ? `Môn học đã được gán giáo viên phụ trách.` : `Môn học đã bị bỏ gán giáo viên.`;
                 else if (messageType === "SubjectDeleted") text = `Một môn học đã bị xóa.`;
                 else if (messageType === "ChapterCreated") text = `Chương mới được tạo: Chương ${payload.chapterNumber} - ${payload.chapterName}`;
                 else if (messageType === "ChapterUpdated") text = `Chương học đã cập nhật: ${payload.chapterName}`;
