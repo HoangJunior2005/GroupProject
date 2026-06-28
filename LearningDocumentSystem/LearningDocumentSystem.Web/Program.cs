@@ -1,5 +1,6 @@
 using LearningDocumentSystem.Web.Hubs;
 using LearningDocumentSystem.Business.Mapping;
+using System.Security.Claims;
 using LearningDocumentSystem.Business.Services.Implementations;
 using LearningDocumentSystem.Business.Services.Interfaces;
 using LearningDocumentSystem.Common.Constants;
@@ -39,9 +40,28 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly",        p => p.RequireRole(AppConstants.RoleAdmin));
     options.AddPolicy("TeacherUp",        p => p.RequireAssertion(context =>
-        context.User.IsInRole(AppConstants.RoleAdmin) ||
-        (context.User.IsInRole(AppConstants.RoleTeacher) && context.User.HasClaim(c => c.Type == "CanUpload" && c.Value == "True"))
-    ));
+    {
+        if (context.User.IsInRole(AppConstants.RoleAdmin)) return true;
+        if (context.User.IsInRole(AppConstants.RoleTeacher))
+        {
+            var httpContext = context.Resource as HttpContext ?? new HttpContextAccessor().HttpContext;
+            if (httpContext != null)
+            {
+                var db = httpContext.RequestServices.GetRequiredService<LearningDocumentSystem.Data.DbContexts.AppDbContext>();
+                var userIdStr = context.User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (int.TryParse(userIdStr, out int userId))
+                {
+                    var user = db.Users.FirstOrDefault(u => u.UserID == userId);
+                    if (user != null && (user.CanUpload || db.Subjects.Any(s => s.SubjectLeaderID == userId)))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return context.User.HasClaim(c => c.Type == "CanUpload" && c.Value == "True");
+        }
+        return false;
+    }));
     options.AddPolicy("TeacherOrStudent", p => p.RequireRole(AppConstants.RoleTeacher, AppConstants.RoleStudent));
     options.AddPolicy("AllUsers",        p => p.RequireAuthenticatedUser());
 });

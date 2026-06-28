@@ -28,6 +28,10 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
             => await _context.Subjects
                 .AnyAsync(s => s.SubjectCode == code && (!excludeId.HasValue || s.SubjectID != excludeId));
 
+        public async Task<bool> IsNameExistsAsync(string name, int? excludeId = null)
+            => await _context.Subjects
+                .AnyAsync(s => s.SubjectName == name && (!excludeId.HasValue || s.SubjectID != excludeId));
+
         public async Task<IEnumerable<Subject>> GetAllActiveAsync()
             => await GetAllAsync();
     }

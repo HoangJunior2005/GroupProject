@@ -9,7 +9,7 @@
         <h1 class="page-title"><i class="bi bi-journal-bookmark-fill me-2"></i>Chương học</h1>
         <p class="page-subtitle">Quản lý các chương học trong môn học</p>
     </div>
-    @if (User.IsInRole("Teacher"))
+    @if (User.IsInRole("Admin") || (User.IsInRole("Teacher") && (Model.SubjectId.HasValue ? Model.Subjects.Any(s => s.SubjectID == Model.SubjectId.Value) : Model.Subjects.Any())))
     {
         <a asp-page="/Chapters/Create" asp-route-subjectId="@Model.SubjectId" class="btn btn-primary btn-action">
             <i class="bi bi-plus-circle me-2"></i>Thêm chương

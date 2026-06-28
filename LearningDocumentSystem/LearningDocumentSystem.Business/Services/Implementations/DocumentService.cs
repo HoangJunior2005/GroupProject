@@ -175,7 +175,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 }
                 await _uow.Embeddings.AddRangeAsync(embeddings);
 
-                // Step 7: Quét mâu thuẫn kiến thức bằng AI (Cấp độ 4)
+                // Step 7: Quét mâu thuẫn kiến thức bằng AI (Cấp độ 4) - Đã tạm ẩn để tránh lỗi upload
+                /*
                 try
                 {
                     await CheckForConflictsAsync(document, chapter.SubjectID, chunkEntities, embeddings);
@@ -188,6 +189,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 {
                     _logger.LogError(conflictEx, "Unexpected error scanning document conflicts for document {DocId}.", document.DocumentID);
                 }
+                */
 
                 // Step 8: Cập nhật status → Indexed
                 await _uow.Documents.UpdateStatusAsync(document.DocumentID, AppConstants.StatusIndexed);

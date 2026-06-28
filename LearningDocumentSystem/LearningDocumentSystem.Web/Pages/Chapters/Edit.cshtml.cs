@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System;
 using System.Threading.Tasks;
+using System.Security.Claims;
+using LearningDocumentSystem.Common.Constants;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace LearningDocumentSystem.Web.Pages.Chapters
 {
@@ -29,13 +33,23 @@ namespace LearningDocumentSystem.Web.Pages.Chapters
             var c = await _chapterService.GetByIdAsync(id);
             if (c == null) return NotFound();
 
+            var allowed = await GetAllowedSubjectsAsync();
+            if (User.IsInRole(AppConstants.RoleTeacher))
+            {
+                if (!allowed.Any(s => s.SubjectID == c.SubjectID))
+                {
+                    TempData["Error"] = "Bạn không có quyền sửa chương học của môn học này.";
+                    return RedirectToPage("./Index");
+                }
+            }
+
             Input = new ChapterFormViewModel
             {
                 ChapterID = c.ChapterID,
                 SubjectID = c.SubjectID,
                 ChapterNumber = c.ChapterNumber,
                 ChapterName = c.ChapterName,
-                Subjects = await _subjectService.GetAllAsync()
+                Subjects = allowed
             };
 
             return Page();
@@ -43,9 +57,28 @@ namespace LearningDocumentSystem.Web.Pages.Chapters
 
         public async Task<IActionResult> OnPostAsync()
         {
+            var allowed = await GetAllowedSubjectsAsync();
+            if (User.IsInRole(AppConstants.RoleTeacher))
+            {
+                if (!allowed.Any(s => s.SubjectID == Input.SubjectID))
+                {
+                    ModelState.AddModelError(string.Empty, "Bạn không có quyền di chuyển hoặc gán chương học vào môn học này.");
+                    Input.Subjects = allowed;
+                    return Page();
+                }
+
+                var originalChapter = await _chapterService.GetByIdAsync(Input.ChapterID);
+                if (originalChapter == null || !allowed.Any(s => s.SubjectID == originalChapter.SubjectID))
+                {
+                    ModelState.AddModelError(string.Empty, "Bạn không có quyền chỉnh sửa chương học này.");
+                    Input.Subjects = allowed;
+                    return Page();
+                }
+            }
+
             if (!ModelState.IsValid)
             {
-                Input.Subjects = await _subjectService.GetAllAsync();
+                Input.Subjects = allowed;
                 return Page();
             }
 
@@ -64,9 +97,25 @@ namespace LearningDocumentSystem.Web.Pages.Chapters
             catch (Exception ex)
             {
                 ModelState.AddModelError(string.Empty, ex.Message);
-                Input.Subjects = await _subjectService.GetAllAsync();
+                Input.Subjects = allowed;
                 return Page();
             }
+        }
+
+        private async Task<IEnumerable<SubjectDto>> GetAllowedSubjectsAsync()
+        {
+            var all = await _subjectService.GetAllAsync();
+
+            if (User.IsInRole(AppConstants.RoleTeacher))
+            {
+                var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (int.TryParse(userIdStr, out int userId))
+                {
+                    return all.Where(s => s.SubjectLeaderID == userId).ToList();
+                }
+            }
+
+            return all;
         }
     }
 }

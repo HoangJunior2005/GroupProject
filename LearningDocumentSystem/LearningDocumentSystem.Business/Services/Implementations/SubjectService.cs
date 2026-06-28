@@ -46,6 +46,9 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             if (await _uow.Subjects.IsCodeExistsAsync(dto.SubjectCode))
                 throw new BusinessException($"Mã học phần '{dto.SubjectCode}' đã tồn tại.");
 
+            if (await _uow.Subjects.IsNameExistsAsync(dto.SubjectName))
+                throw new BusinessException($"Tên môn học '{dto.SubjectName}' đã tồn tại.");
+
             var subject = _mapper.Map<Subject>(dto);
             subject.CreatedAt = DateTime.UtcNow;
             subject.SubjectLeaderID = dto.SubjectLeaderID;
@@ -66,6 +69,9 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
             if (await _uow.Subjects.IsCodeExistsAsync(dto.SubjectCode, dto.SubjectID))
                 throw new BusinessException($"Mã học phần '{dto.SubjectCode}' đã tồn tại.");
+
+            if (await _uow.Subjects.IsNameExistsAsync(dto.SubjectName, dto.SubjectID))
+                throw new BusinessException($"Tên môn học '{dto.SubjectName}' đã tồn tại.");
 
             subject.SubjectName = dto.SubjectName;
             subject.SubjectCode = dto.SubjectCode;
@@ -92,6 +98,18 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             await _uow.SaveChangesAsync();
             _logger.LogInformation("Subject deleted: {Id}", id);
             await _notificationService.SendNotificationAsync("SubjectDeleted", new { subjectId = id });
+        }
+
+        public async Task AssignLeaderAsync(int subjectId, int? leaderId)
+        {
+            var subject = await _uow.Subjects.GetByIdAsync(subjectId)
+                ?? throw new NotFoundException("Subject", subjectId);
+
+            subject.SubjectLeaderID = leaderId;
+            _uow.Subjects.Update(subject);
+            await _uow.SaveChangesAsync();
+            _logger.LogInformation("Subject {Id} leader set to {LeaderId}", subjectId, leaderId);
+            await _notificationService.SendNotificationAsync("SubjectAssigned", new { subjectId, leaderId });
         }
     }
 }

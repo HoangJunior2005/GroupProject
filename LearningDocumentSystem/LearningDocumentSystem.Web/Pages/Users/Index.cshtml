@@ -250,15 +250,16 @@
         // Realtime update listener to refresh users list without full page reload
         document.addEventListener("realtimeUpdate", function(e) {
             const type = e.detail.messageType;
-            // Refresh on User changes or Subject assignment changes
-            if (type === "UserChanged" || type.startsWith("Subject")) {
-                console.log("Realtime event matched in Users Index. Refreshing table...");
+            // Only refresh table on User changes (create/delete/role), NOT on Subject assignment
+            // because checkbox state is already managed client-side
+            if (type === "UserChanged") {
+                console.log("UserChanged event. Refreshing table...");
                 setTimeout(() => {
                     refreshPageFragments(["#users-list-panel"], function() {
                         bindSubjectCheckboxes();
                         filterUsers();
                     }).catch(err => console.error("Users realtime refresh failed:", err));
-                }, 300); // 300ms delay to ensure DB commits
+                }, 300);
             }
         });
     </script>
