@@ -32,6 +32,7 @@
     </div>
 </div>
 
+@* 
 @if (Model.Document.Conflicts.Any())
 {
     <div class="alert alert-danger border-0 shadow-sm d-flex align-items-start gap-3 p-3 mb-4 text-dark" style="border-radius: 12px; background-color: #fef2f2;">
@@ -62,6 +63,7 @@
         </div>
     </div>
 }
+*@
 
 <div class="row g-4">
     <!-- Document Info -->
@@ -243,24 +245,25 @@
                     refreshPageFragments(["#document-detail-content"])
                         .catch(err => console.error("Document detail realtime refresh failed:", err));
                 }, 1000);
-            }
-        } else if (type === "DocumentConflictDetected" && payload.documentId === currentDocId) {
-            console.log("Conflict detected for current document. Displaying alert...");
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Phát hiện mâu thuẫn kiến thức!',
-                    html: `Hệ thống vừa phát hiện mâu thuẫn giữa tài liệu này và tài liệu <strong>"${payload.conflictingDocTitle}"</strong>.<br><br>
-                           <span class="text-danger small">${payload.description}</span>`,
-                    confirmButtonText: 'Xem chi tiết',
-                    confirmButtonColor: '#4f46e5'
-                }).then(() => {
-                    refreshPageFragments(["#document-detail-content"])
-                        .catch(err => console.error("Refresh failed:", err));
-                });
-            } else {
-                location.reload();
-            }
+            /*
+            } else if (type === "DocumentConflictDetected" && payload.documentId === currentDocId) {
+                console.log("Conflict detected for current document. Displaying alert...");
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Phát hiện mâu thuẫn kiến thức!',
+                        html: `Hệ thống vừa phát hiện mâu thuẫn giữa tài liệu này và tài liệu <strong>"${payload.conflictingDocTitle}"</strong>.<br><br>
+                               <span class="text-danger small">${payload.description}</span>`,
+                        confirmButtonText: 'Xem chi tiết',
+                        confirmButtonColor: '#4f46e5'
+                    }).then(() => {
+                        refreshPageFragments(["#document-detail-content"])
+                            .catch(err => console.error("Refresh failed:", err));
+                    });
+                } else {
+                    location.reload();
+                }
+            */
         } else if (type.startsWith("Subject") || type.startsWith("Chapter")) {
             // Refresh if parent subject or chapter changes (since they are shown in page header & info)
             console.log("Parent subject or chapter changed. Refreshing detail...");
