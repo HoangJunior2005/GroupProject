@@ -250,14 +250,26 @@
         // Realtime update listener to refresh users list without full page reload
         document.addEventListener("realtimeUpdate", function(e) {
             const type = e.detail.messageType;
-            // Only refresh table on User changes (create/delete/role), NOT on Subject assignment
-            // because checkbox state is already managed client-side
-            if (type === "UserChanged") {
-                console.log("UserChanged event. Refreshing table...");
+            if (type === "UserChanged" || type === "SubjectAssigned" || type === "SubjectCreated" || type === "SubjectUpdated" || type === "SubjectDeleted") {
+                console.log("Realtime event matched in Users Index. Refreshing table...", type);
+                
+                // Track if any dropdown is currently open so we can restore it after refresh
+                const openDropdown = document.querySelector('.dropdown-toggle.show');
+                const openDropdownId = openDropdown ? openDropdown.id : null;
+
                 setTimeout(() => {
                     refreshPageFragments(["#users-list-panel"], function() {
                         bindSubjectCheckboxes();
                         filterUsers();
+
+                        // Restore open dropdown if it existed
+                        if (openDropdownId) {
+                            const btn = document.getElementById(openDropdownId);
+                            if (btn && typeof bootstrap !== 'undefined') {
+                                const dp = new bootstrap.Dropdown(btn);
+                                dp.show();
+                            }
+                        }
                     }).catch(err => console.error("Users realtime refresh failed:", err));
                 }, 300);
             }

@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Security.Claims;
+using Microsoft.Extensions.Configuration;
 
 namespace LearningDocumentSystem.Web.Pages.Documents
 {
@@ -18,15 +19,18 @@ namespace LearningDocumentSystem.Web.Pages.Documents
         private readonly IDocumentService _documentService;
         private readonly ISubjectService _subjectService;
         private readonly IChapterService _chapterService;
+        private readonly IConfiguration _config;
 
         public IndexModel(
             IDocumentService documentService,
             ISubjectService subjectService,
-            IChapterService chapterService)
+            IChapterService chapterService,
+            IConfiguration config)
         {
             _documentService = documentService;
             _subjectService = subjectService;
             _chapterService = chapterService;
+            _config = config;
         }
 
         public IEnumerable<DocumentDto> Documents { get; set; } = [];
@@ -50,7 +54,7 @@ namespace LearningDocumentSystem.Web.Pages.Documents
 
         public int TotalCount { get; set; }
         public int TotalPages { get; set; }
-        public int PageSize => AppConstants.DefaultPageSize;
+        public int PageSize => _config.GetValue<int>("AppSettings:DefaultPageSize", 10);
 
         public async Task OnGetAsync()
         {
@@ -74,11 +78,11 @@ namespace LearningDocumentSystem.Web.Pages.Documents
             }
 
             var (items, total) = await _documentService.GetPagedAsync(
-                Keyword, SubjectId, ChapterId, Status, teacherId, CurrentPage, AppConstants.DefaultPageSize);
+                Keyword, SubjectId, ChapterId, Status, teacherId, CurrentPage, PageSize);
 
             Documents = items;
             TotalCount = total;
-            TotalPages = (int)Math.Ceiling(total / (double)AppConstants.DefaultPageSize);
+            TotalPages = (int)Math.Ceiling(total / (double)PageSize);
 
             Subjects = await _subjectService.GetAllAsync();
             if (teacherId.HasValue)

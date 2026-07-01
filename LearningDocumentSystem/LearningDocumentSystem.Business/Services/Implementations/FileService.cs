@@ -27,7 +27,9 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             if (!FileHelper.IsAllowedExtension(file.FileName))
                 throw new InvalidFileException(AppMessages.MsgInvalidFileType);
 
-            if (file.Length > AppConstants.MaxFileSizeBytes)
+            var maxFileSizeMB = _config.GetValue<long>("AppSettings:MaxFileSizeMB", 50);
+            var maxFileSizeBytes = maxFileSizeMB * 1024 * 1024;
+            if (file.Length > maxFileSizeBytes)
                 throw new InvalidFileException(AppMessages.MsgFileSizeExceeded);
 
             // Tạo tên file unique

@@ -29,6 +29,12 @@ namespace LearningDocumentSystem.Web.Pages.Chapters
 
         public async Task<IActionResult> OnGetAsync(int? subjectId)
         {
+            if (User.IsInRole(AppConstants.RoleAdmin))
+            {
+                TempData["Error"] = "Quản trị viên không thể tạo chương học. Tính năng này chỉ dành cho Giảng viên phụ trách môn học.";
+                return RedirectToPage("./Index");
+            }
+
             var allowed = await GetAllowedSubjectsAsync();
             if (User.IsInRole(AppConstants.RoleTeacher) && subjectId.HasValue)
             {
@@ -45,6 +51,12 @@ namespace LearningDocumentSystem.Web.Pages.Chapters
 
         public async Task<IActionResult> OnPostAsync()
         {
+            if (User.IsInRole(AppConstants.RoleAdmin))
+            {
+                TempData["Error"] = "Quản trị viên không thể tạo chương học. Tính năng này chỉ dành cho Giảng viên phụ trách môn học.";
+                return RedirectToPage("./Index");
+            }
+
             var allowed = await GetAllowedSubjectsAsync();
             if (User.IsInRole(AppConstants.RoleTeacher))
             {

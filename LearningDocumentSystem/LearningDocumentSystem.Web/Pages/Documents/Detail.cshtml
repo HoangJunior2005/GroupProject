@@ -245,8 +245,9 @@
                     refreshPageFragments(["#document-detail-content"])
                         .catch(err => console.error("Document detail realtime refresh failed:", err));
                 }, 1000);
+            }
             /*
-            } else if (type === "DocumentConflictDetected" && payload.documentId === currentDocId) {
+            else if (type === "DocumentConflictDetected" && payload.documentId === currentDocId) {
                 console.log("Conflict detected for current document. Displaying alert...");
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
@@ -263,6 +264,7 @@
                 } else {
                     location.reload();
                 }
+            }
             */
         } else if (type.startsWith("Subject") || type.startsWith("Chapter")) {
             // Refresh if parent subject or chapter changes (since they are shown in page header & info)

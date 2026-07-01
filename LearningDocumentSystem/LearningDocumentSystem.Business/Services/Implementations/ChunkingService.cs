@@ -10,14 +10,18 @@ using Microsoft.Extensions.Logging;
 using System.Text;
 using Microsoft.SemanticKernel.Text;
 
+using Microsoft.Extensions.Configuration;
+
 namespace LearningDocumentSystem.Business.Services.Implementations
 {
     public class ChunkingService : IChunkingService
     {
+        private readonly IConfiguration _config;
         private readonly ILogger<ChunkingService> _logger;
 
-        public ChunkingService(ILogger<ChunkingService> logger)
+        public ChunkingService(IConfiguration config, ILogger<ChunkingService> logger)
         {
+            _config = config;
             _logger = logger;
         }
 
@@ -130,6 +134,10 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             // Định nghĩa custom TokenCounter để tính toán độ dài theo KÝ TỰ (Characters)
             TextChunker.TokenCounter characterCounter = input => input.Length;
 
+            var chunkSize = _config.GetValue<int>("AppSettings:ChunkSize", 800);
+            var chunkOverlap = _config.GetValue<int>("AppSettings:ChunkOverlap", 100);
+            var minChunkLength = _config.GetValue<int>("AppSettings:MinChunkLength", 50);
+
             foreach (var (text, page) in pages)
             {
                 if (string.IsNullOrWhiteSpace(text)) continue;
@@ -138,14 +146,13 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 // để tránh cắt nửa câu ở giữa một cách tùy tiện.
                 var lines = TextChunker.SplitPlainTextLines(text, 200, characterCounter);
 
-                // 2. Gom nhóm các câu/dòng trên thành các đoạn văn lớn (chunk) tối đa 800 ký tự (AppConstants.ChunkSize)
-                // với độ chồng lấn overlap là 150 ký tự (AppConstants.ChunkOverlap).
-                var paragraphs = TextChunker.SplitPlainTextParagraphs(lines, AppConstants.ChunkSize, AppConstants.ChunkOverlap, tokenCounter: characterCounter);
+                // 2. Gom nhóm các câu/dòng trên thành các đoạn văn lớn (chunk)
+                var paragraphs = TextChunker.SplitPlainTextParagraphs(lines, chunkSize, chunkOverlap, tokenCounter: characterCounter);
 
                 foreach (var p in paragraphs)
                 {
                     var trimmed = p.Trim();
-                    if (!string.IsNullOrWhiteSpace(trimmed) && trimmed.Length >= AppConstants.MinChunkLength)
+                    if (!string.IsNullOrWhiteSpace(trimmed) && trimmed.Length >= minChunkLength)
                     {
                         chunks.Add((trimmed, page));
                     }
