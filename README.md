@@ -84,17 +84,91 @@ Dưới đây là các bảng chính trong Database:
 *   `ChatSessions` & `ChatMessages`: Lưu trữ phiên chat và lịch sử hội thoại giữa người dùng với trợ lý ảo AI.
 *   `DocumentConflicts`: Lưu thông tin các đoạn tài liệu bị trùng lặp hoặc xung đột nội dung.
 
-### 2. Hướng dẫn cấu hình Kết nối (Connection String)
-Tạo tệp [appsettings.json](file:///c:/Users/Administrator/Desktop/Assignment_2/LearningDocumentSystem/LearningDocumentSystem.Web/appsettings.json) trong thư mục `LearningDocumentSystem.Web`:
+### 2. Hướng dẫn cấu hình `appsettings.json`
+
+Tệp `appsettings.json` nằm trong thư mục `LearningDocumentSystem.Web/` là nơi chứa toàn bộ cấu hình ứng dụng. Dưới đây là cấu trúc đầy đủ và hướng dẫn chỉnh sửa từng mục:
 
 ```json
-"ConnectionStrings": {
+{
+  "ConnectionStrings": {
     "DefaultConnection": "Server=localhost;Database=LearningDocumentSystemDataBase;user id=sa;password=MẬT_KHẨU_SQL_CỦA_BẠN;MultipleActiveResultSets=true;TrustServerCertificate=True"
+  },
+  "AppSettings": {
+    "UploadFolder": "uploads",
+    "MaxFileSizeMB": 50,
+    "AllowedFileTypes": [ "pdf", "docx", "pptx" ],
+    "ChunkSize": 800,
+    "ChunkOverlap": 100,
+    "MinChunkLength": 50,
+    "DefaultPageSize": 10
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "Gemini": {
+    "ApiKey": "GEMINI_API_KEY_CỦA_BẠN",
+    "ModelName": "gemini-3.1-flash-lite"
+  }
 }
 ```
+
+#### 📌 Giải thích từng phần cấu hình:
+
+**🔌 `ConnectionStrings`**
+
+| Thuộc tính | Mô tả |
+| :--- | :--- |
+| `DefaultConnection` | Chuỗi kết nối đến SQL Server. Thay `MẬT_KHẨU_SQL_CỦA_BẠN` bằng mật khẩu tài khoản `sa` trên máy bạn. |
+
 > [!IMPORTANT]
-> Hãy thay thế `MẬT_KHẨU_SQL_CỦA_BẠN` bằng mật khẩu tài khoản `sa` trên máy của bạn. Nếu bạn sử dụng Windows Authentication (không dùng sa), bạn có thể đổi Connection String thành:
+> Nếu bạn dùng **Windows Authentication** (không dùng tài khoản `sa`), hãy đổi chuỗi kết nối thành:
 > `"Server=localhost;Database=LearningDocumentSystemDataBase;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"`
+
+---
+
+**⚙️ `AppSettings`**
+
+| Thuộc tính | Mặc định | Mô tả |
+| :--- | :---: | :--- |
+| `UploadFolder` | `"uploads"` | Tên thư mục (trong `wwwroot`) dùng để lưu các tệp tài liệu do người dùng tải lên. |
+| `MaxFileSizeMB` | `50` | Dung lượng tối đa cho mỗi tệp được tải lên, tính bằng **Megabyte (MB)**. |
+| `AllowedFileTypes` | `["pdf","docx","pptx"]` | Danh sách các định dạng tệp được phép tải lên. Hệ thống từ chối các định dạng nằm ngoài danh sách này. |
+| `ChunkSize` | `800` | Số ký tự tối đa của mỗi đoạn văn bản (chunk) sau khi chia nhỏ tài liệu để tạo embedding. |
+| `ChunkOverlap` | `100` | Số ký tự chồng lấp giữa hai chunk liền kề, giúp giữ nguyên ngữ cảnh khi tìm kiếm. |
+| `MinChunkLength` | `50` | Độ dài ký tự tối thiểu của một chunk; các đoạn ngắn hơn sẽ bị bỏ qua để tránh nhiễu dữ liệu. |
+| `DefaultPageSize` | `10` | Số lượng bản ghi hiển thị mặc định trên mỗi trang trong các danh sách (phân trang). |
+
+---
+
+**🪵 `Logging`**
+
+| Thuộc tính | Mặc định | Mô tả |
+| :--- | :---: | :--- |
+| `Default` | `"Information"` | Mức log mặc định cho toàn ứng dụng. |
+| `Microsoft.AspNetCore` | `"Warning"` | Chỉ ghi log từ mức Warning trở lên đối với các thành phần nội bộ của ASP.NET Core. |
+| `Microsoft.EntityFrameworkCore` | `"Warning"` | Chỉ ghi log từ mức Warning trở lên đối với Entity Framework Core (tránh log SQL query ồn ào). |
+
+> [!TIP]
+> Để xem toàn bộ câu lệnh SQL mà EF Core tạo ra trong quá trình debug, đổi `"Microsoft.EntityFrameworkCore"` thành `"Information"`.
+
+---
+
+**🤖 `Gemini`**
+
+| Thuộc tính | Mô tả |
+| :--- | :--- |
+| `ApiKey` | **API Key** của bạn từ Google AI Studio. Truy cập [aistudio.google.com](https://aistudio.google.com) để tạo key miễn phí. |
+| `ModelName` | Tên model Gemini được sử dụng. Mặc định là `gemini-2.0-flash-lite`. Có thể đổi sang các model khác như `gemini-1.5-pro`. |
+
+> [!CAUTION]
+> **Không bao giờ** commit `appsettings.json` chứa `ApiKey` thực của bạn lên Git/GitHub. Tệp này đã được thêm vào `.gitignore`. Hãy đảm bảo bạn chỉ điền key trên máy cục bộ của mình.
+
+---
 
 ### 3. Tự động Khởi tạo Cơ sở dữ liệu (Database Seeding)
 Khi bạn chạy dự án lần đầu tiên, hệ thống sẽ **tự động chạy Migrations** để tạo cơ sở dữ liệu trên SQL Server và thực thi **DataSeeder** để nạp sẵn dữ liệu thử nghiệm.
