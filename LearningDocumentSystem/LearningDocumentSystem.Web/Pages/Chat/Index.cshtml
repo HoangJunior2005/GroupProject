@@ -579,10 +579,37 @@
                 <h5>LDS AI Assistant</h5>
                 <div class="session-title-badge" id="activeSessionTitle">Chưa chọn phiên</div>
             </div>
-            <div class="chat-header-status">
+            <div class="chat-header-status d-none d-lg-flex">
                 <span class="status-dot"></span>
                 <span>AI Engine Sẵn sàng</span>
             </div>
+        </div>
+
+        <!-- Model Selector Tabs -->
+        <div class="model-selector-bar" style="display:flex; gap:8px; padding:10px 18px; background:linear-gradient(135deg,#f0f4ff 0%,#fafbff 100%); border-bottom:1px solid rgba(0,0,0,0.07); overflow-x:auto; flex-wrap:nowrap;">
+            <div class="model-card active" data-provider="Gemini" onclick="selectModelProvider(this)" title="Google Gemini" style="display:flex; align-items:center; gap:8px; padding:7px 14px; border-radius:12px; cursor:pointer; border:2px solid #6366f1; background:#eef2ff; transition:all 0.2s ease; min-width:fit-content; flex-shrink:0;">
+                <span style="font-size:1.25rem;">✨</span>
+                <div style="line-height:1.2;">
+                    <div style="font-weight:700; font-size:0.8rem; color:#312e81;">Gemini 2.5 Flash</div>
+                    <div style="font-size:0.65rem; color:#6366f1;">High Quality • Fast</div>
+                </div>
+            </div>
+            <div class="model-card" data-provider="OpenAI" onclick="selectModelProvider(this)" title="OpenAI GPT" style="display:flex; align-items:center; gap:8px; padding:7px 14px; border-radius:12px; cursor:pointer; border:2px solid transparent; background:#f8fafc; transition:all 0.2s ease; min-width:fit-content; flex-shrink:0;">
+                <span style="font-size:1.25rem;">🤖</span>
+                <div style="line-height:1.2;">
+                    <div style="font-weight:700; font-size:0.8rem; color:#334155;">GPT-4o-mini</div>
+                    <div style="font-size:0.65rem; color:#64748b;">High Accuracy • Standard Speed</div>
+                </div>
+            </div>
+            <div class="model-card" data-provider="Groq" onclick="selectModelProvider(this)" title="Groq Llama" style="display:flex; align-items:center; gap:8px; padding:7px 14px; border-radius:12px; cursor:pointer; border:2px solid transparent; background:#f8fafc; transition:all 0.2s ease; min-width:fit-content; flex-shrink:0;">
+                <span style="font-size:1.25rem;">⚡</span>
+                <div style="line-height:1.2;">
+                    <div style="font-weight:700; font-size:0.8rem; color:#334155;">Llama 3.1 8B</div>
+                    <div style="font-size:0.65rem; color:#64748b;">Ultra Fast • Open Source</div>
+                </div>
+            </div>
+            <!-- Hidden input to hold selected value -->
+            <input type="hidden" id="modelProviderSelect" value="Gemini">
         </div>
 
         <!-- Messages -->
@@ -903,7 +930,7 @@
                         <div class="message-content"><p>Phiên này chưa có tin nhắn nào.</p></div>
                     </div>`;
             } else {
-                msgs.forEach(m => appendMessage(m.role, m.content, m.sources, false));
+                msgs.forEach(m => appendMessage(m.role, m.content, m.sources, false, m));
             }
 
             scrollToBottom();
@@ -1028,6 +1055,7 @@
         formData.append('question', questionText);
         formData.append('subjectId', document.getElementById('chatSubjectSelect').value);
         formData.append('chapterId', document.getElementById('chatChapterSelect').value);
+        formData.append('modelProvider', document.getElementById('modelProviderSelect').value);
         formData.append('__RequestVerificationToken', antiForgeryToken);
 
         fetch('/Chat?handler=Ask', { method: 'POST', body: formData })
@@ -1036,12 +1064,12 @@
                 removeLoadingIndicator(loadingId);
                 
                 if (activeSessionId === targetSessionId) {
-                    appendMessage('assistant', data.answer, data.sources, false);
+                    appendMessage('assistant', data.answer, data.sources, false, data);
                     scrollToBottom();
                 }
 
                 // Save both messages and auto-rename session asynchronously in the background
-                saveAndRefreshSessions(targetSessionId, questionText, data.answer, data.sources, isFirst);
+                saveAndRefreshSessions(targetSessionId, questionText, data.answer, data.sources, isFirst, data);
             })
             .catch(err => {
                 console.error(err);
@@ -1058,13 +1086,20 @@
             });
     }
 
-    async function saveAndRefreshSessions(sessionId, userContent, assistantContent, sources, isFirst) {
+    async function saveAndRefreshSessions(sessionId, userContent, assistantContent, sources, isFirst, meta) {
         try {
             const saveForm = new FormData();
             saveForm.append('sessionId', sessionId);
             saveForm.append('userContent', userContent);
             saveForm.append('assistantContent', assistantContent);
             if (sources && sources.length > 0) saveForm.append('sourcesJson', JSON.stringify(sources));
+            if (meta && meta.providerName) {
+                saveForm.append('providerName', meta.providerName);
+                if (meta.modelName) saveForm.append('modelName', meta.modelName);
+                if (meta.executionTimeMs !== undefined) saveForm.append('executionTimeMs', meta.executionTimeMs);
+                if (meta.promptTokens !== undefined) saveForm.append('promptTokens', meta.promptTokens);
+                if (meta.completionTokens !== undefined) saveForm.append('completionTokens', meta.completionTokens);
+            }
             saveForm.append('__RequestVerificationToken', antiForgeryToken);
 
             let renamePromise = Promise.resolve();
@@ -1104,8 +1139,38 @@
         }
     }
 
+    // ── Feedback rate function ────────────────────────────────────
+    async function rateMessage(messageId, feedback, btn) {
+        if (!messageId) {
+            Swal.fire({ icon: 'info', title: 'Thông báo', text: 'Tin nhắn vừa tạo đang được đồng bộ, vui lòng đánh giá sau giây lát.' });
+            return;
+        }
+        try {
+            const form = new FormData();
+            form.append('messageId', messageId);
+            form.append('feedback', feedback);
+            form.append('__RequestVerificationToken', antiForgeryToken);
+
+            const res = await fetch('/Chat?handler=Feedback', { method: 'POST', body: form });
+            const data = await res.json();
+            if (data.ok) {
+                const container = btn.closest('.message-feedback');
+                if (container) {
+                    const upBtn = container.querySelector('.bi-hand-thumbs-up-fill').closest('button');
+                    const downBtn = container.querySelector('.bi-hand-thumbs-down-fill').closest('button');
+                    upBtn.className = `btn btn-sm py-0 px-1 border-0 ${feedback === 1 ? 'text-success fw-bold' : 'text-muted'}`;
+                    downBtn.className = `btn btn-sm py-0 px-1 border-0 ${feedback === -1 ? 'text-danger fw-bold' : 'text-muted'}`;
+                }
+                const Toast = Swal.mixin({ toast: true, position: 'bottom-end', showConfirmButton: false, timer: 2000 });
+                Toast.fire({ icon: 'success', title: 'Đã ghi nhận đánh giá của bạn!' });
+            }
+        } catch(e) {
+            console.error('Error rating message', e);
+        }
+    }
+
     // ── Message rendering ─────────────────────────────────────────
-    function appendMessage(sender, text, sources, _unused) {
+    function appendMessage(sender, text, sources, _unused, meta = null) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}`;
 
@@ -1146,6 +1211,42 @@
             contentDiv.appendChild(sourcesDiv);
         }
 
+        if (sender === 'assistant') {
+            const benchDiv = document.createElement('div');
+            benchDiv.className = 'message-benchmark mt-3 pt-2 border-top d-flex align-items-center justify-content-between flex-wrap gap-2';
+            benchDiv.style.cssText = 'font-size: 0.75rem; color: #64748b; border-color: rgba(0,0,0,0.08) !important;';
+            
+            const provider = (meta && meta.providerName) ? meta.providerName : 'Gemini';
+            const model = (meta && meta.modelName) ? meta.modelName : 'gemini-2.5-flash';
+            const time = (meta && meta.executionTimeMs !== null && meta.executionTimeMs !== undefined) ? `${Math.round(meta.executionTimeMs)} ms` : 'N/A';
+            const pTokens = (meta && meta.promptTokens !== null && meta.promptTokens !== undefined) ? meta.promptTokens : 0;
+            const cTokens = (meta && meta.completionTokens !== null && meta.completionTokens !== undefined) ? meta.completionTokens : 0;
+            const msgId = (meta && meta.messageID) ? meta.messageID : 0;
+            const fb = (meta && meta.feedback) ? meta.feedback : 0;
+
+            let providerBadgeClass = 'bg-primary-subtle text-primary border-primary-subtle';
+            if (provider === 'OpenAI') providerBadgeClass = 'bg-success-subtle text-success border-success-subtle';
+            else if (provider === 'Groq') providerBadgeClass = 'bg-warning-subtle text-dark border-warning-subtle';
+
+            const totalTokens = pTokens + cTokens;
+
+            benchDiv.innerHTML = `
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    <span class="badge ${providerBadgeClass} border fw-semibold"><i class="bi bi-cpu-fill me-1"></i>${provider} (${model})</span>
+                    <span><i class="bi bi-stopwatch me-1"></i>${time}</span>
+                    <span><i class="bi bi-lightning-charge me-1"></i>Tokens: <strong>${pTokens}</strong> in / <strong>${cTokens}</strong> out</span>
+                </div>
+                <div class="w-100 mt-1" style="font-size:0.7rem; color:#94a3b8; font-style:italic;">
+                    Được trả lời bởi ${model} qua ${provider} trong ${time} • Sử dụng ${totalTokens} tokens
+                </div>
+                <div class="message-feedback d-flex align-items-center gap-1">
+                    <span class="me-1">Đánh giá:</span>
+                    <button type="button" class="btn btn-sm py-0 px-1 border-0 ${fb === 1 ? 'text-success fw-bold' : 'text-muted'}" title="Hữu ích" onclick="rateMessage(${msgId}, 1, this)"><i class="bi bi-hand-thumbs-up-fill fs-6"></i></button>
+                    <button type="button" class="btn btn-sm py-0 px-1 border-0 ${fb === -1 ? 'text-danger fw-bold' : 'text-muted'}" title="Không hữu ích" onclick="rateMessage(${msgId}, -1, this)"><i class="bi bi-hand-thumbs-down-fill fs-6"></i></button>
+                </div>`;
+            contentDiv.appendChild(benchDiv);
+        }
+
         messageDiv.appendChild(avatarDiv);
         messageDiv.appendChild(contentDiv);
         messagesContainer.appendChild(messageDiv);
@@ -1173,6 +1274,47 @@
         const el = document.getElementById(id);
         if (el) el.remove();
     }
+
+    // ── Model Provider Selector (Tab/Card style) ───────────────
+    function selectModelProvider(card) {
+        // Remove active state from all cards
+        document.querySelectorAll('.model-selector-bar .model-card').forEach(c => {
+            c.classList.remove('active');
+            c.style.border = '2px solid transparent';
+            c.style.background = '#f8fafc';
+            c.querySelector('div > div:first-child').style.color = '#334155';
+            const sub = c.querySelector('div > div:last-child');
+            if (sub) sub.style.color = '#64748b';
+        });
+
+        // Set active state on selected card
+        card.classList.add('active');
+        card.style.border = '2px solid #6366f1';
+        card.style.background = '#eef2ff';
+        card.querySelector('div > div:first-child').style.color = '#312e81';
+        const sub = card.querySelector('div > div:last-child');
+        if (sub) sub.style.color = '#6366f1';
+
+        // Update hidden input value
+        const provider = card.dataset.provider;
+        document.getElementById('modelProviderSelect').value = provider;
+
+        // Persist to localStorage
+        try { localStorage.setItem('lds_selected_model_provider', provider); } catch(e) {}
+    }
+
+    // ── Restore model selection from localStorage ────────────────
+    (function restoreModelSelection() {
+        try {
+            const saved = localStorage.getItem('lds_selected_model_provider');
+            if (saved) {
+                const card = document.querySelector(`.model-selector-bar .model-card[data-provider="${saved}"]`);
+                if (card) {
+                    selectModelProvider(card);
+                }
+            }
+        } catch(e) {}
+    })();
 
     // ── Init ──────────────────────────────────────────────────────
     loadUserSessions();

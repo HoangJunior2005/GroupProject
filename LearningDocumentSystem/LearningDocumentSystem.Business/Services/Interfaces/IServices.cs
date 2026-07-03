@@ -76,15 +76,16 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
 
     public interface IChatService
     {
-        Task<ChatResponseDto> AskQuestionAsync(string question, int? subjectId = null, int? chapterId = null);
+        Task<ChatResponseDto> AskQuestionAsync(string question, int? subjectId = null, int? chapterId = null, string? modelProvider = null);
 
         // Session management
         Task<ChatSessionDto> CreateSessionAsync(int userId, string? title = null, int? subjectId = null);
         Task<IEnumerable<ChatSessionDto>> GetUserSessionsAsync(int userId);
         Task<IEnumerable<ChatMessageDto>> GetSessionMessagesAsync(int sessionId, int userId);
-        Task SaveMessagesAsync(int sessionId, string userContent, string assistantContent, List<ChatSourceDto>? sources);
+        Task SaveMessagesAsync(int sessionId, string userContent, string assistantContent, List<ChatSourceDto>? sources, string? providerName = null, string? modelName = null, double? executionTimeMs = null, int? promptTokens = null, int? completionTokens = null);
         Task DeleteSessionAsync(int sessionId, int userId);
         Task UpdateSessionTitleAsync(int sessionId, int userId, string title);
         Task UpdateSessionSubjectAsync(int sessionId, int userId, int? subjectId);
+        Task UpdateMessageFeedbackAsync(int messageId, int userId, int feedback);
     }
 }

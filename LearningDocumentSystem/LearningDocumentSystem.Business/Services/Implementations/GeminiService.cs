@@ -1,32 +1,56 @@
 using LearningDocumentSystem.Business.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace LearningDocumentSystem.Business.Services.Implementations
 {
-    public class GeminiService : IGeminiService
+    public class GeminiService : IGeminiService, ILLMService
     {
         private readonly HttpClient _httpClient;
         private readonly string? _apiKey;
         private readonly string _modelName;
         private readonly ILogger<GeminiService> _logger;
 
+        public string ProviderName => "Gemini";
+        public string ModelName => _modelName;
+
         public GeminiService(HttpClient httpClient, IConfiguration configuration, ILogger<GeminiService> logger)
         {
             _httpClient = httpClient;
             _apiKey = configuration["Gemini:ApiKey"];
-            _modelName = configuration["Gemini:ModelName"] ?? "gemini-1.5-pro";
+            _modelName = configuration["Gemini:ModelName"] ?? "gemini-2.5-flash";
             _logger = logger;
         }
 
+        // Implementation of IGeminiService
         public async Task<string> GenerateAnswerAsync(string question, string context)
         {
+            var res = await ((ILLMService)this).GenerateAnswerAsync(question, context);
+            return res.Answer;
+        }
+
+        // Implementation of ILLMService
+        async Task<LLMResponseDto> ILLMService.GenerateAnswerAsync(string prompt, string context, LLMConfig? config)
+        {
+            var result = new LLMResponseDto
+            {
+                ProviderName = ProviderName,
+                ModelName = ModelName
+            };
+
+            var sw = Stopwatch.StartNew();
+
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
+                sw.Stop();
                 _logger.LogWarning("Gemini API Key is not configured. Falling back to default message.");
-                return "Hệ thống chưa được cấu hình API Key của Gemini. Vui lòng liên hệ quản trị viên.";
+                result.Answer = "Hệ thống chưa được cấu hình API Key của Gemini. Vui lòng liên hệ quản trị viên.";
+                result.ExecutionTimeMs = sw.ElapsedMilliseconds;
+                return result;
             }
 
             string systemPrompt = @"Bạn là trợ lý học tập AI.
@@ -38,7 +62,10 @@ KHÔNG tự động thêm phần chú thích trích dẫn nguồn ở cuối câ
 Ngữ cảnh:
 ";
             
-            string fullPrompt = $"{systemPrompt}\n{context}\n\nCâu hỏi: {question}\nTrả lời:";
+            string fullPrompt = $"{systemPrompt}\n{context}\n\nCâu hỏi: {prompt}\nTrả lời:";
+
+            double temp = config?.Temperature ?? 0.2;
+            int maxTokens = config?.MaxTokens ?? 1024;
 
             var payload = new
             {
@@ -51,8 +78,8 @@ Ngữ cảnh:
                 },
                 generationConfig = new
                 {
-                    temperature = 0.2, // Low temperature for factual RAG
-                    maxOutputTokens = 1024
+                    temperature = temp,
+                    maxOutputTokens = maxTokens
                 }
             };
 
@@ -64,20 +91,32 @@ Ngữ cảnh:
             try
             {
                 var response = await _httpClient.PostAsync(url, content);
-                
+                sw.Stop();
+                result.ExecutionTimeMs = sw.ElapsedMilliseconds;
+
                 if (!response.IsSuccessStatusCode)
                 {
                     string errorBody = await response.Content.ReadAsStringAsync();
                     _logger.LogError("Gemini API error. Status: {StatusCode}. Body: {Body}", response.StatusCode, errorBody);
-                    return "Đã xảy ra lỗi khi kết nối tới mô hình AI.";
+                    result.Answer = "Đã xảy ra lỗi khi kết nối tới mô hình AI.";
+                    return result;
                 }
 
                 var responseString = await response.Content.ReadAsStringAsync();
                 
                 using var jsonDoc = JsonDocument.Parse(responseString);
-                var candidates = jsonDoc.RootElement.GetProperty("candidates");
-                
-                if (candidates.GetArrayLength() > 0)
+                var root = jsonDoc.RootElement;
+
+                // Parse token usage metadata if available
+                if (root.TryGetProperty("usageMetadata", out var usage))
+                {
+                    if (usage.TryGetProperty("promptTokenCount", out var promptTokens))
+                        result.PromptTokens = promptTokens.GetInt32();
+                    if (usage.TryGetProperty("candidatesTokenCount", out var completionTokens))
+                        result.CompletionTokens = completionTokens.GetInt32();
+                }
+
+                if (root.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
                 {
                     var text = candidates[0]
                         .GetProperty("content")
@@ -85,25 +124,33 @@ Ngữ cảnh:
                         .GetProperty("text")
                         .GetString();
                         
-                    return text ?? "Không nhận được phản hồi từ AI.";
+                    result.Answer = text ?? "Không nhận được phản hồi từ AI.";
+                    return result;
                 }
 
-                return "Không thể trích xuất câu trả lời từ hệ thống.";
+                result.Answer = "Không thể trích xuất câu trả lời từ hệ thống.";
+                return result;
             }
             catch (Exception ex)
             {
+                sw.Stop();
+                result.ExecutionTimeMs = sw.ElapsedMilliseconds;
                 _logger.LogError(ex, "Exception while calling Gemini API");
-                return "Lỗi nội bộ khi xử lý câu trả lời với AI.";
+                result.Answer = "Lỗi nội bộ khi xử lý câu trả lời với AI.";
+                return result;
             }
         }
 
-        public async Task<string> GenerateDirectAnswerAsync(string prompt)
+        public async Task<string> GenerateDirectAnswerAsync(string prompt, LLMConfig? config = null)
         {
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
                 _logger.LogWarning("Gemini API Key is not configured.");
                 return "Hệ thống chưa được cấu hình API Key của Gemini.";
             }
+
+            double temp = config?.Temperature ?? 0.1;
+            int maxTokens = config?.MaxTokens ?? 1024;
 
             var payload = new
             {
@@ -116,8 +163,8 @@ Ngữ cảnh:
                 },
                 generationConfig = new
                 {
-                    temperature = 0.1,
-                    maxOutputTokens = 1024
+                    temperature = temp,
+                    maxOutputTokens = maxTokens
                 }
             };
 

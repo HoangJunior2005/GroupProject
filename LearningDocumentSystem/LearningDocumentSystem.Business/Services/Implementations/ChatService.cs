@@ -12,6 +12,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
         private readonly IUnitOfWork _uow;
         private readonly IEmbeddingService _embeddingService;
         private readonly IGeminiService _geminiService;
+        private readonly ILLMProviderFactory _llmFactory;
         private readonly ILogger<ChatService> _logger;
 
         private const int ExpectedDimension = 512;
@@ -20,15 +21,17 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             IUnitOfWork uow,
             IEmbeddingService embeddingService,
             IGeminiService geminiService,
+            ILLMProviderFactory llmFactory,
             ILogger<ChatService> logger)
         {
             _uow = uow;
             _embeddingService = embeddingService;
             _geminiService = geminiService;
+            _llmFactory = llmFactory;
             _logger = logger;
         }
 
-        public async Task<ChatResponseDto> AskQuestionAsync(string question, int? subjectId = null, int? chapterId = null)
+        public async Task<ChatResponseDto> AskQuestionAsync(string question, int? subjectId = null, int? chapterId = null, string? modelProvider = null)
         {
             _logger.LogInformation("Processing question: '{Question}' | sub={SubId}, chap={ChapId}", question, subjectId, chapterId);
 
@@ -149,7 +152,14 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                     contextBuilder.AppendLine($"[Tài liệu: {source.DocumentTitle}, Trang {source.PageNumber?.ToString() ?? "N/A"}]: {item.Chunk.ContentText}");
                 }
 
-                response.Answer = await _geminiService.GenerateAnswerAsync(question, contextBuilder.ToString());
+                var llmService = _llmFactory.GetProvider(modelProvider);
+                var llmResult = await llmService.GenerateAnswerAsync(question, contextBuilder.ToString());
+                response.Answer = llmResult.Answer;
+                response.ProviderName = llmResult.ProviderName;
+                response.ModelName = llmResult.ModelName;
+                response.ExecutionTimeMs = llmResult.ExecutionTimeMs;
+                response.PromptTokens = llmResult.PromptTokens;
+                response.CompletionTokens = llmResult.CompletionTokens;
 
                 // If AI indicates it couldn't find relevant information in the context, clear
                 // any sources that were tentatively attached (they would be misleading citations).
@@ -371,12 +381,18 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                     Role = m.Role,
                     Content = m.Content,
                     Sources = sources,
-                    CreatedAt = DateTime.SpecifyKind(m.CreatedAt, DateTimeKind.Utc)
+                    CreatedAt = DateTime.SpecifyKind(m.CreatedAt, DateTimeKind.Utc),
+                    ProviderName = m.ProviderName,
+                    ModelName = m.ModelName,
+                    ExecutionTimeMs = m.ExecutionTimeMs,
+                    PromptTokens = m.PromptTokens,
+                    CompletionTokens = m.CompletionTokens,
+                    Feedback = m.Feedback
                 };
             });
         }
 
-        public async Task SaveMessagesAsync(int sessionId, string userContent, string assistantContent, List<ChatSourceDto>? sources)
+        public async Task SaveMessagesAsync(int sessionId, string userContent, string assistantContent, List<ChatSourceDto>? sources, string? providerName = null, string? modelName = null, double? executionTimeMs = null, int? promptTokens = null, int? completionTokens = null)
         {
             // Auto rename session if it has default title
             var session = await _uow.ChatSessions.FirstOrDefaultAsync(s => s.SessionID == sessionId);
@@ -415,7 +431,12 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 Role = "assistant",
                 Content = assistantContent,
                 SourcesJson = sourcesJson,
-                CreatedAt = DateTime.UtcNow.AddMilliseconds(1)
+                CreatedAt = DateTime.UtcNow.AddMilliseconds(1),
+                ProviderName = providerName,
+                ModelName = modelName,
+                ExecutionTimeMs = executionTimeMs,
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens
             };
             await _uow.ChatSessions.AddMessageAsync(assistantMsg);
 
@@ -454,6 +475,20 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 session.UpdatedAt = DateTime.UtcNow;
                 _uow.ChatSessions.Update(session);
                 await _uow.SaveChangesAsync();
+            }
+        }
+
+        public async Task UpdateMessageFeedbackAsync(int messageId, int userId, int feedback)
+        {
+            var msg = await _uow.ChatSessions.GetMessageAsync(messageId);
+            if (msg != null)
+            {
+                var session = await _uow.ChatSessions.FirstOrDefaultAsync(s => s.SessionID == msg.SessionID && s.UserID == userId);
+                if (session != null)
+                {
+                    await _uow.ChatSessions.UpdateMessageFeedbackAsync(messageId, feedback);
+                    await _uow.SaveChangesAsync();
+                }
             }
         }
     }

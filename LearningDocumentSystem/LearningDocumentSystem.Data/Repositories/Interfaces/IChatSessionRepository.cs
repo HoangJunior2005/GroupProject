@@ -19,5 +19,11 @@ namespace LearningDocumentSystem.Data.Repositories.Interfaces
 
         /// <summary>Lưu 1 tin nhắn vào phiên.</summary>
         Task AddMessageAsync(ChatMessage message);
+
+        /// <summary>Lấy tin nhắn theo ID.</summary>
+        Task<ChatMessage?> GetMessageAsync(int messageId);
+
+        /// <summary>Cập nhật phản hồi benchmark (thumbs up/down) cho tin nhắn.</summary>
+        Task UpdateMessageFeedbackAsync(int messageId, int feedback);
     }
 }

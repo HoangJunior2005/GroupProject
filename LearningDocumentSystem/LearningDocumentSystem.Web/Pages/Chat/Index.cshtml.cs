@@ -46,14 +46,14 @@ namespace LearningDocumentSystem.Web.Pages.Chat
         // ────────────────────────────────────────────────────────────
         // CHAT ASK (giữ nguyên)
         // ────────────────────────────────────────────────────────────
-        public async Task<IActionResult> OnPostAskAsync(string question, int? subjectId, int? chapterId)
+        public async Task<IActionResult> OnPostAskAsync(string question, int? subjectId, int? chapterId, string? modelProvider)
         {
             if (string.IsNullOrWhiteSpace(question))
                 return new JsonResult(new { answer = "Vui lòng nhập câu hỏi hợp lệ." });
 
             try
             {
-                var result = await _chatService.AskQuestionAsync(question.Trim(), subjectId, chapterId);
+                var result = await _chatService.AskQuestionAsync(question.Trim(), subjectId, chapterId, modelProvider);
                 return new JsonResult(result);
             }
             catch (Exception ex)
@@ -130,7 +130,12 @@ namespace LearningDocumentSystem.Web.Pages.Chat
             int sessionId,
             string userContent,
             string assistantContent,
-            string? sourcesJson)
+            string? sourcesJson,
+            string? providerName,
+            string? modelName,
+            double? executionTimeMs,
+            int? promptTokens,
+            int? completionTokens)
         {
             int userId = GetCurrentUserId();
             if (userId == 0) return new JsonResult(new { ok = false });
@@ -150,12 +155,32 @@ namespace LearningDocumentSystem.Web.Pages.Chat
                     catch { /* ignore */ }
                 }
 
-                await _chatService.SaveMessagesAsync(sessionId, userContent, assistantContent, sources);
+                await _chatService.SaveMessagesAsync(sessionId, userContent, assistantContent, sources, providerName, modelName, executionTimeMs, promptTokens, completionTokens);
                 return new JsonResult(new { ok = true });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error saving messages for session {SessionId}.", sessionId);
+                return new JsonResult(new { ok = false });
+            }
+        }
+
+        // ────────────────────────────────────────────────────────────
+        // SESSION: Cập nhật feedback (Thumbs Up/Down)
+        // ────────────────────────────────────────────────────────────
+        public async Task<IActionResult> OnPostFeedbackAsync(int messageId, int feedback)
+        {
+            int userId = GetCurrentUserId();
+            if (userId == 0) return new JsonResult(new { ok = false });
+
+            try
+            {
+                await _chatService.UpdateMessageFeedbackAsync(messageId, userId, feedback);
+                return new JsonResult(new { ok = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating message feedback {MessageId}.", messageId);
                 return new JsonResult(new { ok = false });
             }
         }

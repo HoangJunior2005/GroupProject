@@ -243,6 +243,12 @@ namespace LearningDocumentSystem.Data.DbContexts
                 entity.Property(cm => cm.Content).IsRequired().HasColumnType("nvarchar(max)");
                 entity.Property(cm => cm.SourcesJson).HasColumnType("nvarchar(max)").IsRequired(false);
                 entity.Property(cm => cm.CreatedAt).HasDefaultValueSql("GETDATE()");
+                entity.Property(cm => cm.ProviderName).HasMaxLength(50).IsRequired(false);
+                entity.Property(cm => cm.ModelName).HasMaxLength(100).IsRequired(false);
+                entity.Property(cm => cm.ExecutionTimeMs).IsRequired(false);
+                entity.Property(cm => cm.PromptTokens).IsRequired(false);
+                entity.Property(cm => cm.CompletionTokens).IsRequired(false);
+                entity.Property(cm => cm.Feedback).IsRequired(false);
 
                 // FK → ChatSessions (CASCADE)
                 entity.HasOne(cm => cm.Session)
