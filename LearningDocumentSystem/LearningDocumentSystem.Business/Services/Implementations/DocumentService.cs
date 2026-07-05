@@ -175,8 +175,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 }
                 await _uow.Embeddings.AddRangeAsync(embeddings);
 
-                // Step 7: Quét mâu thuẫn kiến thức bằng AI (Cấp độ 4) - Đã tạm ẩn để tránh lỗi upload
-                /*
+                // Step 7: Quét mâu thuẫn kiến thức bằng AI (Cấp độ 4)
                 try
                 {
                     await CheckForConflictsAsync(document, chapter.SubjectID, chunkEntities, embeddings);
@@ -189,7 +188,6 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 {
                     _logger.LogError(conflictEx, "Unexpected error scanning document conflicts for document {DocId}.", document.DocumentID);
                 }
-                */
 
                 // Step 8: Cập nhật status → Indexed
                 await _uow.Documents.UpdateStatusAsync(document.DocumentID, AppConstants.StatusIndexed);
@@ -330,6 +328,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
             var conflictsList = new List<string>();
 
+            var allCandidates = new List<(DocumentChunk NewChunk, DocumentChunk OldChunk, float Score)>();
+
             foreach (var newChunk in newChunks)
             {
                 var newEmb = newEmbeddings.FirstOrDefault(e => e.ChunkID == newChunk.ChunkID);
@@ -338,8 +338,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 var newVector = JsonSerializer.Deserialize<float[]>(newEmb.VectorData);
                 if (newVector == null) continue;
 
-                // Tìm top 3 chunk tương đồng nhất
-                var candidateChunks = existingChunks
+                var bestMatch = existingChunks
                     .Select(ec => {
                         float[]? ecVector = null;
                         if (ec.Embedding != null && !string.IsNullOrWhiteSpace(ec.Embedding.VectorData))
@@ -350,16 +349,28 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                         float score = ecVector != null ? DotProduct(newVector, ecVector) : 0f;
                         return new { Chunk = ec, Score = score };
                     })
-                    .Where(x => x.Score >= 0.15f) // Ngưỡng tương đồng ngữ nghĩa
+                    .Where(x => x.Score >= 0.85f) // Chỉ kiểm tra khi có độ tương đồng cực cao
                     .OrderByDescending(x => x.Score)
-                    .Take(3)
-                    .ToList();
+                    .FirstOrDefault();
 
-                foreach (var candidate in candidateChunks)
+                if (bestMatch != null)
                 {
-                    var oldChunk = candidate.Chunk;
+                    allCandidates.Add((newChunk, bestMatch.Chunk, bestMatch.Score));
+                }
+            }
+
+            // Chọn tối đa 2 cặp đoạn có độ tương đồng cao nhất để kiểm tra nhằm tránh lỗi Rate Limit của API
+            var topCandidatesToVerify = allCandidates
+                .OrderByDescending(c => c.Score)
+                .Take(2)
+                .ToList();
+
+            foreach (var candidate in topCandidatesToVerify)
+            {
+                var oldChunk = candidate.OldChunk;
+                var newChunk = candidate.NewChunk;
                     
-                    string prompt = $@"
+                string prompt = $@"
 Bạn là trợ lý học thuật kiểm duyệt thông tin tài liệu.
 Nhiệm vụ của bạn là so sánh hai đoạn văn bản dưới đây và xác định xem chúng có chứa bất kỳ mâu thuẫn logic nào hoặc thông tin trái ngược nhau hay không (ví dụ: mâu thuẫn về ngày tháng, công thức, số liệu, định nghĩa hoặc quy chế học vụ).
 
@@ -374,12 +385,18 @@ Quy tắc trả về:
 - Nếu CÓ mâu thuẫn thông tin, hãy giải thích ngắn gọn điểm mâu thuẫn (Ví dụ: 'Tài liệu cũ ghi lịch thi là 24/06 nhưng tài liệu mới lại ghi lịch thi là 25/06'). Không giải thích dài dòng quá 3 câu.";
 
 
-                    string analysisResult = await _geminiService.GenerateDirectAnswerAsync(prompt);
+                string analysisResult = await _geminiService.GenerateDirectAnswerAsync(prompt);
 
-                    if (!string.IsNullOrWhiteSpace(analysisResult) && !analysisResult.Contains("NO_CONFLICT", StringComparison.OrdinalIgnoreCase))
-                    {
-                        conflictsList.Add($"Mâu thuẫn với tài liệu \"{oldChunk.Document.Title}\": {analysisResult.Trim()}");
-                    }
+                // Nếu có lỗi kết nối API thì bỏ qua đoạn này, không ghi nhận là mâu thuẫn
+                if (analysisResult.Contains("lỗi khi kết nối", StringComparison.OrdinalIgnoreCase) || 
+                    analysisResult.Contains("Lỗi nội bộ", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(analysisResult) && !analysisResult.Contains("NO_CONFLICT", StringComparison.OrdinalIgnoreCase))
+                {
+                    conflictsList.Add($"Mâu thuẫn với tài liệu \"{oldChunk.Document.Title}\": {analysisResult.Trim()}");
                 }
             }
 
