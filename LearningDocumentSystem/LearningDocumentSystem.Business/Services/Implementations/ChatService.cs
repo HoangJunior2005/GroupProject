@@ -126,14 +126,24 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                     }
                 }
 
-                if (!validChunks.Any())
-                {
-                    response.Answer = "Xin lỗi, tôi không tìm thấy nội dung liên quan trong tài liệu học tập. " +
-                                      "Bạn thử chọn đúng môn học ở bên trái, hoặc đặt câu hỏi theo sát các khái niệm trong bài giảng nhé!";
-                    return response;
-                }
-
                 var contextBuilder = new System.Text.StringBuilder();
+
+                if (subjectId.HasValue || chapterId.HasValue)
+                {
+                    string subName = "";
+                    string chapName = "";
+                    if (subjectId.HasValue)
+                    {
+                        var sub = await _uow.Subjects.GetByIdAsync(subjectId.Value);
+                        if (sub != null) subName = $"Môn học: {sub.SubjectName} ({sub.SubjectCode}) | ";
+                    }
+                    if (chapterId.HasValue)
+                    {
+                        var chap = await _uow.Chapters.GetByIdAsync(chapterId.Value);
+                        if (chap != null) chapName = $"Chương {chap.ChapterNumber}: {chap.ChapterName}";
+                    }
+                    contextBuilder.AppendLine($"[PHẠM VI ĐANG CHỌN]: {subName}{chapName}");
+                }
 
                 foreach (var item in validChunks)
                 {

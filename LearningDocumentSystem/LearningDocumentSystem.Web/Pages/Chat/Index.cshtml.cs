@@ -1,5 +1,6 @@
 using LearningDocumentSystem.Business.DTOs;
 using LearningDocumentSystem.Business.Services.Interfaces;
+using LearningDocumentSystem.Common.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -12,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace LearningDocumentSystem.Web.Pages.Chat
 {
-    [Authorize]
+    [Authorize(Roles = AppConstants.RoleStudent)]
     public class IndexModel : PageModel
     {
         private readonly IChatService _chatService;
