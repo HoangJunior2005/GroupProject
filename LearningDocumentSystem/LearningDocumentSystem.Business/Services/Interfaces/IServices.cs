@@ -87,4 +87,13 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
         Task UpdateSessionTitleAsync(int sessionId, int userId, string title);
         Task UpdateSessionSubjectAsync(int sessionId, int userId, int? subjectId);
     }
+
+    public interface IBenchmarkService
+    {
+        Task<BenchmarkStatsDto> GetDashboardStatsAsync();
+        Task LogIndexBenchmarkAsync(IndexBenchmarkLogDto log);
+        Task LogQueryBenchmarkAsync(QueryBenchmarkLogDto log);
+        Task<bool> UpdateQueryRatingAsync(int logId, int rating);
+        Task<PlaygroundResultDto> RunPlaygroundAsync(PlaygroundRequestDto request);
+    }
 }

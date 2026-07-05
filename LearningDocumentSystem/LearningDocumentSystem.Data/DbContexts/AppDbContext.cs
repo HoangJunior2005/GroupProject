@@ -20,6 +20,8 @@ namespace LearningDocumentSystem.Data.DbContexts
         public DbSet<ChatSession> ChatSessions { get; set; } = null!;
         public DbSet<ChatMessage> ChatMessages { get; set; } = null!;
         public DbSet<DocumentConflict> DocumentConflicts { get; set; } = null!;
+        public DbSet<IndexBenchmarkLog> IndexBenchmarkLogs { get; set; } = null!;
+        public DbSet<QueryBenchmarkLog> QueryBenchmarkLogs { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -290,6 +292,53 @@ namespace LearningDocumentSystem.Data.DbContexts
 
                 entity.HasIndex(dc => dc.DocumentID).HasDatabaseName("IX_DocumentConflicts_DocumentID");
                 entity.HasIndex(dc => dc.ConflictingDocumentID).HasDatabaseName("IX_DocumentConflicts_ConflictingDocumentID");
+            });
+
+            // ============================================================
+            // BẢNG IndexBenchmarkLogs
+            // ============================================================
+            modelBuilder.Entity<IndexBenchmarkLog>(entity =>
+            {
+                entity.ToTable("IndexBenchmarkLogs");
+                entity.HasKey(e => e.LogID);
+                entity.Property(e => e.LogID).UseIdentityColumn();
+                entity.Property(e => e.ChunkingStrategy).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.EmbeddingModel).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.ProcessingTimeMs).HasColumnType("float");
+                entity.Property(e => e.AverageChunkSize).HasColumnType("float");
+                entity.Property(e => e.ExecutedAt).HasDefaultValueSql("GETUTCDATE()");
+
+                // FK → Documents (nullable, SET NULL khi xóa document)
+                entity.HasOne(e => e.Document)
+                    .WithMany()
+                    .HasForeignKey(e => e.DocumentID)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(e => e.EmbeddingModel).HasDatabaseName("IX_IndexBenchmarkLogs_EmbeddingModel");
+                entity.HasIndex(e => e.ChunkingStrategy).HasDatabaseName("IX_IndexBenchmarkLogs_ChunkingStrategy");
+                entity.HasIndex(e => e.ExecutedAt).HasDatabaseName("IX_IndexBenchmarkLogs_ExecutedAt");
+            });
+
+            // ============================================================
+            // BẢNG QueryBenchmarkLogs
+            // ============================================================
+            modelBuilder.Entity<QueryBenchmarkLog>(entity =>
+            {
+                entity.ToTable("QueryBenchmarkLogs");
+                entity.HasKey(e => e.LogID);
+                entity.Property(e => e.LogID).UseIdentityColumn();
+                entity.Property(e => e.QueryText).IsRequired().HasMaxLength(2000);
+                entity.Property(e => e.LLMModel).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.EmbeddingModel).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.RetrievalTimeMs).HasColumnType("float");
+                entity.Property(e => e.GenerationTimeMs).HasColumnType("float");
+                entity.Property(e => e.Top1CosineSimilarity).HasColumnType("float");
+                entity.Property(e => e.UserRating).HasDefaultValue(0);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasIndex(e => e.EmbeddingModel).HasDatabaseName("IX_QueryBenchmarkLogs_EmbeddingModel");
+                entity.HasIndex(e => e.LLMModel).HasDatabaseName("IX_QueryBenchmarkLogs_LLMModel");
+                entity.HasIndex(e => e.CreatedAt).HasDatabaseName("IX_QueryBenchmarkLogs_CreatedAt");
             });
         }
     }

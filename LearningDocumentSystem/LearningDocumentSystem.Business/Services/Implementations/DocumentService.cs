@@ -9,6 +9,7 @@ using LearningDocumentSystem.Entities.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 
@@ -140,8 +141,9 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 await _uow.Documents.UpdateStatusAsync(document.DocumentID, AppConstants.StatusProcessing);
                 await _uow.SaveChangesAsync();
 
-                // Step 4: Chunking
+                // Step 4: Chunking + Embedding — đo thời gian cho IndexBenchmarkLog
                 var fullPath = Path.Combine(_uploadPath, storageName);
+                var indexingStopwatch = Stopwatch.StartNew();
                 var chunks   = await _chunkingService.ExtractChunksAsync(fullPath, document.FileType);
 
                 // Step 5: Lưu chunks + embeddings
@@ -193,7 +195,35 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
                 // Step 8: Cập nhật status → Indexed
                 await _uow.Documents.UpdateStatusAsync(document.DocumentID, AppConstants.StatusIndexed);
+                indexingStopwatch.Stop();
                 await _uow.SaveChangesAsync();
+
+                // Step 9: Ghi IndexBenchmarkLog
+                try
+                {
+                    double avgChunkSize = chunkEntities.Count > 0
+                        ? chunkEntities.Average(c => (double)c.ContentText.Length)
+                        : 0;
+                    var indexLog = new IndexBenchmarkLog
+                    {
+                        DocumentID = document.DocumentID,
+                        ChunkingStrategy = "Paragraph",
+                        EmbeddingModel = "TF-IDF",
+                        TotalChunksGenerated = chunkEntities.Count,
+                        ProcessingTimeMs = indexingStopwatch.Elapsed.TotalMilliseconds,
+                        AverageChunkSize = Math.Round(avgChunkSize, 1),
+                        ExecutedAt = DateTime.UtcNow
+                    };
+                    await _uow.BenchmarkLogs.AddIndexLogAsync(indexLog);
+                    await _uow.SaveChangesAsync();
+                    _logger.LogInformation("IndexBenchmarkLog saved: doc={DocId}, chunks={Count}, ms={Ms}",
+                        document.DocumentID, chunkEntities.Count, indexingStopwatch.Elapsed.TotalMilliseconds);
+                }
+                catch (Exception logEx)
+                {
+                    // Log lỗi nhưng không làm ảnh hưởng việc upload
+                    _logger.LogWarning(logEx, "Failed to write IndexBenchmarkLog for document {DocId}.", document.DocumentID);
+                }
 
                 await _uow.CommitAsync();
 

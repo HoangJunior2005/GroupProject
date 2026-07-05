@@ -1,0 +1,338 @@
+@page
+@model LearningDocumentSystem.Web.Pages.Benchmarks.PlaygroundModel
+@{
+    ViewData["Title"] = "Benchmark Playground";
+    ViewData["Breadcrumb"] = "Playground";
+}
+
+<div class="playground-page">
+
+    <!-- ====== HEADER ====== -->
+    <div class="page-header mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <a asp-page="/Benchmarks/Index" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Dashboard
+            </a>
+            <div>
+                <h1 class="page-title mb-0">
+                    <i class="bi bi-joystick me-2 text-primary"></i>Benchmark Playground
+                </h1>
+                <p class="text-muted mb-0 small">Thử nghiệm trực tiếp — so sánh kết quả truy xuất đồng thời giữa các mô hình nhúng</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== CONTROL PANEL ====== -->
+    <div class="control-panel mb-4">
+        <div class="row g-3">
+            <!-- Query Text -->
+            <div class="col-12">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-search me-1"></i> Câu hỏi thử nghiệm
+                </label>
+                <div class="input-group">
+                    <textarea id="queryInput" class="form-control" rows="2"
+                              placeholder="Nhập câu hỏi để so sánh kết quả truy xuất của các mô hình nhúng..."></textarea>
+                    <button id="btnRun" class="btn btn-primary px-4" onclick="runBenchmark()">
+                        <i class="bi bi-play-fill me-1"></i> Chạy thử nghiệm
+                    </button>
+                </div>
+            </div>
+            <!-- Filter -->
+            <div class="col-md-4">
+                <label class="form-label fw-semibold small">Lọc theo Môn học</label>
+                <select id="selectSubject" class="form-select form-select-sm" onchange="loadChapters()">
+                    <option value="">— Tất cả môn học —</option>
+                    @foreach (var s in Model.Subjects)
+                    {
+                        <option value="@s.SubjectID">@s.SubjectName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold small">Lọc theo Chương học</label>
+                <select id="selectChapter" class="form-select form-select-sm">
+                    <option value="">— Tất cả chương —</option>
+                    @foreach (var c in Model.Chapters)
+                    {
+                        <option value="@c.ChapterID" data-subject="@c.SubjectID">@c.ChapterName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold small">Mô hình nhúng</label>
+                <div class="d-flex flex-wrap gap-2 pt-1">
+                    @foreach (var m in new[] { "TF-IDF", "multilingual-e5-base", "PhoBERT-base", "bge-m3" })
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input model-check" type="checkbox" value="@m"
+                                   id="chk_@m.Replace("-","_")" checked>
+                            <label class="form-check-label small" for="chk_@m.Replace("-","_")">@m</label>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== LOADING ====== -->
+    <div id="loadingArea" class="text-center py-5 d-none">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p class="text-muted">Đang chạy benchmark đồng thời trên tất cả mô hình...</p>
+    </div>
+
+    <!-- ====== RESULTS ====== -->
+    <div id="resultsArea" class="d-none">
+        <div class="results-header mb-3">
+            <h5 class="fw-bold mb-0">
+                <i class="bi bi-table me-2 text-primary"></i>
+                Kết quả thử nghiệm: "<span id="displayQuery" class="text-primary"></span>"
+            </h5>
+            <small class="text-muted" id="executedAt"></small>
+        </div>
+        <div id="modelsGrid" class="models-grid"></div>
+    </div>
+
+    <!-- ====== PLACEHOLDER ====== -->
+    <div id="placeholderArea" class="text-center py-5">
+        <i class="bi bi-joystick text-muted" style="font-size:4rem;opacity:.3"></i>
+        <p class="text-muted mt-3">Nhập câu hỏi và nhấn <strong>Chạy thử nghiệm</strong> để xem kết quả so sánh.</p>
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+    // Chapter filter based on subject
+    const allChapterOptions = Array.from(document.querySelectorAll('#selectChapter option'));
+
+    function loadChapters() {
+        const subId = document.getElementById('selectSubject').value;
+        const sel = document.getElementById('selectChapter');
+        sel.innerHTML = '<option value="">— Tất cả chương —</option>';
+        allChapterOptions.forEach(opt => {
+            if (!opt.value || !subId || opt.dataset.subject === subId) {
+                sel.appendChild(opt.cloneNode(true));
+            }
+        });
+    }
+
+    async function runBenchmark() {
+        const query = document.getElementById('queryInput').value.trim();
+        if (!query) { alert('Vui lòng nhập câu hỏi.'); return; }
+
+        const selectedModels = Array.from(document.querySelectorAll('.model-check:checked'))
+            .map(el => el.value);
+        if (selectedModels.length === 0) { alert('Chọn ít nhất 1 mô hình.'); return; }
+
+        const subjectId = document.getElementById('selectSubject').value || null;
+        const chapterId = document.getElementById('selectChapter').value || null;
+
+        // Show loading
+        document.getElementById('placeholderArea').classList.add('d-none');
+        document.getElementById('resultsArea').classList.add('d-none');
+        document.getElementById('loadingArea').classList.remove('d-none');
+        document.getElementById('btnRun').disabled = true;
+
+        try {
+            const resp = await fetch('/Benchmarks/Playground?handler=Run', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: JSON.stringify({
+                    queryText: query,
+                    subjectId: subjectId ? parseInt(subjectId) : null,
+                    chapterId: chapterId ? parseInt(chapterId) : null,
+                    models: selectedModels
+                })
+            });
+
+            if (!resp.ok) throw new Error('Server error: ' + resp.status);
+            const data = await resp.json();
+            renderResults(data);
+        } catch (err) {
+            alert('Lỗi khi chạy benchmark: ' + err.message);
+        } finally {
+            document.getElementById('loadingArea').classList.add('d-none');
+            document.getElementById('btnRun').disabled = false;
+        }
+    }
+
+    function renderResults(data) {
+        document.getElementById('displayQuery').textContent = data.queryText;
+        document.getElementById('executedAt').textContent =
+            'Thực hiện lúc: ' + new Date(data.executedAt).toLocaleTimeString('vi-VN');
+
+        const grid = document.getElementById('modelsGrid');
+        grid.innerHTML = '';
+
+        data.modelResults.forEach(model => {
+            const card = document.createElement('div');
+            card.className = 'model-card' + (model.isAvailable ? '' : ' model-card-unavailable');
+
+            const headerColor = model.isAvailable ? 'linear-gradient(135deg,#667eea,#764ba2)' : '#6b7280';
+            const typeLabel = { 'Native': 'success', 'External': 'info', 'Stub': 'secondary' }[model.modelType] || 'secondary';
+
+            let chunksHtml = '';
+            if (!model.isAvailable) {
+                chunksHtml = `<div class="unavailable-msg">
+                    <i class="bi bi-plug-fill me-2"></i>${model.unavailableReason || 'Không khả dụng'}
+                </div>`;
+            } else if (model.topChunks && model.topChunks.length > 0) {
+                chunksHtml = model.topChunks.map((chunk, idx) => `
+                    <div class="chunk-item">
+                        <div class="chunk-rank">#${idx + 1}</div>
+                        <div class="chunk-meta">
+                            <span class="chunk-score score-${getScoreClass(chunk.cosineSimilarity)}">
+                                ⚡ ${(chunk.cosineSimilarity * 100).toFixed(2)}%
+                            </span>
+                            <span class="chunk-doc">${escHtml(chunk.documentTitle)}</span>
+                            ${chunk.pageNumber ? `<span class="text-muted small">Trang ${chunk.pageNumber}</span>` : ''}
+                        </div>
+                        <div class="chunk-content">${escHtml(chunk.contentSnippet)}</div>
+                    </div>
+                `).join('');
+            } else {
+                chunksHtml = '<div class="no-results"><i class="bi bi-search me-2"></i>Không tìm thấy chunks phù hợp.</div>';
+            }
+
+            card.innerHTML = `
+                <div class="model-card-header" style="background:${headerColor}">
+                    <div class="model-name">${escHtml(model.modelName)}</div>
+                    <div class="model-badges">
+                        <span class="badge bg-${typeLabel}">${model.modelType}</span>
+                        <span class="badge bg-dark">${model.dimensions}d</span>
+                    </div>
+                </div>
+                <div class="model-timing">
+                    <div class="timing-item">
+                        <i class="bi bi-lightning-charge text-warning"></i>
+                        Embedding: <strong>${model.embeddingTimeMs.toFixed(1)} ms</strong>
+                    </div>
+                    <div class="timing-item">
+                        <i class="bi bi-search text-info"></i>
+                        Retrieval: <strong>${model.retrievalTimeMs.toFixed(1)} ms</strong>
+                    </div>
+                </div>
+                <div class="model-chunks">${chunksHtml}</div>
+            `;
+            grid.appendChild(card);
+        });
+
+        document.getElementById('resultsArea').classList.remove('d-none');
+        document.getElementById('resultsArea').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function getScoreClass(score) {
+        if (score >= 0.7) return 'high';
+        if (score >= 0.4) return 'medium';
+        return 'low';
+    }
+
+    function escHtml(str) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(str || ''));
+        return div.innerHTML;
+    }
+</script>
+}
+
+<!-- AntiForgery for AJAX POST -->
+@Html.AntiForgeryToken()
+
+<style>
+    .page-title { font-size: 1.5rem; font-weight: 700; color: #1e293b; }
+
+    .control-panel {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid rgba(0,0,0,0.06);
+        padding: 1.5rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    .models-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1rem;
+    }
+
+    .model-card {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid rgba(0,0,0,0.08);
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .model-card-unavailable { opacity: 0.65; }
+
+    .model-card-header {
+        padding: .9rem 1.1rem;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .model-name { font-weight: 700; font-size: .95rem; }
+    .model-badges { display: flex; gap: .3rem; }
+
+    .model-timing {
+        display: flex;
+        gap: 1rem;
+        padding: .7rem 1.1rem;
+        background: #f8fafc;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        font-size: .8rem;
+    }
+    .timing-item { display: flex; align-items: center; gap: .3rem; }
+
+    .model-chunks { padding: .8rem 1rem; flex: 1; }
+
+    .chunk-item {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: .7rem .9rem;
+        margin-bottom: .6rem;
+        background: #fafafa;
+        transition: border-color .2s;
+    }
+    .chunk-item:hover { border-color: #6366f1; }
+
+    .chunk-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; margin-bottom: .4rem; }
+    .chunk-rank { font-weight: 700; color: #6366f1; font-size: .8rem; margin-bottom: .3rem; }
+    .chunk-score { font-weight: 700; font-size: .75rem; padding: .2rem .5rem; border-radius: 20px; }
+    .score-high   { background: #dcfce7; color: #166534; }
+    .score-medium { background: #fef9c3; color: #854d0e; }
+    .score-low    { background: #fee2e2; color: #991b1b; }
+    .chunk-doc  { font-weight: 600; font-size: .75rem; color: #374151; }
+    .chunk-content {
+        font-size: .78rem;
+        color: #6b7280;
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .unavailable-msg {
+        background: #f3f4f6;
+        border-radius: 8px;
+        padding: 1rem;
+        font-size: .82rem;
+        color: #6b7280;
+        text-align: center;
+    }
+    .no-results {
+        text-align: center;
+        color: #9ca3af;
+        font-size: .82rem;
+        padding: 1rem 0;
+    }
+    .results-header { border-bottom: 2px solid #6366f1; padding-bottom: .6rem; }
+</style>

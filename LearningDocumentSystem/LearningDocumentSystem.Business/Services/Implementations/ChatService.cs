@@ -2,6 +2,7 @@ using LearningDocumentSystem.Business.DTOs;
 using LearningDocumentSystem.Business.Services.Interfaces;
 using LearningDocumentSystem.Data.Repositories.Interfaces;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -33,6 +34,9 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             _logger.LogInformation("Processing question: '{Question}' | sub={SubId}, chap={ChapId}", question, subjectId, chapterId);
 
             var response = new ChatResponseDto();
+            double retrievalTimeMs = 0;
+            double generationTimeMs = 0;
+            double top1Score = 0;
 
             if (string.IsNullOrWhiteSpace(question))
             {
@@ -51,6 +55,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                     return response;
                 }
 
+                var retrievalSw = Stopwatch.StartNew();
                 var chunksInDb = await _uow.DocumentChunks.GetChunksForRAGAsync(subjectId, chapterId);
                 var scoredChunks = new List<(float Score, Entities.Models.DocumentChunk Chunk)>();
 
@@ -81,6 +86,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                     .OrderByDescending(sc => sc.Score)
                     .Take(3)
                     .ToList();
+                retrievalSw.Stop();
+                retrievalTimeMs = retrievalSw.Elapsed.TotalMilliseconds;
 
                 List<(float Score, Entities.Models.DocumentChunk Chunk)> validChunks;
                 if (topChunks.Any())
@@ -149,7 +156,14 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                     contextBuilder.AppendLine($"[Tài liệu: {source.DocumentTitle}, Trang {source.PageNumber?.ToString() ?? "N/A"}]: {item.Chunk.ContentText}");
                 }
 
+                if (validChunks.Any()) top1Score = validChunks.First().Score;
+
+                var generationSw = Stopwatch.StartNew();
                 response.Answer = await _geminiService.GenerateAnswerAsync(question, contextBuilder.ToString());
+                generationSw.Stop();
+                generationTimeMs = generationSw.Elapsed.TotalMilliseconds;
+
+                _logger.LogInformation("QueryBenchmark: {Question} | Retrieval: {RetTime:F2}ms | Generation: {GenTime:F2}ms | Top1Score: {Score:F4}", question, retrievalTimeMs, generationTimeMs, top1Score);
 
                 // If AI indicates it couldn't find relevant information in the context, clear
                 // any sources that were tentatively attached (they would be misleading citations).
@@ -166,6 +180,29 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                      response.Answer.Contains("tài liệu không đề cập", StringComparison.OrdinalIgnoreCase)))
                 {
                     response.Sources.Clear();
+                }
+
+                // Ghi QueryBenchmarkLog (bất đồng bộ, không chặn response)
+                try
+                {
+                    var queryLog = new Entities.Models.QueryBenchmarkLog
+                    {
+                        QueryText = question.Length > 2000 ? question[..2000] : question,
+                        LLMModel = "Gemini",
+                        EmbeddingModel = "TF-IDF",
+                        RetrievalTimeMs = retrievalTimeMs,
+                        GenerationTimeMs = generationTimeMs,
+                        Top1CosineSimilarity = Math.Clamp(top1Score, 0, 1),
+                        SelectedSourcesCount = response.Sources.Count,
+                        UserRating = 0,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await _uow.BenchmarkLogs.AddQueryLogAsync(queryLog);
+                    await _uow.SaveChangesAsync();
+                }
+                catch (Exception logEx)
+                {
+                    _logger.LogWarning(logEx, "Failed to write QueryBenchmarkLog.");
                 }
             }
             catch (Exception ex)

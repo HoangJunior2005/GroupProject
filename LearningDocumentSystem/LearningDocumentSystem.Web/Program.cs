@@ -99,6 +99,9 @@ builder.Services.AddScoped<IEmbeddingService, EmbeddingService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddHttpClient<IGeminiService, GeminiService>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IBenchmarkService, BenchmarkService>();
+builder.Services.AddScoped<EmbeddingAdapterFactory>();
+builder.Services.AddHttpClient(); // IHttpClientFactory for embedding adapters
 
 // Seeder
 builder.Services.AddScoped<DataSeeder>();

@@ -1,0 +1,393 @@
+@page
+@model LearningDocumentSystem.Web.Pages.Benchmarks.IndexModel
+@{
+    ViewData["Title"] = "Benchmark Dashboard";
+    ViewData["Breadcrumb"] = "Benchmark";
+}
+
+<div class="benchmark-dashboard">
+
+    <!-- ====== PAGE HEADER ====== -->
+    <div class="page-header mb-4">
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <h1 class="page-title mb-1">
+                    <i class="bi bi-graph-up-arrow me-2 text-primary"></i>Benchmark Dashboard
+                </h1>
+                <p class="text-muted mb-0">So sánh hiệu năng các mô hình nhúng & chiến lược phân mảnh</p>
+            </div>
+            <a asp-page="/Benchmarks/Playground" class="btn btn-primary">
+                <i class="bi bi-play-circle-fill me-1"></i> Playground Thử Nghiệm
+            </a>
+        </div>
+    </div>
+
+    <!-- ====== KPI CARDS ====== -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="kpi-card kpi-blue">
+                <div class="kpi-icon"><i class="bi bi-chat-dots-fill"></i></div>
+                <div class="kpi-body">
+                    <div class="kpi-value">@Model.Stats.TotalQueryLogs.ToString("N0")</div>
+                    <div class="kpi-label">Tổng lượt truy vấn</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card kpi-purple">
+                <div class="kpi-icon"><i class="bi bi-file-earmark-check-fill"></i></div>
+                <div class="kpi-body">
+                    <div class="kpi-value">@Model.Stats.TotalIndexLogs.ToString("N0")</div>
+                    <div class="kpi-label">Tổng lần Index tài liệu</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card kpi-green">
+                <div class="kpi-icon"><i class="bi bi-hand-thumbs-up-fill"></i></div>
+                <div class="kpi-body">
+                    <div class="kpi-value">@Model.Stats.HelfulnessRatePercent.ToString("F1")%</div>
+                    <div class="kpi-label">
+                        Tỷ lệ hài lòng
+                        <small class="text-muted d-block">(@Model.Stats.TotalThumbsUp 👍 / @Model.Stats.TotalThumbsDown 👎)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card kpi-orange">
+                <div class="kpi-icon"><i class="bi bi-stopwatch-fill"></i></div>
+                <div class="kpi-body">
+                    <div class="kpi-value">@((Model.Stats.AvgRetrievalTimeMs + Model.Stats.AvgGenerationTimeMs).ToString("F0")) ms</div>
+                    <div class="kpi-label">
+                        Avg Total Latency
+                        <small class="text-muted d-block">Retrieval + Generation</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== ROW 1: Query Latency + Generation Latency ====== -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <h6><i class="bi bi-bar-chart-line-fill me-2 text-primary"></i>Tốc độ Truy Xuất theo Mô Hình Nhúng</h6>
+                    <small class="text-muted">Avg Retrieval Time (ms)</small>
+                </div>
+                <div class="chart-card-body">
+                    <canvas id="chartRetrievalByModel" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <h6><i class="bi bi-cpu-fill me-2 text-warning"></i>Thời Gian Sinh Câu Trả Lời theo LLM</h6>
+                    <small class="text-muted">Avg Generation Time (ms)</small>
+                </div>
+                <div class="chart-card-body">
+                    <canvas id="chartGenerationByLLM" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== ROW 2: Satisfaction Rate ====== -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <h6><i class="bi bi-pie-chart-fill me-2 text-success"></i>Tỷ Lệ Đánh Giá Hài Lòng</h6>
+                    <small class="text-muted">Thumbs Up / Down / Chưa đánh giá</small>
+                </div>
+                <div class="chart-card-body d-flex justify-content-center">
+                    <div style="max-width:280px; width:100%">
+                        <canvas id="chartSatisfactionOverall" height="220"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <h6><i class="bi bi-bar-chart-fill me-2 text-info"></i>Tỷ Lệ Hài Lòng theo Mô Hình LLM</h6>
+                    <small class="text-muted">% Thumbs Up trên tổng rated</small>
+                </div>
+                <div class="chart-card-body">
+                    <canvas id="chartSatisfactionByLLM" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== ROW 3: Chunking Strategy ====== -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <h6><i class="bi bi-layers-fill me-2 text-primary"></i>Avg Chunk Count theo Strategy</h6>
+                    <small class="text-muted">Số chunks TB / tài liệu</small>
+                </div>
+                <div class="chart-card-body">
+                    <canvas id="chartAvgChunkCount" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <h6><i class="bi bi-rulers me-2 text-warning"></i>Avg Chunk Size theo Strategy</h6>
+                    <small class="text-muted">Kích thước TB (ký tự)</small>
+                </div>
+                <div class="chart-card-body">
+                    <canvas id="chartAvgChunkSize" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <h6><i class="bi bi-lightning-charge-fill me-2 text-danger"></i>Processing Time (Strategy × Model)</h6>
+                    <small class="text-muted">Tổng ms phân mảnh + embedding</small>
+                </div>
+                <div class="chart-card-body">
+                    <canvas id="chartProcessingTime" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== RECENT LOGS TABLE ====== -->
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <h6><i class="bi bi-clock-history me-2 text-secondary"></i>20 Lượt Truy Vấn Gần Đây</h6>
+                </div>
+                <div class="chart-card-body p-0">
+                    @if (!Model.Stats.RecentQueryLogs.Any())
+                    {
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                            Chưa có dữ liệu. Hệ thống sẽ tự động ghi log khi có truy vấn.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Câu hỏi</th>
+                                        <th>LLM</th>
+                                        <th>Embedding</th>
+                                        <th class="text-end">Retrieval (ms)</th>
+                                        <th class="text-end">Generation (ms)</th>
+                                        <th class="text-end">Top1 Score</th>
+                                        <th class="text-center">Rating</th>
+                                        <th>Thời gian</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var log in Model.Stats.RecentQueryLogs)
+                                    {
+                                        <tr>
+                                            <td class="text-muted small">@log.LogID</td>
+                                            <td style="max-width:250px" class="small text-truncate" title="@log.QueryText">@log.QueryText</td>
+                                            <td><span class="badge bg-primary">@log.LLMModel</span></td>
+                                            <td><span class="badge bg-secondary">@log.EmbeddingModel</span></td>
+                                            <td class="text-end small">@log.RetrievalTimeMs.ToString("F1")</td>
+                                            <td class="text-end small">@log.GenerationTimeMs.ToString("F1")</td>
+                                            <td class="text-end small">@log.Top1CosineSimilarity.ToString("F4")</td>
+                                            <td class="text-center">
+                                                @if (log.UserRating == 1)
+                                                {
+                                                    <span class="text-success" title="Hài lòng"><i class="bi bi-hand-thumbs-up-fill"></i></span>
+                                                }
+                                                else if (log.UserRating == -1)
+                                                {
+                                                    <span class="text-danger" title="Không hài lòng"><i class="bi bi-hand-thumbs-down-fill"></i></span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted" title="Chưa đánh giá"><i class="bi bi-dash"></i></span>
+                                                }
+                                            </td>
+                                            <td class="text-muted small">@log.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        const stats = @Html.Raw(Model.StatsJson);
+
+        // Color palettes
+        const COLORS_VIBRANT = [
+            'rgba(99,102,241,0.85)',
+            'rgba(16,185,129,0.85)',
+            'rgba(245,158,11,0.85)',
+            'rgba(239,68,68,0.85)',
+            'rgba(59,130,246,0.85)',
+        ];
+        const COLORS_BORDER = [
+            'rgba(99,102,241,1)',
+            'rgba(16,185,129,1)',
+            'rgba(245,158,11,1)',
+            'rgba(239,68,68,1)',
+            'rgba(59,130,246,1)',
+        ];
+
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.font.size = 12;
+
+        const defaultBarOpts = {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: { grid: { display: false } }
+            }
+        };
+
+        function makeBarChart(id, labels, data, label, color) {
+            const ctx = document.getElementById(id);
+            if (!ctx) return;
+            if (!labels || labels.length === 0) {
+                ctx.parentElement.innerHTML = '<p class="text-center text-muted py-4 small">Chưa có dữ liệu</p>';
+                return;
+            }
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label,
+                        data,
+                        backgroundColor: labels.map((_, i) => COLORS_VIBRANT[i % COLORS_VIBRANT.length]),
+                        borderColor: labels.map((_, i) => COLORS_BORDER[i % COLORS_BORDER.length]),
+                        borderWidth: 2,
+                        borderRadius: 6,
+                    }]
+                },
+                options: defaultBarOpts
+            });
+        }
+
+        // 1. Retrieval by embedding model
+        makeBarChart('chartRetrievalByModel',
+            stats.embeddingModelLabels,
+            stats.avgRetrievalByModel,
+            'Avg Retrieval (ms)');
+
+        // 2. Generation by LLM
+        makeBarChart('chartGenerationByLLM',
+            stats.lLMModelLabels,
+            stats.avgGenerationByLLM,
+            'Avg Generation (ms)');
+
+        // 3. Satisfaction Overall (Doughnut)
+        (() => {
+            const ctx = document.getElementById('chartSatisfactionOverall');
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['👍 Hài lòng', '👎 Không hài lòng', '⬜ Chưa đánh giá'],
+                    datasets: [{
+                        data: [stats.totalThumbsUp, stats.totalThumbsDown, stats.totalNotRated],
+                        backgroundColor: ['rgba(16,185,129,0.85)', 'rgba(239,68,68,0.85)', 'rgba(156,163,175,0.5)'],
+                        borderColor: ['rgba(16,185,129,1)', 'rgba(239,68,68,1)', 'rgba(156,163,175,1)'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true } }
+                    }
+                }
+            });
+        })();
+
+        // 4. Satisfaction by LLM
+        makeBarChart('chartSatisfactionByLLM',
+            stats.satisfactionLabels,
+            stats.satisfactionRates,
+            'Tỷ lệ hài lòng (%)');
+
+        // 5. Avg Chunk Count by Strategy
+        makeBarChart('chartAvgChunkCount',
+            stats.chunkingStrategyLabels,
+            stats.avgChunkCountByStrategy,
+            'Avg Chunk Count');
+
+        // 6. Avg Chunk Size by Strategy
+        makeBarChart('chartAvgChunkSize',
+            stats.chunkingStrategyLabels,
+            stats.avgChunkSizeByStrategy,
+            'Avg Chunk Size (chars)');
+
+        // 7. Processing Time by Strategy × Model
+        makeBarChart('chartProcessingTime',
+            stats.strategyModelLabels,
+            stats.processingTimeStrategyModel,
+            'Avg Processing (ms)');
+    </script>
+}
+
+<style>
+    .benchmark-dashboard { padding: 0; }
+
+    .kpi-card {
+        border-radius: 16px;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        color: white;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: transform .2s, box-shadow .2s;
+    }
+    .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+    .kpi-blue    { background: linear-gradient(135deg, #667eea, #764ba2); }
+    .kpi-purple  { background: linear-gradient(135deg, #a855f7, #7c3aed); }
+    .kpi-green   { background: linear-gradient(135deg, #10b981, #059669); }
+    .kpi-orange  { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+    .kpi-icon { font-size: 2rem; opacity: 0.9; }
+    .kpi-value { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+    .kpi-label { font-size: 0.8rem; opacity: 0.9; margin-top: 2px; }
+
+    .chart-card {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid rgba(0,0,0,0.06);
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+    .chart-card-header {
+        padding: .9rem 1.2rem;
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .chart-card-header h6 { margin: 0; font-weight: 600; font-size: .9rem; }
+    .chart-card-body { padding: 1.2rem; }
+
+    .page-title { font-size: 1.6rem; font-weight: 700; color: #1e293b; }
+</style>
