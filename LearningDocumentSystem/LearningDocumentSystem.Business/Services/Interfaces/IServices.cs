@@ -103,12 +103,13 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
         Task LogQueryBenchmarkAsync(QueryBenchmarkLogDto log);
         Task<bool> UpdateQueryRatingAsync(int logId, int rating);
         Task<PlaygroundResultDto> RunPlaygroundAsync(PlaygroundRequestDto request);
-    public interface IChunkSettingsService
-    {
-        /// <summary>Lấy cấu hình chunking của teacher (fallback về default nếu chưa cấu hình)</summary>
-        Task<ChunkSettingsDto> GetSettingsAsync(int teacherId);
+        public interface IChunkSettingsService
+        {
+            /// <summary>Lấy cấu hình chunking của teacher (fallback về default nếu chưa cấu hình)</summary>
+            Task<ChunkSettingsDto> GetSettingsAsync(int teacherId);
 
-        /// <summary>Lưu cấu hình chunking cho teacher</summary>
-        Task SaveSettingsAsync(int teacherId, string strategy, int chunkSize, int chunkOverlap, int minChunkLength);
+            /// <summary>Lưu cấu hình chunking cho teacher</summary>
+            Task SaveSettingsAsync(int teacherId, string strategy, int chunkSize, int chunkOverlap, int minChunkLength);
+        }
     }
 }
