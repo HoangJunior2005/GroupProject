@@ -237,18 +237,18 @@
 
     /* ─── Toast ─── */
     .cs-toast {
-        position: fixed; bottom: 2rem; right: 2rem; z-index: 9999;
+        position: fixed; top: 2rem; right: 2rem; z-index: 9999;
         padding: 1rem 1.5rem; border-radius: 14px;
         font-weight: 600; font-size: .9rem;
         backdrop-filter: blur(16px);
-        animation: slideUp .35s ease;
+        animation: slideDown .35s ease;
         max-width: 360px;
         box-shadow: 0 8px 32px rgba(0,0,0,.15);
     }
     .cs-toast.success { background: hsla(150,65%,40%,.9); color: white; border: 1px solid hsla(150,65%,50%,.4); }
     .cs-toast.error   { background: hsla(0,70%,50%,.9);   color: white; border: 1px solid hsla(0,70%,60%,.4); }
-    @@keyframes slideUp {
-        from { transform: translateY(20px); opacity: 0; }
+    @@keyframes slideDown {
+        from { transform: translateY(-20px); opacity: 0; }
         to   { transform: translateY(0);    opacity: 1; }
     }
 
@@ -296,12 +296,12 @@
     <span class="info-icon">📋</span>
     <div class="info-text">
         <div class="info-title">Cấu hình hiện tại</div>
-        <div class="info-sub">
+        <div class="info-sub" id="currentUpdatedAt">
             Được cập nhật: @(Model.Settings.UpdatedAt.HasValue ? Model.Settings.UpdatedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "Chưa tùy chỉnh (dùng mặc định hệ thống)")
         </div>
     </div>
     <span class="info-badge" id="currentStrategyBadge">@Model.Settings.Strategy</span>
-    <span class="info-badge" style="background:hsla(195,75%,50%,.08);color:hsl(195,75%,35%);border-color:hsla(195,75%,50%,.2);">
+    <span class="info-badge" id="currentParamsBadge" style="background:hsla(195,75%,50%,.08);color:hsl(195,75%,35%);border-color:hsla(195,75%,50%,.2);">
         Size: @Model.Settings.ChunkSize · Overlap: @Model.Settings.ChunkOverlap · Min: @Model.Settings.MinChunkLength
     </span>
 </div>
@@ -353,9 +353,9 @@
                 <input type="range" id="chunkSizeRange" min="100" max="5000" step="50"
                        value="@Model.Settings.ChunkSize" oninput="syncParam('chunkSize', this.value)" />
                 <input type="number" id="chunkSize" name="chunkSize"
-                       min="100" max="10000" value="@Model.Settings.ChunkSize"
+                       min="100" max="5000" value="@Model.Settings.ChunkSize"
                        oninput="syncRange('chunkSizeRange', 'chunkSizeVal', this.value)" />
-                <div class="param-hint">Số ký tự tối đa cho mỗi chunk (100–10000)</div>
+                <div class="param-hint">Số ký tự tối đa cho mỗi chunk (100–5000)</div>
             </div>
 
             <!-- Chunk Overlap -->
@@ -468,6 +468,16 @@
             });
             const res = await r.json();
             showToast(res.message, res.ok ? 'success' : 'error');
+            if (res.ok) {
+                // Update top config info dynamically
+                document.getElementById('currentStrategyBadge').textContent = d.strategy;
+                document.getElementById('currentParamsBadge').textContent = `Size: ${d.chunkSize} · Overlap: ${d.chunkOverlap} · Min: ${d.minChunkLength}`;
+                
+                const now = new Date();
+                const pad = (n) => n.toString().padStart(2, '0');
+                const formattedDate = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+                document.getElementById('currentUpdatedAt').textContent = `Được cập nhật: ${formattedDate}`;
+            }
         } catch (e) {
             showToast('Lỗi kết nối khi lưu cấu hình.', 'error');
         } finally {
@@ -504,6 +514,15 @@
             const res = await r.json();
             if (res.ok) {
                 showToast(res.message, 'success');
+                
+                // Update top config info dynamically since Re-chunk also saves the configuration
+                document.getElementById('currentStrategyBadge').textContent = d.strategy;
+                document.getElementById('currentParamsBadge').textContent = `Size: ${d.chunkSize} · Overlap: ${d.chunkOverlap} · Min: ${d.minChunkLength}`;
+                
+                const now = new Date();
+                const pad = (n) => n.toString().padStart(2, '0');
+                const formattedDate = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+                document.getElementById('currentUpdatedAt').textContent = `Được cập nhật: ${formattedDate}`;
             } else {
                 showToast(res.message, 'error');
                 btn.disabled = false;
