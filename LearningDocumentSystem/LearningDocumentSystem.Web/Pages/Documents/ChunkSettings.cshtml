@@ -1,0 +1,580 @@
+@page
+@model ChunkSettingsModel
+@{
+    ViewData["Title"] = "Cấu hình Chunking";
+}
+
+<style>
+    /* ─── Tokens ─── */
+    :root {
+        --cs-indigo:    hsl(245, 78%, 56%);
+        --cs-indigo-lt: hsl(245, 78%, 66%);
+        --cs-purple:    hsl(270, 70%, 50%);
+        --cs-cyan:      hsl(195, 85%, 40%);
+        --cs-green:     hsl(150, 75%, 35%);
+        --cs-bg-glass:  rgba(255, 255, 255, 0.75);
+        --cs-border:    rgba(0, 0, 0, 0.08);
+        --cs-shadow:    0 8px 30px rgba(0, 0, 0, 0.06);
+    }
+
+    /* ─── Page Header ─── */
+    .cs-header { margin-bottom: 2rem; }
+    .cs-header h1 { font-size: 1.75rem; font-weight: 700; color: #0f172a; }
+    .cs-header .breadcrumb-item + .breadcrumb-item::before { color: rgba(0, 0, 0, 0.4); }
+
+    /* ─── Strategy Cards ─── */
+    .strategy-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .strategy-card {
+        position: relative;
+        padding: 1.5rem 1.25rem;
+        border-radius: 16px;
+        cursor: pointer;
+        border: 2px solid var(--cs-border);
+        background: var(--cs-bg-glass);
+        backdrop-filter: blur(12px);
+        transition: all .3s cubic-bezier(.4,0,.2,1);
+        user-select: none;
+        overflow: hidden;
+    }
+    .strategy-card::before {
+        content: '';
+        position: absolute; inset: 0;
+        opacity: 0;
+        transition: opacity .3s;
+    }
+    .strategy-card:hover { 
+        transform: translateY(-3px); 
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08); 
+        background: rgba(255, 255, 255, 0.9);
+        border-color: rgba(0, 0, 0, 0.15);
+    }
+
+    /* Fixed Size – Indigo */
+    .strategy-card.fixed-card { 
+        --accent: var(--cs-indigo); 
+        --accent-light: hsla(245, 78%, 56%, 0.05);
+        --accent-glow: hsla(245, 78%, 56%, 0.15);
+    }
+    .strategy-card.fixed-card::before { background: radial-gradient(circle at 30% 30%, hsla(245,78%,62%,0.12), transparent 70%); }
+    
+    /* Paragraph – Purple */
+    .strategy-card.para-card  { 
+        --accent: var(--cs-purple); 
+        --accent-light: hsla(270, 70%, 50%, 0.05);
+        --accent-glow: hsla(270, 70%, 50%, 0.15);
+    }
+    .strategy-card.para-card::before  { background: radial-gradient(circle at 30% 30%, hsla(270,70%,58%,0.12), transparent 70%); }
+    
+    /* Recursive – Cyan */
+    .strategy-card.rec-card   { 
+        --accent: var(--cs-cyan); 
+        --accent-light: hsla(195, 85%, 40%, 0.05);
+        --accent-glow: hsla(195, 85%, 40%, 0.15);
+    }
+    .strategy-card.rec-card::before   { background: radial-gradient(circle at 30% 30%, hsla(195,75%,50%,0.12), transparent 70%); }
+
+    .strategy-card.selected {
+        border-color: var(--accent);
+        background: var(--accent-light);
+        box-shadow: 0 0 0 3px var(--accent-glow), var(--cs-shadow);
+    }
+    .strategy-card.selected::before { opacity: 1; }
+    .strategy-card input[type=radio] { display: none; }
+
+    .strategy-icon {
+        width: 48px; height: 48px;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.4rem;
+        background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, white));
+        color: white;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,.15);
+        transition: transform .3s;
+    }
+    .strategy-card.selected .strategy-icon { transform: scale(1.1); }
+
+    .strategy-title { font-weight: 700; font-size: 1rem; margin-bottom: .25rem; color: #0f172a; }
+    .strategy-desc  { font-size: 0.78rem; color: #475569; line-height: 1.5; }
+
+    .strategy-badge {
+        position: absolute; top: 1rem; right: 1rem;
+        font-size: 0.65rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+        padding: .2rem .5rem; border-radius: 999px;
+        background: var(--accent); color: white; opacity: 0;
+        transition: opacity .3s;
+    }
+    .strategy-card.selected .strategy-badge { opacity: 1; }
+
+    /* ─── Params Panel ─── */
+    .params-panel {
+        background: var(--cs-bg-glass);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--cs-border);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: var(--cs-shadow);
+    }
+    .params-panel h5 {
+        font-weight: 700; font-size: 1rem;
+        margin-bottom: 1.5rem;
+        color: #0f172a;
+    }
+
+    .param-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .param-group label {
+        display: block;
+        font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+        color: #334155;
+        margin-bottom: .5rem;
+    }
+    .param-group input[type=number] {
+        width: 100%;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        color: #0f172a;
+        padding: .65rem 1rem;
+        font-size: .95rem;
+        transition: all .25s;
+    }
+    .param-group input[type=number]:focus {
+        outline: none;
+        border-color: var(--cs-indigo);
+        background: white;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+    .param-group .param-hint {
+        font-size: .72rem; color: #64748b;
+        margin-top: .3rem;
+    }
+
+    /* ─── Range Slider ─── */
+    input[type=range] {
+        -webkit-appearance: none; appearance: none;
+        width: 100%; height: 6px;
+        background: rgba(0, 0, 0, 0.08); border-radius: 3px; outline: none; cursor: pointer;
+        transition: background .2s;
+    }
+    input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none; appearance: none;
+        width: 18px; height: 18px; border-radius: 50%;
+        background: var(--cs-indigo);
+        box-shadow: 0 2px 8px rgba(0,0,0,.2);
+        cursor: pointer; transition: transform .15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+    /* ─── Action Buttons ─── */
+    .action-row {
+        display: flex; gap: 1rem; flex-wrap: wrap;
+        margin-top: 2rem;
+    }
+
+    .btn-save, .btn-rechunk {
+        padding: .75rem 2rem; border-radius: 12px;
+        font-weight: 700; font-size: .9rem; border: none; cursor: pointer;
+        display: inline-flex; align-items: center; gap: .5rem;
+        transition: all .3s cubic-bezier(.4,0,.2,1);
+    }
+    .btn-save {
+        background: linear-gradient(135deg, var(--cs-indigo), var(--cs-purple));
+        color: white;
+        box-shadow: 0 4px 16px hsla(245,78%,62%,.2);
+    }
+    .btn-save:hover { transform: translateY(-2px); box-shadow: 0 8px 24px hsla(245,78%,62%,.35); }
+
+    .btn-rechunk {
+        background: linear-gradient(135deg, hsl(195,75%,40%), hsl(150,65%,35%));
+        color: white;
+        box-shadow: 0 4px 16px hsla(195,75%,40%,.2);
+    }
+    .btn-rechunk:hover { transform: translateY(-2px); box-shadow: 0 8px 24px hsla(195,75%,40%,.35); }
+    .btn-rechunk:disabled { opacity: .6; transform: none; cursor: not-allowed; }
+
+    /* ─── Progress Section ─── */
+    .progress-section {
+        margin-top: 2rem;
+        background: var(--cs-bg-glass);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--cs-border);
+        border-radius: 20px; padding: 1.75rem;
+        display: none;
+    }
+    .progress-section.visible { display: block; }
+    .progress-section h6 { font-weight: 700; color: var(--cs-cyan); margin-bottom: 1rem; }
+
+    .progress-track {
+        height: 10px; border-radius: 999px;
+        background: rgba(0, 0, 0, 0.05);
+        overflow: hidden; margin-bottom: .75rem;
+    }
+    .progress-fill {
+        height: 100%; border-radius: 999px;
+        background: linear-gradient(90deg, var(--cs-indigo), var(--cs-cyan));
+        width: 0%;
+        transition: width .5s ease;
+        box-shadow: 0 0 12px var(--cs-cyan);
+    }
+    .progress-text { font-size: .85rem; color: #334155; }
+    .progress-log {
+        margin-top: .75rem;
+        font-size: .78rem; color: #64748b;
+        max-height: 120px; overflow-y: auto;
+    }
+
+    /* ─── Toast ─── */
+    .cs-toast {
+        position: fixed; top: 2rem; right: 2rem; z-index: 9999;
+        padding: 1rem 1.5rem; border-radius: 14px;
+        font-weight: 600; font-size: .9rem;
+        backdrop-filter: blur(16px);
+        animation: slideDown .35s ease;
+        max-width: 360px;
+        box-shadow: 0 8px 32px rgba(0,0,0,.15);
+    }
+    .cs-toast.success { background: hsla(150,65%,40%,.9); color: white; border: 1px solid hsla(150,65%,50%,.4); }
+    .cs-toast.error   { background: hsla(0,70%,50%,.9);   color: white; border: 1px solid hsla(0,70%,60%,.4); }
+    @@keyframes slideDown {
+        from { transform: translateY(-20px); opacity: 0; }
+        to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    /* ─── Info Card (current config) ─── */
+    .info-card {
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 14px; padding: 1.25rem 1.5rem;
+        margin-bottom: 2rem;
+        display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    }
+    .info-card .info-icon { font-size: 1.5rem; }
+    .info-card .info-text { flex: 1; min-width: 200px; }
+    .info-card .info-title { font-weight: 600; font-size: .9rem; color: #0f172a; }
+    .info-card .info-sub   { font-size: .78rem; color: #64748b; }
+    .info-badge {
+        font-size: .75rem; font-weight: 700; padding: .3rem .75rem; border-radius: 999px;
+        background: hsla(245, 78%, 56%, 0.08); color: hsl(245, 78%, 46%);
+        border: 1px solid hsla(245, 78%, 56%, 0.2);
+    }
+</style>
+
+<!-- Page Header -->
+<div class="cs-header">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/Documents" class="text-decoration-none opacity-75">Tài liệu</a></li>
+            <li class="breadcrumb-item active">Cấu hình Chunking</li>
+        </ol>
+    </nav>
+    <div class="d-flex align-items-center gap-3">
+        <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--cs-indigo),var(--cs-purple));display:flex;align-items:center;justify-content:center;font-size:1.4rem;box-shadow:0 4px 16px hsla(245,78%,62%,.4);">
+            ⚙️
+        </div>
+        <div>
+            <h1 class="mb-0" style="font-size:1.65rem;font-weight:800;">Cấu hình Chunking</h1>
+            <p class="text-muted mb-0 small">Tùy chỉnh cách hệ thống phân mảnh tài liệu của bạn</p>
+        </div>
+    </div>
+</div>
+
+<!-- Current Config Info -->
+<div class="info-card">
+    <span class="info-icon">📋</span>
+    <div class="info-text">
+        <div class="info-title">Cấu hình hiện tại</div>
+        <div class="info-sub" id="currentUpdatedAt">
+            Được cập nhật: @(Model.Settings.UpdatedAt.HasValue ? Model.Settings.UpdatedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "Chưa tùy chỉnh (dùng mặc định hệ thống)")
+        </div>
+    </div>
+    <span class="info-badge" id="currentStrategyBadge">@Model.Settings.Strategy</span>
+    <span class="info-badge" id="currentParamsBadge" style="background:hsla(195,75%,50%,.08);color:hsl(195,75%,35%);border-color:hsla(195,75%,50%,.2);">
+        Size: @Model.Settings.ChunkSize · Overlap: @Model.Settings.ChunkOverlap · Min: @Model.Settings.MinChunkLength
+    </span>
+</div>
+
+<form id="chunkSettingsForm">
+    @Html.AntiForgeryToken()
+
+    <!-- Strategy Selector -->
+    <div class="strategy-grid" role="radiogroup" aria-label="Chunking Strategy">
+        <!-- Fixed Size -->
+        <label class="strategy-card fixed-card @(Model.Settings.Strategy == "FixedSize" ? "selected" : "")"
+               id="card-FixedSize" onclick="selectStrategy('FixedSize')">
+            <input type="radio" name="strategy" value="FixedSize" @(Model.Settings.Strategy == "FixedSize" ? "checked" : "") />
+            <span class="strategy-badge">Đang dùng</span>
+            <div class="strategy-icon" style="--accent:var(--cs-indigo);">✂️</div>
+            <div class="strategy-title">Fixed Size</div>
+            <div class="strategy-desc">Cắt văn bản thành các đoạn có kích thước cố định theo số ký tự. Nhanh, đơn giản, dự đoán được.</div>
+        </label>
+
+        <!-- Paragraph -->
+        <label class="strategy-card para-card @(Model.Settings.Strategy == "Paragraph" ? "selected" : "")"
+               id="card-Paragraph" onclick="selectStrategy('Paragraph')">
+            <input type="radio" name="strategy" value="Paragraph" @(Model.Settings.Strategy == "Paragraph" ? "checked" : "") />
+            <span class="strategy-badge">Đang dùng</span>
+            <div class="strategy-icon" style="--accent:var(--cs-purple);">📄</div>
+            <div class="strategy-title">Paragraph</div>
+            <div class="strategy-desc">Chia theo đoạn văn (↵↵) và gộp sao cho không vượt quá kích thước tối đa. Giữ nguyên cấu trúc bài viết.</div>
+        </label>
+
+        <!-- Recursive -->
+        <label class="strategy-card rec-card @(Model.Settings.Strategy == "Recursive" ? "selected" : "")"
+               id="card-Recursive" onclick="selectStrategy('Recursive')">
+            <input type="radio" name="strategy" value="Recursive" @(Model.Settings.Strategy == "Recursive" ? "checked" : "") />
+            <span class="strategy-badge">Đang dùng</span>
+            <div class="strategy-icon" style="--accent:var(--cs-cyan);">🔁</div>
+            <div class="strategy-title">Recursive</div>
+            <div class="strategy-desc">Chia theo thứ tự ưu tiên: đoạn → dòng → khoảng trắng → ký tự. Tối ưu ngữ cảnh, được khuyến nghị.</div>
+        </label>
+    </div>
+
+    <!-- Parameters -->
+    <div class="params-panel">
+        <h5><i class="bi bi-sliders me-2"></i>Tham số phân mảnh</h5>
+
+        <div class="param-row">
+            <!-- Chunk Size -->
+            <div class="param-group">
+                <label for="chunkSize">Chunk Size <span id="chunkSizeVal" style="color:var(--cs-cyan);">@Model.Settings.ChunkSize</span> ký tự</label>
+                <input type="range" id="chunkSizeRange" min="100" max="5000" step="50"
+                       value="@Model.Settings.ChunkSize" oninput="syncParam('chunkSize', this.value)" />
+                <input type="number" id="chunkSize" name="chunkSize"
+                       min="100" max="5000" value="@Model.Settings.ChunkSize"
+                       oninput="syncRange('chunkSizeRange', 'chunkSizeVal', this.value)" />
+                <div class="param-hint">Số ký tự tối đa cho mỗi chunk (100–5000)</div>
+            </div>
+
+            <!-- Chunk Overlap -->
+            <div class="param-group">
+                <label for="chunkOverlap">Chunk Overlap <span id="chunkOverlapVal" style="color:var(--cs-purple);">@Model.Settings.ChunkOverlap</span> ký tự</label>
+                <input type="range" id="chunkOverlapRange" min="0" max="500" step="10"
+                       value="@Model.Settings.ChunkOverlap" oninput="syncParam('chunkOverlap', this.value)" />
+                <input type="number" id="chunkOverlap" name="chunkOverlap"
+                       min="0" max="1000" value="@Model.Settings.ChunkOverlap"
+                       oninput="syncRange('chunkOverlapRange', 'chunkOverlapVal', this.value)" />
+                <div class="param-hint">Số ký tự trùng lặp giữa 2 chunk liên tiếp (0–500)</div>
+            </div>
+
+            <!-- Min Chunk Length -->
+            <div class="param-group">
+                <label for="minChunkLength">Min Length <span id="minChunkLengthVal" style="color:var(--cs-green);">@Model.Settings.MinChunkLength</span> ký tự</label>
+                <input type="range" id="minChunkLengthRange" min="10" max="200" step="5"
+                       value="@Model.Settings.MinChunkLength" oninput="syncParam('minChunkLength', this.value)" />
+                <input type="number" id="minChunkLength" name="minChunkLength"
+                       min="10" max="1000" value="@Model.Settings.MinChunkLength"
+                       oninput="syncRange('minChunkLengthRange', 'minChunkLengthVal', this.value)" />
+                <div class="param-hint">Độ dài tối thiểu để chunk được chấp nhận (≥10)</div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-row">
+            <button type="button" class="btn-save" id="btnSave" onclick="saveSettings()">
+                <i class="bi bi-floppy-fill"></i> Lưu cấu hình
+            </button>
+            <button type="button" class="btn-rechunk" id="btnReChunk" onclick="reChunkAll()">
+                <i class="bi bi-arrow-repeat"></i> Apply &amp; Re-chunk toàn bộ tài liệu
+            </button>
+        </div>
+
+        <!-- Info Note -->
+        <div class="mt-3 p-3" style="background:rgba(255,200,50,.07);border:1px solid rgba(255,200,50,.2);border-radius:10px;">
+            <small class="text-warning-emphasis">
+                <i class="bi bi-info-circle me-1"></i>
+                <strong>Lưu cấu hình</strong> chỉ áp dụng cho tài liệu tải lên mới sau này.
+                Để áp dụng cho tài liệu đã index, dùng nút <strong>Apply &amp; Re-chunk</strong>.
+            </small>
+        </div>
+    </div>
+</form>
+
+<!-- Progress Section (hidden until re-chunk starts) -->
+<div class="progress-section" id="progressSection">
+    <h6><i class="bi bi-cpu me-2"></i>Tiến trình Re-chunk</h6>
+    <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="progress-text" id="progressText">Đang khởi động...</div>
+    <div class="progress-log" id="progressLog"></div>
+</div>
+
+@section Scripts {
+<script>
+    // ── Chọn strategy ─────────────────────────────────
+    let currentStrategy = '@Model.Settings.Strategy';
+
+    function selectStrategy(val) {
+        currentStrategy = val;
+        document.querySelectorAll('.strategy-card').forEach(c => c.classList.remove('selected'));
+        document.getElementById('card-' + val).classList.add('selected');
+        document.getElementById('currentStrategyBadge').textContent = val;
+        // Update radio
+        document.querySelector(`input[name=strategy][value="${val}"]`).checked = true;
+    }
+
+    // ── Sync range ↔ number input ─────────────────────
+    function syncParam(fieldId, val) {
+        document.getElementById(fieldId).value = val;
+        const labelId = fieldId + 'Val';
+        if (document.getElementById(labelId))
+            document.getElementById(labelId).textContent = val;
+    }
+    function syncRange(rangeId, labelId, val) {
+        const num = parseInt(val) || 0;
+        document.getElementById(rangeId).value = num;
+        document.getElementById(labelId).textContent = num;
+    }
+
+    // ── Lấy giá trị form ──────────────────────────────
+    function getFormData() {
+        return {
+            strategy:       currentStrategy,
+            chunkSize:      parseInt(document.getElementById('chunkSize').value) || 800,
+            chunkOverlap:   parseInt(document.getElementById('chunkOverlap').value) || 100,
+            minChunkLength: parseInt(document.getElementById('minChunkLength').value) || 50
+        };
+    }
+
+    // ── Save Settings ─────────────────────────────────
+    async function saveSettings() {
+        const btn = document.getElementById('btnSave');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...';
+        try {
+            const d = getFormData();
+            const params = new URLSearchParams({
+                strategy: d.strategy, chunkSize: d.chunkSize,
+                chunkOverlap: d.chunkOverlap, minChunkLength: d.minChunkLength
+            });
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            const r = await fetch('?handler=Save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token },
+                body: params.toString()
+            });
+            const res = await r.json();
+            showToast(res.message, res.ok ? 'success' : 'error');
+            if (res.ok) {
+                // Update top config info dynamically
+                document.getElementById('currentStrategyBadge').textContent = d.strategy;
+                document.getElementById('currentParamsBadge').textContent = `Size: ${d.chunkSize} · Overlap: ${d.chunkOverlap} · Min: ${d.minChunkLength}`;
+                
+                const now = new Date();
+                const pad = (n) => n.toString().padStart(2, '0');
+                const formattedDate = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+                document.getElementById('currentUpdatedAt').textContent = `Được cập nhật: ${formattedDate}`;
+            }
+        } catch (e) {
+            showToast('Lỗi kết nối khi lưu cấu hình.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-floppy-fill"></i> Lưu cấu hình';
+        }
+    }
+
+    // ── Apply & Re-chunk All ──────────────────────────
+    async function reChunkAll() {
+        if (!confirm('⚠️ Bạn có chắc muốn Re-chunk toàn bộ tài liệu?\nQuá trình này sẽ xóa và tạo lại toàn bộ chunks & embeddings.')) return;
+
+        const btn = document.getElementById('btnReChunk');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
+
+        // Hiển thị progress section
+        const progressSection = document.getElementById('progressSection');
+        progressSection.classList.add('visible');
+        updateProgress(0, 'Đang khởi động job...');
+
+        try {
+            const d = getFormData();
+            const params = new URLSearchParams({
+                strategy: d.strategy, chunkSize: d.chunkSize,
+                chunkOverlap: d.chunkOverlap, minChunkLength: d.minChunkLength
+            });
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            const r = await fetch('?handler=ReChunkAll', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token },
+                body: params.toString()
+            });
+            const res = await r.json();
+            if (res.ok) {
+                showToast(res.message, 'success');
+                
+                // Update top config info dynamically since Re-chunk also saves the configuration
+                document.getElementById('currentStrategyBadge').textContent = d.strategy;
+                document.getElementById('currentParamsBadge').textContent = `Size: ${d.chunkSize} · Overlap: ${d.chunkOverlap} · Min: ${d.minChunkLength}`;
+                
+                const now = new Date();
+                const pad = (n) => n.toString().padStart(2, '0');
+                const formattedDate = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+                document.getElementById('currentUpdatedAt').textContent = `Được cập nhật: ${formattedDate}`;
+            } else {
+                showToast(res.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Apply & Re-chunk toàn bộ tài liệu';
+            }
+        } catch (e) {
+            showToast('Lỗi kết nối khi khởi động Re-chunk.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Apply & Re-chunk toàn bộ tài liệu';
+        }
+    }
+
+    // ── SignalR: nhận tiến trình ──────────────────────
+    function updateProgress(pct, message) {
+        document.getElementById('progressFill').style.width = Math.max(pct, 2) + '%';
+        document.getElementById('progressText').textContent = message;
+        const log = document.getElementById('progressLog');
+        const entry = document.createElement('div');
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        log.prepend(entry);
+    }
+
+    // Connect SignalR
+    (function setupSignalR() {
+        if (typeof signalR === 'undefined') return;
+        const conn = new signalR.HubConnectionBuilder()
+            .withUrl('/notificationHub')
+            .withAutomaticReconnect()
+            .build();
+
+        conn.on('ReChunkProgress', function(data) {
+            const pct = data.percent ?? 0;
+            updateProgress(pct, data.message ?? '');
+            if (data.done) {
+                const btn = document.getElementById('btnReChunk');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Apply & Re-chunk toàn bộ tài liệu';
+                showToast(data.message, data.error ? 'error' : 'success');
+            }
+        });
+
+        conn.start().catch(err => console.warn('SignalR connect failed:', err));
+    })();
+
+    // ── Toast ──────────────────────────────────────────
+    function showToast(msg, type = 'success') {
+        document.querySelectorAll('.cs-toast').forEach(t => t.remove());
+        const t = document.createElement('div');
+        t.className = 'cs-toast ' + type;
+        t.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle' : 'x-circle'} me-2"></i>${msg}`;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 4500);
+    }
+</script>
+}

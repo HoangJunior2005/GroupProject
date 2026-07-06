@@ -16,6 +16,7 @@ namespace LearningDocumentSystem.Data.Repositories.Interfaces
         IChatSessionRepository ChatSessions { get; }
         IDocumentConflictRepository DocumentConflicts { get; }
         IBenchmarkRepository BenchmarkLogs { get; }
+        ITeacherChunkSettingRepository TeacherChunkSettings { get; }
 
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();

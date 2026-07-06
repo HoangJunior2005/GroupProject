@@ -22,6 +22,7 @@ namespace LearningDocumentSystem.Data.DbContexts
         public DbSet<DocumentConflict> DocumentConflicts { get; set; } = null!;
         public DbSet<IndexBenchmarkLog> IndexBenchmarkLogs { get; set; } = null!;
         public DbSet<QueryBenchmarkLog> QueryBenchmarkLogs { get; set; } = null!;
+        public DbSet<TeacherChunkSetting> TeacherChunkSettings { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -253,6 +254,25 @@ namespace LearningDocumentSystem.Data.DbContexts
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasIndex(cm => cm.SessionID).HasDatabaseName("IX_ChatMessages_SessionID");
+            });
+
+            // ============================================================
+            // BẢNG TeacherChunkSettings
+            // ============================================================
+            modelBuilder.Entity<TeacherChunkSetting>(entity =>
+            {
+                entity.ToTable("TeacherChunkSettings");
+                entity.HasKey(t => t.TeacherId);
+                entity.Property(t => t.Strategy).IsRequired().HasMaxLength(50).HasDefaultValue("Recursive");
+                entity.Property(t => t.ChunkSize).HasDefaultValue(800);
+                entity.Property(t => t.ChunkOverlap).HasDefaultValue(100);
+                entity.Property(t => t.MinChunkLength).HasDefaultValue(50);
+                entity.Property(t => t.UpdatedAt).HasDefaultValueSql("GETDATE()");
+
+                entity.HasOne(t => t.Teacher)
+                    .WithOne()
+                    .HasForeignKey<TeacherChunkSetting>(t => t.TeacherId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // ============================================================

@@ -227,4 +227,16 @@ namespace LearningDocumentSystem.Business.DTOs
         public List<MonthlyUploadDto> MonthlyUploads { get; set; } = new();
         public List<MonthlyUploadDto> MonthlyRegistrations { get; set; } = new();
     }
+
+    // ================================================================
+    // CHUNK SETTINGS DTOs
+    // ================================================================
+    public class ChunkSettingsDto
+    {
+        public string Strategy { get; set; } = "Recursive";
+        public int ChunkSize { get; set; } = 800;
+        public int ChunkOverlap { get; set; } = 100;
+        public int MinChunkLength { get; set; } = 50;
+        public DateTime? UpdatedAt { get; set; }
+    }
 }

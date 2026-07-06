@@ -23,6 +23,7 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
         private IChatSessionRepository? _chatSessions;
         private IDocumentConflictRepository? _documentConflicts;
         private IBenchmarkRepository? _benchmarkLogs;
+        private ITeacherChunkSettingRepository? _teacherChunkSettings;
 
         public UnitOfWork(AppDbContext context)
         {
@@ -41,6 +42,7 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
         public IChatSessionRepository ChatSessions => _chatSessions ??= new ChatSessionRepository(_context);
         public IDocumentConflictRepository DocumentConflicts => _documentConflicts ??= new DocumentConflictRepository(_context);
         public IBenchmarkRepository BenchmarkLogs => _benchmarkLogs ??= new BenchmarkRepository(_context);
+        public ITeacherChunkSettingRepository TeacherChunkSettings => _teacherChunkSettings ??= new TeacherChunkSettingRepository(_context);
 
         public async Task<int> SaveChangesAsync() => await _context.SaveChangesAsync();
 

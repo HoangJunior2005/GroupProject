@@ -4,6 +4,7 @@ using LearningDocumentSystem.Data.DbContexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LearningDocumentSystem.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260706064400_AddTeacherChunkSettings")]
+    partial class AddTeacherChunkSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -342,118 +345,6 @@ namespace LearningDocumentSystem.Data.Migrations
                     b.ToTable("Embeddings", (string)null);
                 });
 
-            modelBuilder.Entity("LearningDocumentSystem.Entities.Models.IndexBenchmarkLog", b =>
-                {
-                    b.Property<int>("LogID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("LogID");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LogID"));
-
-                    b.Property<double>("AverageChunkSize")
-                        .HasColumnType("float");
-
-                    b.Property<string>("ChunkingStrategy")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int?>("DocumentID")
-                        .HasColumnType("int");
-
-                    b.Property<string>("EmbeddingModel")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("ExecutedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<double>("ProcessingTimeMs")
-                        .HasColumnType("float");
-
-                    b.Property<int>("TotalChunksGenerated")
-                        .HasColumnType("int");
-
-                    b.HasKey("LogID");
-
-                    b.HasIndex("ChunkingStrategy")
-                        .HasDatabaseName("IX_IndexBenchmarkLogs_ChunkingStrategy");
-
-                    b.HasIndex("DocumentID");
-
-                    b.HasIndex("EmbeddingModel")
-                        .HasDatabaseName("IX_IndexBenchmarkLogs_EmbeddingModel");
-
-                    b.HasIndex("ExecutedAt")
-                        .HasDatabaseName("IX_IndexBenchmarkLogs_ExecutedAt");
-
-                    b.ToTable("IndexBenchmarkLogs", (string)null);
-                });
-
-            modelBuilder.Entity("LearningDocumentSystem.Entities.Models.QueryBenchmarkLog", b =>
-                {
-                    b.Property<int>("LogID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("LogID");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LogID"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<string>("EmbeddingModel")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<double>("GenerationTimeMs")
-                        .HasColumnType("float");
-
-                    b.Property<string>("LLMModel")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("QueryText")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<double>("RetrievalTimeMs")
-                        .HasColumnType("float");
-
-                    b.Property<int>("SelectedSourcesCount")
-                        .HasColumnType("int");
-
-                    b.Property<double>("Top1CosineSimilarity")
-                        .HasColumnType("float");
-
-                    b.Property<int>("UserRating")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.HasKey("LogID");
-
-                    b.HasIndex("CreatedAt")
-                        .HasDatabaseName("IX_QueryBenchmarkLogs_CreatedAt");
-
-                    b.HasIndex("EmbeddingModel")
-                        .HasDatabaseName("IX_QueryBenchmarkLogs_EmbeddingModel");
-
-                    b.HasIndex("LLMModel")
-                        .HasDatabaseName("IX_QueryBenchmarkLogs_LLMModel");
-
-                    b.ToTable("QueryBenchmarkLogs", (string)null);
-                });
-
             modelBuilder.Entity("LearningDocumentSystem.Entities.Models.Role", b =>
                 {
                     b.Property<int>("RoleID")
@@ -733,16 +624,6 @@ namespace LearningDocumentSystem.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Chunk");
-                });
-
-            modelBuilder.Entity("LearningDocumentSystem.Entities.Models.IndexBenchmarkLog", b =>
-                {
-                    b.HasOne("LearningDocumentSystem.Entities.Models.Document", "Document")
-                        .WithMany()
-                        .HasForeignKey("DocumentID")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Document");
                 });
 
             modelBuilder.Entity("LearningDocumentSystem.Entities.Models.Subject", b =>

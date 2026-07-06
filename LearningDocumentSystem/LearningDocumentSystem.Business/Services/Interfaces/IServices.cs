@@ -52,6 +52,8 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
         Task<DocumentDto> UploadAsync(IFormFile file, int chapterId, string title, int uploadedByUserId);
         Task DeleteAsync(int id);
         Task<DashboardDto> GetDashboardAsync();
+        /// <summary>Re-chunk và re-index toàn bộ tài liệu của teacher. progressCallback(current, total).</summary>
+        Task ReChunkAllDocumentsAsync(int teacherId, Func<int, int, Task>? progressCallback = null);
     }
 
     public interface IFileService
@@ -62,7 +64,13 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
 
     public interface IChunkingService
     {
+        /// <summary>Chunking với cài đặt từ appsettings.json (legacy, dùng khi không có teacher settings)</summary>
         Task<List<(string Content, int PageNumber)>> ExtractChunksAsync(string filePath, string fileType);
+
+        /// <summary>Chunking với strategy và params tuỳ chỉnh theo Giảng viên</summary>
+        Task<List<(string Content, int PageNumber)>> ExtractChunksAsync(
+            string filePath, string fileType,
+            string strategy, int chunkSize, int chunkOverlap, int minChunkLength);
     }
 
     public interface IEmbeddingService
@@ -95,5 +103,12 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
         Task LogQueryBenchmarkAsync(QueryBenchmarkLogDto log);
         Task<bool> UpdateQueryRatingAsync(int logId, int rating);
         Task<PlaygroundResultDto> RunPlaygroundAsync(PlaygroundRequestDto request);
+    public interface IChunkSettingsService
+    {
+        /// <summary>Lấy cấu hình chunking của teacher (fallback về default nếu chưa cấu hình)</summary>
+        Task<ChunkSettingsDto> GetSettingsAsync(int teacherId);
+
+        /// <summary>Lưu cấu hình chunking cho teacher</summary>
+        Task SaveSettingsAsync(int teacherId, string strategy, int chunkSize, int chunkOverlap, int minChunkLength);
     }
 }
