@@ -7,20 +7,20 @@
 <style>
     /* ─── Tokens ─── */
     :root {
-        --cs-indigo:    hsl(245, 78%, 62%);
-        --cs-indigo-lt: hsl(245, 78%, 72%);
-        --cs-purple:    hsl(270, 70%, 58%);
-        --cs-cyan:      hsl(195, 75%, 50%);
-        --cs-green:     hsl(150, 65%, 45%);
-        --cs-bg-glass:  rgba(255,255,255,0.06);
-        --cs-border:    rgba(255,255,255,0.12);
-        --cs-shadow:    0 8px 32px rgba(0,0,0,0.18);
+        --cs-indigo:    hsl(245, 78%, 56%);
+        --cs-indigo-lt: hsl(245, 78%, 66%);
+        --cs-purple:    hsl(270, 70%, 50%);
+        --cs-cyan:      hsl(195, 85%, 40%);
+        --cs-green:     hsl(150, 75%, 35%);
+        --cs-bg-glass:  rgba(255, 255, 255, 0.75);
+        --cs-border:    rgba(0, 0, 0, 0.08);
+        --cs-shadow:    0 8px 30px rgba(0, 0, 0, 0.06);
     }
 
     /* ─── Page Header ─── */
     .cs-header { margin-bottom: 2rem; }
-    .cs-header h1 { font-size: 1.75rem; font-weight: 700; }
-    .cs-header .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,.4); }
+    .cs-header h1 { font-size: 1.75rem; font-weight: 700; color: #0f172a; }
+    .cs-header .breadcrumb-item + .breadcrumb-item::before { color: rgba(0, 0, 0, 0.4); }
 
     /* ─── Strategy Cards ─── */
     .strategy-grid {
@@ -48,22 +48,41 @@
         opacity: 0;
         transition: opacity .3s;
     }
-    .strategy-card:hover { transform: translateY(-3px); box-shadow: var(--cs-shadow); }
+    .strategy-card:hover { 
+        transform: translateY(-3px); 
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08); 
+        background: rgba(255, 255, 255, 0.9);
+        border-color: rgba(0, 0, 0, 0.15);
+    }
 
     /* Fixed Size – Indigo */
-    .strategy-card.fixed-card { --accent: var(--cs-indigo); }
-    .strategy-card.fixed-card::before { background: radial-gradient(circle at 30% 30%, hsla(245,78%,62%,0.15), transparent 70%); }
+    .strategy-card.fixed-card { 
+        --accent: var(--cs-indigo); 
+        --accent-light: hsla(245, 78%, 56%, 0.05);
+        --accent-glow: hsla(245, 78%, 56%, 0.15);
+    }
+    .strategy-card.fixed-card::before { background: radial-gradient(circle at 30% 30%, hsla(245,78%,62%,0.12), transparent 70%); }
+    
     /* Paragraph – Purple */
-    .strategy-card.para-card  { --accent: var(--cs-purple); }
-    .strategy-card.para-card::before  { background: radial-gradient(circle at 30% 30%, hsla(270,70%,58%,0.15), transparent 70%); }
+    .strategy-card.para-card  { 
+        --accent: var(--cs-purple); 
+        --accent-light: hsla(270, 70%, 50%, 0.05);
+        --accent-glow: hsla(270, 70%, 50%, 0.15);
+    }
+    .strategy-card.para-card::before  { background: radial-gradient(circle at 30% 30%, hsla(270,70%,58%,0.12), transparent 70%); }
+    
     /* Recursive – Cyan */
-    .strategy-card.rec-card   { --accent: var(--cs-cyan); }
-    .strategy-card.rec-card::before   { background: radial-gradient(circle at 30% 30%, hsla(195,75%,50%,0.15), transparent 70%); }
+    .strategy-card.rec-card   { 
+        --accent: var(--cs-cyan); 
+        --accent-light: hsla(195, 85%, 40%, 0.05);
+        --accent-glow: hsla(195, 85%, 40%, 0.15);
+    }
+    .strategy-card.rec-card::before   { background: radial-gradient(circle at 30% 30%, hsla(195,75%,50%,0.12), transparent 70%); }
 
     .strategy-card.selected {
         border-color: var(--accent);
-        background: rgba(255,255,255,0.1);
-        box-shadow: 0 0 0 3px rgba(var(--accent-raw, 0,0,255),.12), var(--cs-shadow);
+        background: var(--accent-light);
+        box-shadow: 0 0 0 3px var(--accent-glow), var(--cs-shadow);
     }
     .strategy-card.selected::before { opacity: 1; }
     .strategy-card input[type=radio] { display: none; }
@@ -73,16 +92,16 @@
         border-radius: 12px;
         display: flex; align-items: center; justify-content: center;
         font-size: 1.4rem;
-        background: linear-gradient(135deg, var(--accent), color-mix(in hsl, var(--accent) 60%, white));
+        background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, white));
         color: white;
         margin-bottom: 1rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,.25);
+        box-shadow: 0 4px 12px rgba(0,0,0,.15);
         transition: transform .3s;
     }
     .strategy-card.selected .strategy-icon { transform: scale(1.1); }
 
-    .strategy-title { font-weight: 700; font-size: 1rem; margin-bottom: .25rem; }
-    .strategy-desc  { font-size: 0.78rem; color: rgba(255,255,255,.65); line-height: 1.5; }
+    .strategy-title { font-weight: 700; font-size: 1rem; margin-bottom: .25rem; color: #0f172a; }
+    .strategy-desc  { font-size: 0.78rem; color: #475569; line-height: 1.5; }
 
     .strategy-badge {
         position: absolute; top: 1rem; right: 1rem;
@@ -105,7 +124,7 @@
     .params-panel h5 {
         font-weight: 700; font-size: 1rem;
         margin-bottom: 1.5rem;
-        color: var(--cs-cyan);
+        color: #0f172a;
     }
 
     .param-row {
@@ -117,16 +136,16 @@
 
     .param-group label {
         display: block;
-        font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
-        color: rgba(255,255,255,.65);
+        font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+        color: #334155;
         margin-bottom: .5rem;
     }
     .param-group input[type=number] {
         width: 100%;
-        background: rgba(255,255,255,.08);
-        border: 1px solid rgba(255,255,255,.18);
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
         border-radius: 10px;
-        color: white;
+        color: #0f172a;
         padding: .65rem 1rem;
         font-size: .95rem;
         transition: all .25s;
@@ -134,11 +153,11 @@
     .param-group input[type=number]:focus {
         outline: none;
         border-color: var(--cs-indigo);
-        background: rgba(255,255,255,.12);
-        box-shadow: 0 0 0 3px hsla(245,78%,62%,.2);
+        background: white;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
     }
     .param-group .param-hint {
-        font-size: .72rem; color: rgba(255,255,255,.4);
+        font-size: .72rem; color: #64748b;
         margin-top: .3rem;
     }
 
@@ -146,14 +165,14 @@
     input[type=range] {
         -webkit-appearance: none; appearance: none;
         width: 100%; height: 6px;
-        background: rgba(255,255,255,.15); border-radius: 3px; outline: none; cursor: pointer;
+        background: rgba(0, 0, 0, 0.08); border-radius: 3px; outline: none; cursor: pointer;
         transition: background .2s;
     }
     input[type=range]::-webkit-slider-thumb {
         -webkit-appearance: none; appearance: none;
         width: 18px; height: 18px; border-radius: 50%;
         background: var(--cs-indigo);
-        box-shadow: 0 2px 8px rgba(0,0,0,.35);
+        box-shadow: 0 2px 8px rgba(0,0,0,.2);
         cursor: pointer; transition: transform .15s;
     }
     input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
@@ -173,16 +192,16 @@
     .btn-save {
         background: linear-gradient(135deg, var(--cs-indigo), var(--cs-purple));
         color: white;
-        box-shadow: 0 4px 16px hsla(245,78%,62%,.35);
+        box-shadow: 0 4px 16px hsla(245,78%,62%,.2);
     }
-    .btn-save:hover { transform: translateY(-2px); box-shadow: 0 8px 24px hsla(245,78%,62%,.5); }
+    .btn-save:hover { transform: translateY(-2px); box-shadow: 0 8px 24px hsla(245,78%,62%,.35); }
 
     .btn-rechunk {
         background: linear-gradient(135deg, hsl(195,75%,40%), hsl(150,65%,35%));
         color: white;
-        box-shadow: 0 4px 16px hsla(195,75%,40%,.3);
+        box-shadow: 0 4px 16px hsla(195,75%,40%,.2);
     }
-    .btn-rechunk:hover { transform: translateY(-2px); box-shadow: 0 8px 24px hsla(195,75%,40%,.45); }
+    .btn-rechunk:hover { transform: translateY(-2px); box-shadow: 0 8px 24px hsla(195,75%,40%,.35); }
     .btn-rechunk:disabled { opacity: .6; transform: none; cursor: not-allowed; }
 
     /* ─── Progress Section ─── */
@@ -199,7 +218,7 @@
 
     .progress-track {
         height: 10px; border-radius: 999px;
-        background: rgba(255,255,255,.1);
+        background: rgba(0, 0, 0, 0.05);
         overflow: hidden; margin-bottom: .75rem;
     }
     .progress-fill {
@@ -209,10 +228,10 @@
         transition: width .5s ease;
         box-shadow: 0 0 12px var(--cs-cyan);
     }
-    .progress-text { font-size: .85rem; color: rgba(255,255,255,.75); }
+    .progress-text { font-size: .85rem; color: #334155; }
     .progress-log {
         margin-top: .75rem;
-        font-size: .78rem; color: rgba(255,255,255,.5);
+        font-size: .78rem; color: #64748b;
         max-height: 120px; overflow-y: auto;
     }
 
@@ -224,7 +243,7 @@
         backdrop-filter: blur(16px);
         animation: slideUp .35s ease;
         max-width: 360px;
-        box-shadow: 0 8px 32px rgba(0,0,0,.35);
+        box-shadow: 0 8px 32px rgba(0,0,0,.15);
     }
     .cs-toast.success { background: hsla(150,65%,40%,.9); color: white; border: 1px solid hsla(150,65%,50%,.4); }
     .cs-toast.error   { background: hsla(0,70%,50%,.9);   color: white; border: 1px solid hsla(0,70%,60%,.4); }
@@ -235,20 +254,21 @@
 
     /* ─── Info Card (current config) ─── */
     .info-card {
-        background: rgba(255,255,255,.05);
-        border: 1px solid rgba(255,255,255,.1);
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(0, 0, 0, 0.08);
         border-radius: 14px; padding: 1.25rem 1.5rem;
         margin-bottom: 2rem;
         display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
     }
     .info-card .info-icon { font-size: 1.5rem; }
     .info-card .info-text { flex: 1; min-width: 200px; }
-    .info-card .info-title { font-weight: 600; font-size: .9rem; }
-    .info-card .info-sub   { font-size: .78rem; color: rgba(255,255,255,.5); }
+    .info-card .info-title { font-weight: 600; font-size: .9rem; color: #0f172a; }
+    .info-card .info-sub   { font-size: .78rem; color: #64748b; }
     .info-badge {
         font-size: .75rem; font-weight: 700; padding: .3rem .75rem; border-radius: 999px;
-        background: hsla(245,78%,62%,.25); color: hsl(245,78%,82%);
-        border: 1px solid hsla(245,78%,62%,.4);
+        background: hsla(245, 78%, 56%, 0.08); color: hsl(245, 78%, 46%);
+        border: 1px solid hsla(245, 78%, 56%, 0.2);
     }
 </style>
 
@@ -281,7 +301,7 @@
         </div>
     </div>
     <span class="info-badge" id="currentStrategyBadge">@Model.Settings.Strategy</span>
-    <span class="info-badge" style="background:hsla(195,75%,50%,.2);color:hsl(195,75%,75%);border-color:hsla(195,75%,50%,.35);">
+    <span class="info-badge" style="background:hsla(195,75%,50%,.08);color:hsl(195,75%,35%);border-color:hsla(195,75%,50%,.2);">
         Size: @Model.Settings.ChunkSize · Overlap: @Model.Settings.ChunkOverlap · Min: @Model.Settings.MinChunkLength
     </span>
 </div>
