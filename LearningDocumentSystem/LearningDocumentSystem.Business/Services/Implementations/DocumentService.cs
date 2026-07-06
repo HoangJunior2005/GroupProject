@@ -24,6 +24,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
         private readonly IGeminiService    _geminiService;
         private readonly ILogger<DocumentService> _logger;
         private readonly INotificationService _notificationService;
+        private readonly IChunkSettingsService _chunkSettingsService;
 
         // Inject upload path qua constructor (set bởi Web layer)
         private string _uploadPath = string.Empty;
@@ -36,7 +37,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             IEmbeddingService embeddingService,
             IGeminiService geminiService,
             ILogger<DocumentService> logger,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IChunkSettingsService chunkSettingsService)
         {
             _uow              = uow;
             _mapper           = mapper;
@@ -46,6 +48,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             _geminiService    = geminiService;
             _logger           = logger;
             _notificationService = notificationService;
+            _chunkSettingsService = chunkSettingsService;
         }
 
         public void SetUploadPath(string path) => _uploadPath = path;
@@ -140,9 +143,15 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 await _uow.Documents.UpdateStatusAsync(document.DocumentID, AppConstants.StatusProcessing);
                 await _uow.SaveChangesAsync();
 
-                // Step 4: Chunking
+                // Step 4: Chunking — dùng settings của teacher
                 var fullPath = Path.Combine(_uploadPath, storageName);
-                var chunks   = await _chunkingService.ExtractChunksAsync(fullPath, document.FileType);
+                var teacherSettings = await _chunkSettingsService.GetSettingsAsync(uploadedByUserId);
+                var chunks = await _chunkingService.ExtractChunksAsync(
+                    fullPath, document.FileType,
+                    teacherSettings.Strategy,
+                    teacherSettings.ChunkSize,
+                    teacherSettings.ChunkOverlap,
+                    teacherSettings.MinChunkLength);
 
                 // Step 5: Lưu chunks + embeddings
                 var chunkEntities = new List<DocumentChunk>();
@@ -396,6 +405,119 @@ Quy tắc trả về:
             for (int i = 0; i < len; i++)
                 sum += a[i] * b[i];
             return sum;
+        }
+
+        // ============================================================
+        // RE-CHUNK ALL DOCUMENTS
+        // ============================================================
+        public async Task ReChunkAllDocumentsAsync(int teacherId, Func<int, int, Task>? progressCallback = null)
+        {
+            _logger.LogInformation("ReChunkAll started for teacher {TeacherId}", teacherId);
+
+            // Lấy tất cả tài liệu của teacher này
+            var (allDocs, _) = await _uow.Documents.GetPagedAsync(
+                keyword: null, subjectId: null, chapterId: null,
+                status: null, teacherId: teacherId,
+                page: 1, pageSize: int.MaxValue);
+
+            var docs = allDocs.ToList();
+            int total = docs.Count;
+
+            if (total == 0)
+            {
+                _logger.LogInformation("ReChunkAll: teacher {TeacherId} has no documents.", teacherId);
+                return;
+            }
+
+            // Lấy settings của teacher
+            var settings = await _chunkSettingsService.GetSettingsAsync(teacherId);
+
+            for (int i = 0; i < docs.Count; i++)
+            {
+                var docDto = docs[i];
+                try
+                {
+                    // 1. Cập nhật status → Processing
+                    await _uow.Documents.UpdateStatusAsync(docDto.DocumentID, AppConstants.StatusProcessing);
+                    await _uow.SaveChangesAsync();
+
+                    // 2. Xóa chunks cũ (cascade xóa embeddings)
+                    var oldChunks = (await _uow.DocumentChunks.FindAsync(
+                        c => c.DocumentID == docDto.DocumentID)).ToList();
+                    _uow.DocumentChunks.RemoveRange(oldChunks);
+                    await _uow.SaveChangesAsync();
+
+                    // 3. Xác định full path tập tin
+                    var fullPath = Path.Combine(_uploadPath, docDto.StoragePath);
+                    if (!File.Exists(fullPath))
+                    {
+                        _logger.LogWarning("File not found for document {DocId}: {Path}", docDto.DocumentID, fullPath);
+                        await _uow.Documents.UpdateStatusAsync(docDto.DocumentID, AppConstants.StatusFailed);
+                        await _uow.SaveChangesAsync();
+                        continue;
+                    }
+
+                    // 4. Re-chunk với settings mới
+                    var chunks = await _chunkingService.ExtractChunksAsync(
+                        fullPath, docDto.FileType,
+                        settings.Strategy, settings.ChunkSize, settings.ChunkOverlap, settings.MinChunkLength);
+
+                    // 5. Lưu chunks mới
+                    var chunkEntities = new List<LearningDocumentSystem.Entities.Models.DocumentChunk>();
+                    for (int ci = 0; ci < chunks.Count; ci++)
+                    {
+                        var (content, pageNum) = chunks[ci];
+                        chunkEntities.Add(new LearningDocumentSystem.Entities.Models.DocumentChunk
+                        {
+                            DocumentID  = docDto.DocumentID,
+                            ChunkIndex  = ci,
+                            PageNumber  = pageNum,
+                            ContentText = content
+                        });
+                    }
+                    await _uow.DocumentChunks.AddRangeAsync(chunkEntities);
+                    await _uow.SaveChangesAsync();
+
+                    // 6. Sinh embedding mới
+                    var embeddings = new List<LearningDocumentSystem.Entities.Models.Embedding>();
+                    foreach (var chunk in chunkEntities)
+                    {
+                        var vectorJson = await _embeddingService.GenerateEmbeddingAsync(chunk.ContentText);
+                        embeddings.Add(new LearningDocumentSystem.Entities.Models.Embedding
+                        {
+                            ChunkID   = chunk.ChunkID,
+                            VectorData = vectorJson,
+                            CreatedAt  = DateTime.UtcNow
+                        });
+                    }
+                    await _uow.Embeddings.AddRangeAsync(embeddings);
+                    await _uow.SaveChangesAsync();
+
+                    // 7. Cập nhật status → Indexed
+                    await _uow.Documents.UpdateStatusAsync(docDto.DocumentID, AppConstants.StatusIndexed);
+                    await _uow.SaveChangesAsync();
+
+                    _logger.LogInformation(
+                        "ReChunked doc {DocId} ({Index}/{Total}): {ChunkCount} chunks",
+                        docDto.DocumentID, i + 1, total, chunkEntities.Count);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error re-chunking document {DocId}", docDto.DocumentID);
+                    try
+                    {
+                        await _uow.Documents.UpdateStatusAsync(docDto.DocumentID, AppConstants.StatusFailed);
+                        await _uow.SaveChangesAsync();
+                    }
+                    catch { /* ignore secondary errors */ }
+                }
+
+                // Báo cáo tiến trình
+                if (progressCallback != null)
+                    await progressCallback(i + 1, total);
+            }
+
+            _logger.LogInformation("ReChunkAll completed for teacher {TeacherId}: {Total} documents.", teacherId, total);
         }
     }
 }
