@@ -14,6 +14,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
         private readonly HttpClient _httpClient;
         private readonly string? _apiKey;
         private readonly string _modelName;
+        private readonly string _baseUrl;
         private readonly ILogger<OpenAiLlmService> _logger;
 
         public string ProviderName => "OpenAI";
@@ -23,7 +24,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
         {
             _httpClient = httpClient;
             _apiKey = configuration["OpenAI:ApiKey"] ?? configuration["AppSettings:OpenAI:ApiKey"];
-            _modelName = configuration["OpenAI:ModelName"] ?? configuration["AppSettings:OpenAI:ModelName"] ?? "gpt-4o-mini";
+            _modelName = configuration["OpenAI:ModelName"] ?? configuration["AppSettings:OpenAI:ModelName"] ?? "gpt-oss-120b";
+            _baseUrl = configuration["OpenAI:BaseUrl"] ?? configuration["AppSettings:OpenAI:BaseUrl"] ?? "https://api.openai.com/v1/chat/completions";
             _logger = logger;
         }
 
@@ -48,11 +50,10 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
             string systemPrompt = @"Bạn là trợ lý học tập AI của hệ thống Learning Document System.
 Quy tắc trả lời:
-1. GIAO TIẾP XÃ GIAO: Nếu người dùng chào hỏi (như 'xin chào', 'hello', 'chào bạn', 'hi',...) hoặc nói cảm ơn/khen ngợi, hãy đáp lại thân thiện, lịch sự và tự giới thiệu bạn là trợ lý AI học tập sẵn sàng hỗ trợ giải đáp kiến thức theo tài liệu bài giảng.
-2. CÂU HỎI KIẾN THỨC / CHUYÊN MÔN: Vui lòng trả lời CHỈ DỰA TRÊN ngữ cảnh (context) được cung cấp dưới đây.
-3. CÂU HỎI NGOÀI LUỒNG: Nếu người dùng hỏi các câu hỏi chuyên môn/kiến thức mà thông tin KHÔNG CÓ trong ngữ cảnh, hãy nói rõ: 'Xin lỗi, tôi không tìm thấy thông tin liên quan trong tài liệu học tập. Vui lòng đặt câu hỏi theo sát các tài liệu hoặc bài giảng trong hệ thống nhé!'. KHÔNG tự bịa hoặc dùng kiến thức bên ngoài để trả lời các câu hỏi chuyên môn ngoài phạm vi tài liệu.
-4. Trả lời bằng tiếng Việt, định dạng rõ ràng, ngắn gọn và dễ hiểu. KHÔNG tự động thêm phần chú thích trích dẫn nguồn ở cuối câu trả lời (vì hệ thống đã tự động hiển thị các thẻ nguồn ở giao diện bên dưới).
-5. BÁM SÁT MÔN HỌC / CHƯƠNG ĐANG CHỌN: Khi người dùng hỏi về kiến thức, tổng quan hay nội dung của một chương hoặc môn học, PHẢI trả lời bám sát trực tiếp vào kiến thức chuyên môn của môn học và chương đó (dựa trên ngữ cảnh được cung cấp hoặc phạm vi môn học đang chọn). Tuyệt đối KHÔNG được trả lời lan man sang các chủ đề không liên quan như 'lộ trình học tập cá nhân hóa', 'công cụ học tập tương tác', 'theo dõi tiến độ', hay các tính năng chung của hệ thống phần mềm.";
+1. CÂU HỎI KIẾN THỨC / CHUYÊN MÔN: Vui lòng trả lời CHỈ DỰA TRÊN ngữ cảnh (context) tài liệu học tập được cung cấp dưới đây.
+2. CÂU HỎI NGOÀI LUỒNG & CHÀO HỎI: TUYỆT ĐỐI KHÔNG trả lời các câu hỏi ngoài lề, câu chào hỏi xã giao hoặc kiến thức không nằm trong ngữ cảnh tài liệu bài giảng (như xin chào, alo, hello, hi, thời tiết, thể thao, lập trình chung, tin tức, văn học, đời sống...). Nếu người dùng hỏi ngoài lề, chào hỏi hoặc kiến thức không có trong tài liệu, BẮT BUỘC phải trả lời chính xác câu thông báo sau: 'Xin lỗi, tôi không tìm thấy nội dung liên quan trong tài liệu học tập. Bạn thử chọn đúng môn học ở bên trái, hoặc đặt câu hỏi theo sát các khái niệm trong bài giảng nhé!'. KHÔNG tự ý bịa đặt hoặc dùng kiến thức bên ngoài của bạn để trả lời.
+3. Trả lời bằng tiếng Việt, định dạng rõ ràng, ngắn gọn và dễ hiểu. KHÔNG tự động thêm phần chú thích trích dẫn nguồn ở cuối câu trả lời (vì hệ thống đã tự động hiển thị các thẻ nguồn ở giao diện bên dưới).
+4. BÁM SÁT MÔN HỌC / CHƯƠNG ĐANG CHỌN: Khi người dùng hỏi về kiến thức, tổng quan hay nội dung của một chương hoặc môn học, PHẢI trả lời bám sát trực tiếp vào kiến thức chuyên môn của môn học và chương đó (dựa trên ngữ cảnh được cung cấp hoặc phạm vi môn học đang chọn). Tuyệt đối KHÔNG được trả lời lan man sang các chủ đề không liên quan như 'lộ trình học tập cá nhân hóa', 'công cụ học tập tương tác', 'theo dõi tiến độ', hay các tính năng chung của hệ thống phần mềm.";
 
             double temp = config?.Temperature ?? 0.2;
             int maxTokens = config?.MaxTokens ?? 1024;
@@ -70,7 +71,7 @@ Quy tắc trả lời:
             };
 
             var jsonPayload = JsonSerializer.Serialize(payload);
-            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
+            using var request = new HttpRequestMessage(HttpMethod.Post, _baseUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
             request.Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 

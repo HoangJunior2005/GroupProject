@@ -43,6 +43,13 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 return response;
             }
 
+            if (IsGreetingOrSocial(question))
+            {
+                response.Answer = "Xin lỗi, tôi không tìm thấy nội dung liên quan trong tài liệu học tập. Bạn thử chọn đúng môn học ở bên trái, hoặc đặt câu hỏi theo sát các khái niệm trong bài giảng nhé!";
+                response.Sources.Clear();
+                return response;
+            }
+
             try
             {
                 var questionEmbJson = await _embeddingService.GenerateEmbeddingAsync(question);
@@ -126,6 +133,12 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                     }
                 }
 
+                if (!validChunks.Any())
+                {
+                    response.Answer = "Xin lỗi, tôi không tìm thấy nội dung liên quan trong tài liệu học tập. Bạn thử chọn đúng môn học ở bên trái, hoặc đặt câu hỏi theo sát các khái niệm trong bài giảng nhé!";
+                    return response;
+                }
+
                 var contextBuilder = new System.Text.StringBuilder();
 
                 if (subjectId.HasValue || chapterId.HasValue)
@@ -183,7 +196,16 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                      response.Answer.Contains("không nhận được", StringComparison.OrdinalIgnoreCase) ||
                      response.Answer.Contains("không thể trích xuất", StringComparison.OrdinalIgnoreCase) ||
                      response.Answer.Contains("ngoài phạm vi", StringComparison.OrdinalIgnoreCase) ||
-                     response.Answer.Contains("tài liệu không đề cập", StringComparison.OrdinalIgnoreCase)))
+                     response.Answer.Contains("tài liệu không đề cập", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("bạn thử chọn đúng môn học", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("ngoài lề", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("Chào bạn", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("Xin chào", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("Tôi là trợ lý", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("sẵn sàng hỗ trợ", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("Bạn có câu hỏi nào", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("Bạn cần giúp đỡ", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("Bạn cần hỏi gì", StringComparison.OrdinalIgnoreCase)))
                 {
                     response.Sources.Clear();
                 }
@@ -279,7 +301,24 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             return boost;
         }
 
+        private static bool IsGreetingOrSocial(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return true;
+            var clean = RemoveDiacritics(input).Trim().ToLowerInvariant();
 
+            var greetings = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "alo", "alo alo", "hello", "hi", "hi ban", "chao", "xin chao", "chao ban", "chao ai", "chao tro ly",
+                "hey", "test", "he lo", "hi ai", "ai oi", "oi", "alo oi", "chao buoi sang", "chao buoi toi", "chao buoi chieu",
+                "ban ten gia", "ban la ai", "ai the", "co ai o do khong", "hi the", "hello ban", "xin chao ban", "hello ai"
+            };
+
+            if (greetings.Contains(clean)) return true;
+
+            if (clean.Length <= 4 && !clean.Any(char.IsDigit)) return true;
+
+            return false;
+        }
 
         private static string RemoveDiacritics(string text)
         {
@@ -402,7 +441,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             });
         }
 
-        public async Task SaveMessagesAsync(int sessionId, string userContent, string assistantContent, List<ChatSourceDto>? sources, string? providerName = null, string? modelName = null, double? executionTimeMs = null, int? promptTokens = null, int? completionTokens = null)
+        public async Task<int> SaveMessagesAsync(int sessionId, string userContent, string assistantContent, List<ChatSourceDto>? sources, string? providerName = null, string? modelName = null, double? executionTimeMs = null, int? promptTokens = null, int? completionTokens = null)
         {
             // Auto rename session if it has default title
             var session = await _uow.ChatSessions.FirstOrDefaultAsync(s => s.SessionID == sessionId);
@@ -452,6 +491,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
             await _uow.ChatSessions.TouchUpdatedAtAsync(sessionId);
             await _uow.SaveChangesAsync();
+            return assistantMsg.MessageID;
         }
 
         public async Task DeleteSessionAsync(int sessionId, int userId)

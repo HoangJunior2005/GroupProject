@@ -505,6 +505,118 @@
         padding: 6px 24px;
         background: white;
     }
+
+    /* Antigravity IDE Style Model Selector */
+    .model-dropdown-container {
+        position: relative;
+        display: inline-block;
+    }
+    .model-dropdown-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        background: #eef2ff;
+        color: #312e81;
+        border: 1.5px solid #818cf8;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(99, 102, 241, 0.1);
+    }
+    .model-dropdown-btn:hover {
+        background: #e0e7ff;
+        border-color: #6366f1;
+        color: #1e1b4b;
+        box-shadow: 0 4px 8px rgba(99, 102, 241, 0.18);
+    }
+    .model-dropdown-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        z-index: 1000;
+        width: 320px;
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 14px;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.15);
+        padding: 6px 0;
+        color: #1e293b;
+        font-family: inherit;
+        animation: dropFadeIn 0.15s ease-out;
+    }
+    .model-dropdown-menu.hidden {
+        display: none !important;
+    }
+    @@keyframes dropFadeIn {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .model-dropdown-header {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #64748b;
+        padding: 6px 14px 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .model-option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        margin: 2px 6px;
+        border-radius: 10px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.15s ease;
+    }
+    .model-option:hover {
+        background: #f1f5f9;
+    }
+    .model-option.active {
+        border: 1px solid #6366f1;
+        background: #eef2ff;
+    }
+    .model-option-left {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .model-option-title {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+    }
+    .model-option.active .model-option-title {
+        color: #312e81;
+    }
+    .model-option-sub {
+        font-size: 0.7rem;
+        color: #64748b;
+    }
+    .model-option-badge {
+        background: #f8fafc;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 2px 8px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+    .model-option.active .model-option-badge {
+        background: #6366f1;
+        border-color: #4f46e5;
+        color: #ffffff;
+    }
 </style>
 
 <div class="page-header mb-3">
@@ -585,28 +697,49 @@
             </div>
         </div>
 
-        <!-- Model Selector Tabs -->
-        <div class="model-selector-bar" style="display:flex; gap:8px; padding:10px 18px; background:linear-gradient(135deg,#f0f4ff 0%,#fafbff 100%); border-bottom:1px solid rgba(0,0,0,0.07); overflow-x:auto; flex-wrap:nowrap;">
-            <div class="model-card active" data-provider="Gemini" onclick="selectModelProvider(this)" title="Google Gemini" style="display:flex; align-items:center; gap:8px; padding:7px 14px; border-radius:12px; cursor:pointer; border:2px solid #6366f1; background:#eef2ff; transition:all 0.2s ease; min-width:fit-content; flex-shrink:0;">
-                <span style="font-size:1.25rem;">✨</span>
-                <div style="line-height:1.2;">
-                    <div style="font-weight:700; font-size:0.8rem; color:#312e81;">Gemini 2.5 Flash</div>
-                    <div style="font-size:0.65rem; color:#6366f1;">High Quality • Fast</div>
+        <!-- Model Selector Sub-header (Antigravity IDE Style) -->
+        <div class="model-selector-bar" style="display:flex; align-items:center; justify-content:space-between; padding:10px 24px; background: #f8fafc; border-bottom:1px solid #e2e8f0; position: relative; z-index: 50;">
+            <div class="d-flex align-items-center gap-2">
+                <span style="font-size: 0.82rem; color: #64748b; font-weight: 600;"><i class="bi bi-cpu me-1"></i>AI Model:</span>
+                
+                <!-- Dropdown Button -->
+                <div class="model-dropdown-container" style="position: relative;">
+                    <button type="button" class="model-dropdown-btn" id="btnModelSelect" onclick="toggleModelDropdown(event)">
+                        <span id="selectedModelIcon">✨</span>
+                        <span id="selectedModelName">Gemini 2.5 Flash</span>
+                        <i class="bi bi-chevron-down ms-1" style="font-size: 0.75rem; opacity: 0.7;"></i>
+                    </button>
+                    
+                    <!-- Dropdown Popover Menu -->
+                    <div class="model-dropdown-menu hidden" id="modelDropdownMenu">
+                        <div class="model-dropdown-header">Model</div>
+                        <div class="model-option active" data-provider="Gemini" data-name="Gemini 2.5 Flash" data-icon="✨" onclick="selectModelProvider(this)">
+                            <div class="model-option-left">
+                                <div class="model-option-title"><span class="me-1">✨</span>Gemini 2.5 Flash</div>
+                                <div class="model-option-sub">High Quality • Fast</div>
+                            </div>
+                            <div class="model-option-badge">Fast <i class="bi bi-info-circle"></i></div>
+                        </div>
+                        <div class="model-option" data-provider="OpenAI" data-name="OpenAI GPT OSS" data-icon="🤖" onclick="selectModelProvider(this)">
+                            <div class="model-option-left">
+                                <div class="model-option-title"><span class="me-1">🤖</span>OpenAI GPT OSS</div>
+                                <div class="model-option-sub">Open-Weight 120B • Cerebras Fast Engine</div>
+                            </div>
+                            <div class="model-option-badge">Ultra <i class="bi bi-info-circle"></i></div>
+                        </div>
+                        <div class="model-option" data-provider="Groq" data-name="Llama 3.1 8B" data-icon="⚡" onclick="selectModelProvider(this)">
+                            <div class="model-option-left">
+                                <div class="model-option-title"><span class="me-1">⚡</span>Llama 3.1 8B</div>
+                                <div class="model-option-sub">Ultra Fast • Open Source</div>
+                            </div>
+                            <div class="model-option-badge">Ultra <i class="bi bi-info-circle"></i></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="model-card" data-provider="OpenAI" onclick="selectModelProvider(this)" title="OpenAI GPT" style="display:flex; align-items:center; gap:8px; padding:7px 14px; border-radius:12px; cursor:pointer; border:2px solid transparent; background:#f8fafc; transition:all 0.2s ease; min-width:fit-content; flex-shrink:0;">
-                <span style="font-size:1.25rem;">🤖</span>
-                <div style="line-height:1.2;">
-                    <div style="font-weight:700; font-size:0.8rem; color:#334155;">GPT-4o-mini</div>
-                    <div style="font-size:0.65rem; color:#64748b;">High Accuracy • Standard Speed</div>
-                </div>
-            </div>
-            <div class="model-card" data-provider="Groq" onclick="selectModelProvider(this)" title="Groq Llama" style="display:flex; align-items:center; gap:8px; padding:7px 14px; border-radius:12px; cursor:pointer; border:2px solid transparent; background:#f8fafc; transition:all 0.2s ease; min-width:fit-content; flex-shrink:0;">
-                <span style="font-size:1.25rem;">⚡</span>
-                <div style="line-height:1.2;">
-                    <div style="font-weight:700; font-size:0.8rem; color:#334155;">Llama 3.1 8B</div>
-                    <div style="font-size:0.65rem; color:#64748b;">Ultra Fast • Open Source</div>
-                </div>
+
+            <div class="text-muted small d-none d-md-block" style="font-size: 0.78rem;">
+                <i class="bi bi-shield-check text-success me-1"></i>Chế độ RAG: Chỉ trả lời trong phạm vi tài liệu bài giảng
             </div>
             <!-- Hidden input to hold selected value -->
             <input type="hidden" id="modelProviderSelect" value="Gemini">
@@ -1118,10 +1251,20 @@
                 renamePromise = fetch('/Chat?handler=UpdateSessionTitle', { method: 'POST', body: renameForm });
             }
 
-            const savePromise = fetch('/Chat?handler=SaveMessages', { method: 'POST', body: saveForm });
+            const saveRes = await fetch('/Chat?handler=SaveMessages', { method: 'POST', body: saveForm });
+            const saveData = await saveRes.json();
+            if (saveData && saveData.messageId) {
+                const unlinkedFeedbacks = document.querySelectorAll('.message-feedback[data-msg-id="0"], .message-feedback[data-msg-id=""]');
+                if (unlinkedFeedbacks && unlinkedFeedbacks.length > 0) {
+                    const lastFb = unlinkedFeedbacks[unlinkedFeedbacks.length - 1];
+                    lastFb.setAttribute('data-msg-id', saveData.messageId);
+                    const buttons = lastFb.querySelectorAll('button');
+                    if (buttons[0]) buttons[0].setAttribute('onclick', `rateMessage(${saveData.messageId}, 1, this)`);
+                    if (buttons[1]) buttons[1].setAttribute('onclick', `rateMessage(${saveData.messageId}, -1, this)`);
+                }
+            }
 
-            // Run both in parallel
-            await Promise.all([renamePromise, savePromise]);
+            if (renamePromise) await renamePromise;
 
             if (activeSessionId === sessionId) {
                 const ind = document.getElementById('saveIndicator');
@@ -1141,9 +1284,14 @@
 
     // ── Feedback rate function ────────────────────────────────────
     async function rateMessage(messageId, feedback, btn) {
-        if (!messageId) {
-            Swal.fire({ icon: 'info', title: 'Thông báo', text: 'Tin nhắn vừa tạo đang được đồng bộ, vui lòng đánh giá sau giây lát.' });
-            return;
+        if (!messageId || messageId === 0) {
+            const container = btn.closest('.message-feedback');
+            if (container && container.dataset.msgId && parseInt(container.dataset.msgId) > 0) {
+                messageId = parseInt(container.dataset.msgId);
+            } else {
+                Swal.fire({ icon: 'info', title: 'Thông báo', text: 'Tin nhắn đang được đồng bộ, vui lòng nhấp lại sau giây lát.' });
+                return;
+            }
         }
         try {
             const form = new FormData();
@@ -1156,10 +1304,21 @@
             if (data.ok) {
                 const container = btn.closest('.message-feedback');
                 if (container) {
-                    const upBtn = container.querySelector('.bi-hand-thumbs-up-fill').closest('button');
-                    const downBtn = container.querySelector('.bi-hand-thumbs-down-fill').closest('button');
-                    upBtn.className = `btn btn-sm py-0 px-1 border-0 ${feedback === 1 ? 'text-success fw-bold' : 'text-muted'}`;
-                    downBtn.className = `btn btn-sm py-0 px-1 border-0 ${feedback === -1 ? 'text-danger fw-bold' : 'text-muted'}`;
+                    const buttons = container.querySelectorAll('button');
+                    const upBtn = buttons[0];
+                    const downBtn = buttons[1];
+                    
+                    if (feedback === 1) {
+                        upBtn.className = 'btn btn-sm py-1 px-2 border border-success rounded bg-white text-success fw-bold shadow-sm';
+                        upBtn.innerHTML = '<i class="bi bi-hand-thumbs-up-fill fs-6 text-success me-1"></i> Hữu ích';
+                        downBtn.className = 'btn btn-sm py-1 px-2 border rounded bg-white text-secondary shadow-sm';
+                        downBtn.innerHTML = '<i class="bi bi-hand-thumbs-down fs-6"></i>';
+                    } else if (feedback === -1) {
+                        downBtn.className = 'btn btn-sm py-1 px-2 border border-danger rounded bg-white text-danger fw-bold shadow-sm';
+                        downBtn.innerHTML = '<i class="bi bi-hand-thumbs-down-fill fs-6 text-danger me-1"></i> Chưa tốt';
+                        upBtn.className = 'btn btn-sm py-1 px-2 border rounded bg-white text-secondary shadow-sm';
+                        upBtn.innerHTML = '<i class="bi bi-hand-thumbs-up fs-6"></i>';
+                    }
                 }
                 const Toast = Swal.mixin({ toast: true, position: 'bottom-end', showConfirmButton: false, timer: 2000 });
                 Toast.fire({ icon: 'success', title: 'Đã ghi nhận đánh giá của bạn!' });
@@ -1230,6 +1389,11 @@
 
             const totalTokens = pTokens + cTokens;
 
+            const upClass = fb === 1 ? 'btn btn-sm py-1 px-2 border border-success rounded bg-white text-success fw-bold shadow-sm' : 'btn btn-sm py-1 px-2 border rounded bg-white text-secondary shadow-sm';
+            const downClass = fb === -1 ? 'btn btn-sm py-1 px-2 border border-danger rounded bg-white text-danger fw-bold shadow-sm' : 'btn btn-sm py-1 px-2 border rounded bg-white text-secondary shadow-sm';
+            const upIcon = fb === 1 ? '<i class="bi bi-hand-thumbs-up-fill fs-6 text-success me-1"></i> Hữu ích' : '<i class="bi bi-hand-thumbs-up fs-6"></i>';
+            const downIcon = fb === -1 ? '<i class="bi bi-hand-thumbs-down-fill fs-6 text-danger me-1"></i> Chưa tốt' : '<i class="bi bi-hand-thumbs-down fs-6"></i>';
+
             benchDiv.innerHTML = `
                 <div class="d-flex align-items-center flex-wrap gap-2">
                     <span class="badge ${providerBadgeClass} border fw-semibold"><i class="bi bi-cpu-fill me-1"></i>${provider} (${model})</span>
@@ -1239,10 +1403,10 @@
                 <div class="w-100 mt-1" style="font-size:0.7rem; color:#94a3b8; font-style:italic;">
                     Được trả lời bởi ${model} qua ${provider} trong ${time} • Sử dụng ${totalTokens} tokens
                 </div>
-                <div class="message-feedback d-flex align-items-center gap-1">
-                    <span class="me-1">Đánh giá:</span>
-                    <button type="button" class="btn btn-sm py-0 px-1 border-0 ${fb === 1 ? 'text-success fw-bold' : 'text-muted'}" title="Hữu ích" onclick="rateMessage(${msgId}, 1, this)"><i class="bi bi-hand-thumbs-up-fill fs-6"></i></button>
-                    <button type="button" class="btn btn-sm py-0 px-1 border-0 ${fb === -1 ? 'text-danger fw-bold' : 'text-muted'}" title="Không hữu ích" onclick="rateMessage(${msgId}, -1, this)"><i class="bi bi-hand-thumbs-down-fill fs-6"></i></button>
+                <div class="message-feedback d-flex align-items-center gap-1 mt-1" data-msg-id="${msgId}">
+                    <span class="me-1 text-secondary fw-semibold">Đánh giá:</span>
+                    <button type="button" class="${upClass}" title="Hữu ích" onclick="rateMessage(${msgId}, 1, this)">${upIcon}</button>
+                    <button type="button" class="${downClass}" title="Không hữu ích" onclick="rateMessage(${msgId}, -1, this)">${downIcon}</button>
                 </div>`;
             contentDiv.appendChild(benchDiv);
         }
@@ -1277,38 +1441,55 @@
 
     // ── Model Provider Selector (Tab/Card style) ───────────────
     function selectModelProvider(card) {
-        // Remove active state from all cards
-        document.querySelectorAll('.model-selector-bar .model-card').forEach(c => {
+        // Remove active state from all options
+        document.querySelectorAll('#modelDropdownMenu .model-option').forEach(c => {
             c.classList.remove('active');
-            c.style.border = '2px solid transparent';
-            c.style.background = '#f8fafc';
-            c.querySelector('div > div:first-child').style.color = '#334155';
-            const sub = c.querySelector('div > div:last-child');
-            if (sub) sub.style.color = '#64748b';
         });
 
-        // Set active state on selected card
+        // Set active state on selected option
         card.classList.add('active');
-        card.style.border = '2px solid #6366f1';
-        card.style.background = '#eef2ff';
-        card.querySelector('div > div:first-child').style.color = '#312e81';
-        const sub = card.querySelector('div > div:last-child');
-        if (sub) sub.style.color = '#6366f1';
 
         // Update hidden input value
         const provider = card.dataset.provider;
+        const name = card.dataset.name || card.dataset.provider;
+        const icon = card.dataset.icon || '✨';
+
         document.getElementById('modelProviderSelect').value = provider;
+        const nameEl = document.getElementById('selectedModelName');
+        if (nameEl) nameEl.textContent = name;
+        const iconEl = document.getElementById('selectedModelIcon');
+        if (iconEl) iconEl.textContent = icon;
+
+        // Hide dropdown menu after selecting
+        const menu = document.getElementById('modelDropdownMenu');
+        if (menu) menu.classList.add('hidden');
 
         // Persist to localStorage
         try { localStorage.setItem('lds_selected_model_provider', provider); } catch(e) {}
     }
+
+    function toggleModelDropdown(event) {
+        if (event) event.stopPropagation();
+        const menu = document.getElementById('modelDropdownMenu');
+        if (menu) menu.classList.toggle('hidden');
+    }
+
+    document.addEventListener('click', function(event) {
+        const container = event.target.closest('.model-dropdown-container');
+        if (!container) {
+            const menu = document.getElementById('modelDropdownMenu');
+            if (menu && !menu.classList.contains('hidden')) {
+                menu.classList.add('hidden');
+            }
+        }
+    });
 
     // ── Restore model selection from localStorage ────────────────
     (function restoreModelSelection() {
         try {
             const saved = localStorage.getItem('lds_selected_model_provider');
             if (saved) {
-                const card = document.querySelector(`.model-selector-bar .model-card[data-provider="${saved}"]`);
+                const card = document.querySelector(`#modelDropdownMenu .model-option[data-provider="${saved}"]`);
                 if (card) {
                     selectModelProvider(card);
                 }

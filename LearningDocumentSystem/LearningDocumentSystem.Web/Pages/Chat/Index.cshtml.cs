@@ -156,8 +156,8 @@ namespace LearningDocumentSystem.Web.Pages.Chat
                     catch { /* ignore */ }
                 }
 
-                await _chatService.SaveMessagesAsync(sessionId, userContent, assistantContent, sources, providerName, modelName, executionTimeMs, promptTokens, completionTokens);
-                return new JsonResult(new { ok = true });
+                int newMsgId = await _chatService.SaveMessagesAsync(sessionId, userContent, assistantContent, sources, providerName, modelName, executionTimeMs, promptTokens, completionTokens);
+                return new JsonResult(new { ok = true, messageId = newMsgId });
             }
             catch (Exception ex)
             {
