@@ -206,50 +206,97 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                     .Where(p => !string.IsNullOrWhiteSpace(p))
                     .ToList();
 
-                var buffer = new StringBuilder();
-
                 foreach (var para in paragraphs)
                 {
-                    // Nếu đoạn hiện tại vượt maxSize → chunk riêng bằng cách cắt cứng
-                    if (para.Length > maxSize)
+                    if (para.Length <= maxSize)
                     {
-                        // Flush buffer trước
-                        if (buffer.Length >= minChunkLength)
-                            chunks.Add((buffer.ToString().Trim(), page));
-                        buffer.Clear();
-
-                        // Cắt đoạn dài thành nhiều chunk nhỏ
-                        int s = 0;
-                        while (s < para.Length)
-                        {
-                            int e = Math.Min(s + maxSize, para.Length);
-                            var sub = para[s..e].Trim();
-                            if (sub.Length >= minChunkLength)
-                                chunks.Add((sub, page));
-                            s += maxSize;
-                        }
+                        if (para.Length >= minChunkLength)
+                            chunks.Add((para, page));
                         continue;
                     }
 
-                    // Nếu thêm đoạn này vào buffer sẽ vượt maxSize → flush và bắt đầu buffer mới
-                    if (buffer.Length + para.Length + 2 > maxSize && buffer.Length > 0)
+                    // Nếu đoạn văn dài hơn maxSize -> Chia theo câu
+                    var sentences = System.Text.RegularExpressions.Regex.Split(para, @"(?<=[.!?])\s+")
+                        .Select(s => s.Trim())
+                        .Where(s => s.Length > 0)
+                        .ToList();
+
+                    var sentenceBuffer = new StringBuilder();
+
+                    foreach (var sentence in sentences)
                     {
-                        var flushed = buffer.ToString().Trim();
-                        if (flushed.Length >= minChunkLength)
-                            chunks.Add((flushed, page));
-                        buffer.Clear();
+                        if (sentence.Length > maxSize)
+                        {
+                            // Flush current sentenceBuffer if any
+                            if (sentenceBuffer.Length >= minChunkLength)
+                                chunks.Add((sentenceBuffer.ToString().Trim(), page));
+                            sentenceBuffer.Clear();
+
+                            // Chia câu dài này theo từ
+                            var words = sentence.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                            var wordBuffer = new StringBuilder();
+
+                            foreach (var word in words)
+                            {
+                                if (word.Length > maxSize)
+                                {
+                                    // Flush current wordBuffer if any
+                                    if (wordBuffer.Length >= minChunkLength)
+                                        chunks.Add((wordBuffer.ToString().Trim(), page));
+                                    wordBuffer.Clear();
+
+                                    // Cắt cứng từ quá dài theo ký tự
+                                    int sWord = 0;
+                                    while (sWord < word.Length)
+                                    {
+                                        int eWord = Math.Min(sWord + maxSize, word.Length);
+                                        chunks.Add((word[sWord..eWord], page));
+                                        sWord += maxSize;
+                                    }
+                                }
+                                else
+                                {
+                                    if (wordBuffer.Length + word.Length + (wordBuffer.Length > 0 ? 1 : 0) > maxSize)
+                                    {
+                                        var flushedWord = wordBuffer.ToString().Trim();
+                                        if (flushedWord.Length >= minChunkLength)
+                                            chunks.Add((flushedWord, page));
+                                        wordBuffer.Clear();
+                                    }
+                                    if (wordBuffer.Length > 0) wordBuffer.Append(' ');
+                                    wordBuffer.Append(word);
+                                }
+                            }
+
+                            // Flush remaining wordBuffer
+                            if (wordBuffer.Length > 0)
+                            {
+                                var remainingWord = wordBuffer.ToString().Trim();
+                                if (remainingWord.Length >= minChunkLength)
+                                    chunks.Add((remainingWord, page));
+                            }
+                        }
+                        else
+                        {
+                            if (sentenceBuffer.Length + sentence.Length + (sentenceBuffer.Length > 0 ? 1 : 0) > maxSize)
+                            {
+                                var flushedSentence = sentenceBuffer.ToString().Trim();
+                                if (flushedSentence.Length >= minChunkLength)
+                                    chunks.Add((flushedSentence, page));
+                                sentenceBuffer.Clear();
+                            }
+                            if (sentenceBuffer.Length > 0) sentenceBuffer.Append(' ');
+                            sentenceBuffer.Append(sentence);
+                        }
                     }
 
-                    if (buffer.Length > 0) buffer.Append("\n\n");
-                    buffer.Append(para);
-                }
-
-                // Flush phần còn lại
-                if (buffer.Length > 0)
-                {
-                    var remaining = buffer.ToString().Trim();
-                    if (remaining.Length >= minChunkLength)
-                        chunks.Add((remaining, page));
+                    // Flush remaining sentenceBuffer
+                    if (sentenceBuffer.Length > 0)
+                    {
+                        var remainingSentence = sentenceBuffer.ToString().Trim();
+                        if (remainingSentence.Length >= minChunkLength)
+                            chunks.Add((remainingSentence, page));
+                    }
                 }
             }
 
