@@ -98,7 +98,18 @@ builder.Services.AddScoped<IChunkingService, ChunkingService>();
 builder.Services.AddScoped<IEmbeddingService, EmbeddingService>();
 builder.Services.AddScoped<IChunkSettingsService, ChunkSettingsService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
-builder.Services.AddHttpClient<IGeminiService, GeminiService>();
+// LLM Services & Factory
+builder.Services.AddHttpClient<GeminiService>();
+builder.Services.AddTransient<IGeminiService>(sp => sp.GetRequiredService<GeminiService>());
+builder.Services.AddTransient<ILLMService>(sp => sp.GetRequiredService<GeminiService>());
+
+builder.Services.AddHttpClient<OpenAiLlmService>();
+builder.Services.AddTransient<ILLMService>(sp => sp.GetRequiredService<OpenAiLlmService>());
+
+builder.Services.AddHttpClient<GroqLlmService>();
+builder.Services.AddTransient<ILLMService>(sp => sp.GetRequiredService<GroqLlmService>());
+
+builder.Services.AddScoped<ILLMProviderFactory, LLMProviderFactory>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IBenchmarkService, BenchmarkService>();
 

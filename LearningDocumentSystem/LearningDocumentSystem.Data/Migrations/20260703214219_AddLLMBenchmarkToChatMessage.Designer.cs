@@ -4,6 +4,7 @@ using LearningDocumentSystem.Data.DbContexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LearningDocumentSystem.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260703214219_AddLLMBenchmarkToChatMessage")]
+    partial class AddLLMBenchmarkToChatMessage
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -423,43 +426,6 @@ namespace LearningDocumentSystem.Data.Migrations
                     b.ToTable("Subjects", (string)null);
                 });
 
-            modelBuilder.Entity("LearningDocumentSystem.Entities.Models.TeacherChunkSetting", b =>
-                {
-                    b.Property<int>("TeacherId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ChunkOverlap")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(100);
-
-                    b.Property<int>("ChunkSize")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(800);
-
-                    b.Property<int>("MinChunkLength")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(50);
-
-                    b.Property<string>("Strategy")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasDefaultValue("Recursive");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.HasKey("TeacherId");
-
-                    b.ToTable("TeacherChunkSettings", (string)null);
-                });
-
             modelBuilder.Entity("LearningDocumentSystem.Entities.Models.User", b =>
                 {
                     b.Property<int>("UserID")
@@ -651,17 +617,6 @@ namespace LearningDocumentSystem.Data.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("SubjectLeader");
-                });
-
-            modelBuilder.Entity("LearningDocumentSystem.Entities.Models.TeacherChunkSetting", b =>
-                {
-                    b.HasOne("LearningDocumentSystem.Entities.Models.User", "Teacher")
-                        .WithOne()
-                        .HasForeignKey("LearningDocumentSystem.Entities.Models.TeacherChunkSetting", "TeacherId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Teacher");
                 });
 
             modelBuilder.Entity("LearningDocumentSystem.Entities.Models.UserRole", b =>

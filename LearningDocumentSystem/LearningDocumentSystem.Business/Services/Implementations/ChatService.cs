@@ -12,6 +12,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
         private readonly IUnitOfWork _uow;
         private readonly IEmbeddingService _embeddingService;
         private readonly IGeminiService _geminiService;
+        private readonly ILLMProviderFactory _llmFactory;
         private readonly ILogger<ChatService> _logger;
 
         private const int ExpectedDimension = 512;
@@ -20,15 +21,17 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             IUnitOfWork uow,
             IEmbeddingService embeddingService,
             IGeminiService geminiService,
+            ILLMProviderFactory llmFactory,
             ILogger<ChatService> logger)
         {
             _uow = uow;
             _embeddingService = embeddingService;
             _geminiService = geminiService;
+            _llmFactory = llmFactory;
             _logger = logger;
         }
 
-        public async Task<ChatResponseDto> AskQuestionAsync(string question, int? subjectId = null, int? chapterId = null)
+        public async Task<ChatResponseDto> AskQuestionAsync(string question, int? subjectId = null, int? chapterId = null, string? modelProvider = null)
         {
             _logger.LogInformation("Processing question: '{Question}' | sub={SubId}, chap={ChapId}", question, subjectId, chapterId);
 
@@ -37,6 +40,13 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             if (string.IsNullOrWhiteSpace(question))
             {
                 response.Answer = "Vui lòng nhập câu hỏi để tôi có thể hỗ trợ bạn.";
+                return response;
+            }
+
+            if (IsGreetingOrSocial(question))
+            {
+                response.Answer = "Xin lỗi, tôi không tìm thấy nội dung liên quan trong tài liệu học tập. Bạn thử chọn đúng môn học ở bên trái, hoặc đặt câu hỏi theo sát các khái niệm trong bài giảng nhé!";
+                response.Sources.Clear();
                 return response;
             }
 
@@ -125,12 +135,28 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
                 if (!validChunks.Any())
                 {
-                    response.Answer = "Xin lỗi, tôi không tìm thấy nội dung liên quan trong tài liệu học tập. " +
-                                      "Bạn thử chọn đúng môn học ở bên trái, hoặc đặt câu hỏi theo sát các khái niệm trong bài giảng nhé!";
+                    response.Answer = "Xin lỗi, tôi không tìm thấy nội dung liên quan trong tài liệu học tập. Bạn thử chọn đúng môn học ở bên trái, hoặc đặt câu hỏi theo sát các khái niệm trong bài giảng nhé!";
                     return response;
                 }
 
                 var contextBuilder = new System.Text.StringBuilder();
+
+                if (subjectId.HasValue || chapterId.HasValue)
+                {
+                    string subName = "";
+                    string chapName = "";
+                    if (subjectId.HasValue)
+                    {
+                        var sub = await _uow.Subjects.GetByIdAsync(subjectId.Value);
+                        if (sub != null) subName = $"Môn học: {sub.SubjectName} ({sub.SubjectCode}) | ";
+                    }
+                    if (chapterId.HasValue)
+                    {
+                        var chap = await _uow.Chapters.GetByIdAsync(chapterId.Value);
+                        if (chap != null) chapName = $"Chương {chap.ChapterNumber}: {chap.ChapterName}";
+                    }
+                    contextBuilder.AppendLine($"[PHẠM VI ĐANG CHỌN]: {subName}{chapName}");
+                }
 
                 foreach (var item in validChunks)
                 {
@@ -149,7 +175,14 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                     contextBuilder.AppendLine($"[Tài liệu: {source.DocumentTitle}, Trang {source.PageNumber?.ToString() ?? "N/A"}]: {item.Chunk.ContentText}");
                 }
 
-                response.Answer = await _geminiService.GenerateAnswerAsync(question, contextBuilder.ToString());
+                var llmService = _llmFactory.GetProvider(modelProvider);
+                var llmResult = await llmService.GenerateAnswerAsync(question, contextBuilder.ToString());
+                response.Answer = llmResult.Answer;
+                response.ProviderName = llmResult.ProviderName;
+                response.ModelName = llmResult.ModelName;
+                response.ExecutionTimeMs = llmResult.ExecutionTimeMs;
+                response.PromptTokens = llmResult.PromptTokens;
+                response.CompletionTokens = llmResult.CompletionTokens;
 
                 // If AI indicates it couldn't find relevant information in the context, clear
                 // any sources that were tentatively attached (they would be misleading citations).
@@ -163,7 +196,16 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                      response.Answer.Contains("không nhận được", StringComparison.OrdinalIgnoreCase) ||
                      response.Answer.Contains("không thể trích xuất", StringComparison.OrdinalIgnoreCase) ||
                      response.Answer.Contains("ngoài phạm vi", StringComparison.OrdinalIgnoreCase) ||
-                     response.Answer.Contains("tài liệu không đề cập", StringComparison.OrdinalIgnoreCase)))
+                     response.Answer.Contains("tài liệu không đề cập", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("bạn thử chọn đúng môn học", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("ngoài lề", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("Chào bạn", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("Xin chào", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("Tôi là trợ lý", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("sẵn sàng hỗ trợ", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("Bạn có câu hỏi nào", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("Bạn cần giúp đỡ", StringComparison.OrdinalIgnoreCase) ||
+                     response.Answer.Contains("Bạn cần hỏi gì", StringComparison.OrdinalIgnoreCase)))
                 {
                     response.Sources.Clear();
                 }
@@ -207,7 +249,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             var stopWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "who", "what", "where", "when", "why", "how", "is", "are", "the", "a", "an", "of", "in", "on", "at", "to", "for", "with", "by", "about",
-                "la", "ai", "cua", "trong", "va", "co", "cac", "cho", "nhu", "nhung", "mot", "voi", "duoc", "nay", "khi", "de", "sau", "tai", "noi", "nao", "thi"
+                "la", "ai", "cua", "trong", "va", "co", "cac", "cho", "nhu", "nhung", "mot", "voi", "duoc", "nay", "khi", "de", "sau", "tai", "noi", "nao", "thi",
+                "gi", "the", "do", "day", "bang", "qua", "tu", "toi"
             };
 
             // Filter out stopwords
@@ -254,12 +297,30 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 }
             }
 
-            boost += 0.15f * ((float)wordMatches / filteredWords.Count);
+            // Substantially boost exact word matches so they overcome semantic variance, especially for codes/acronyms
+            boost += 0.8f * ((float)wordMatches / filteredWords.Count);
 
             return boost;
         }
 
+        private static bool IsGreetingOrSocial(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return true;
+            var clean = RemoveDiacritics(input).Trim().ToLowerInvariant();
 
+            var greetings = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "alo", "alo alo", "hello", "hi", "hi ban", "chao", "xin chao", "chao ban", "chao ai", "chao tro ly",
+                "hey", "test", "he lo", "hi ai", "ai oi", "oi", "alo oi", "chao buoi sang", "chao buoi toi", "chao buoi chieu",
+                "ban ten gia", "ban la ai", "ai the", "co ai o do khong", "hi the", "hello ban", "xin chao ban", "hello ai"
+            };
+
+            if (greetings.Contains(clean)) return true;
+
+            if (clean.Length < 2) return true;
+
+            return false;
+        }
 
         private static string RemoveDiacritics(string text)
         {
@@ -371,12 +432,18 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                     Role = m.Role,
                     Content = m.Content,
                     Sources = sources,
-                    CreatedAt = DateTime.SpecifyKind(m.CreatedAt, DateTimeKind.Utc)
+                    CreatedAt = DateTime.SpecifyKind(m.CreatedAt, DateTimeKind.Utc),
+                    ProviderName = m.ProviderName,
+                    ModelName = m.ModelName,
+                    ExecutionTimeMs = m.ExecutionTimeMs,
+                    PromptTokens = m.PromptTokens,
+                    CompletionTokens = m.CompletionTokens,
+                    Feedback = m.Feedback
                 };
             });
         }
 
-        public async Task SaveMessagesAsync(int sessionId, string userContent, string assistantContent, List<ChatSourceDto>? sources)
+        public async Task<int> SaveMessagesAsync(int sessionId, string userContent, string assistantContent, List<ChatSourceDto>? sources, string? providerName = null, string? modelName = null, double? executionTimeMs = null, int? promptTokens = null, int? completionTokens = null)
         {
             // Auto rename session if it has default title
             var session = await _uow.ChatSessions.FirstOrDefaultAsync(s => s.SessionID == sessionId);
@@ -415,12 +482,18 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 Role = "assistant",
                 Content = assistantContent,
                 SourcesJson = sourcesJson,
-                CreatedAt = DateTime.UtcNow.AddMilliseconds(1)
+                CreatedAt = DateTime.UtcNow.AddMilliseconds(1),
+                ProviderName = providerName,
+                ModelName = modelName,
+                ExecutionTimeMs = executionTimeMs,
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens
             };
             await _uow.ChatSessions.AddMessageAsync(assistantMsg);
 
             await _uow.ChatSessions.TouchUpdatedAtAsync(sessionId);
             await _uow.SaveChangesAsync();
+            return assistantMsg.MessageID;
         }
 
         public async Task DeleteSessionAsync(int sessionId, int userId)
@@ -454,6 +527,20 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 session.UpdatedAt = DateTime.UtcNow;
                 _uow.ChatSessions.Update(session);
                 await _uow.SaveChangesAsync();
+            }
+        }
+
+        public async Task UpdateMessageFeedbackAsync(int messageId, int userId, int feedback)
+        {
+            var msg = await _uow.ChatSessions.GetMessageAsync(messageId);
+            if (msg != null)
+            {
+                var session = await _uow.ChatSessions.FirstOrDefaultAsync(s => s.SessionID == msg.SessionID && s.UserID == userId);
+                if (session != null)
+                {
+                    await _uow.ChatSessions.UpdateMessageFeedbackAsync(messageId, feedback);
+                    await _uow.SaveChangesAsync();
+                }
             }
         }
     }

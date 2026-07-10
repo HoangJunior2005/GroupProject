@@ -165,6 +165,11 @@ namespace LearningDocumentSystem.Business.DTOs
     {
         public string Answer { get; set; } = string.Empty;
         public List<ChatSourceDto> Sources { get; set; } = new();
+        public string ProviderName { get; set; } = string.Empty;
+        public string ModelName { get; set; } = string.Empty;
+        public double ExecutionTimeMs { get; set; }
+        public int PromptTokens { get; set; }
+        public int CompletionTokens { get; set; }
     }
 
     public class ChatSourceDto
@@ -197,6 +202,12 @@ namespace LearningDocumentSystem.Business.DTOs
         public string Content { get; set; } = string.Empty;
         public List<ChatSourceDto> Sources { get; set; } = new();
         public DateTime CreatedAt { get; set; }
+        public string? ProviderName { get; set; }
+        public string? ModelName { get; set; }
+        public double? ExecutionTimeMs { get; set; }
+        public int? PromptTokens { get; set; }
+        public int? CompletionTokens { get; set; }
+        public int? Feedback { get; set; }
     }
 
     public class CreateChatSessionDto

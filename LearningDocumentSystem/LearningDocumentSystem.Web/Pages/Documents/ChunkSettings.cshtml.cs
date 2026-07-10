@@ -5,28 +5,32 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 
 namespace LearningDocumentSystem.Web.Pages.Documents
 {
-    [Authorize(Policy = "TeacherUp")]
+    [Authorize(Policy = "AdminOnly")]
     public class ChunkSettingsModel : PageModel
     {
         private readonly IChunkSettingsService _chunkSettingsService;
         private readonly IDocumentService _documentService;
         private readonly IHubContext<NotificationHub> _hubContext;
         private readonly ILogger<ChunkSettingsModel> _logger;
+        private readonly IServiceScopeFactory _scopeFactory;
 
         public ChunkSettingsModel(
             IChunkSettingsService chunkSettingsService,
             IDocumentService documentService,
             IHubContext<NotificationHub> hubContext,
-            ILogger<ChunkSettingsModel> logger)
+            ILogger<ChunkSettingsModel> logger,
+            IServiceScopeFactory scopeFactory)
         {
             _chunkSettingsService = chunkSettingsService;
             _documentService      = documentService;
             _hubContext           = hubContext;
             _logger               = logger;
+            _scopeFactory         = scopeFactory;
         }
 
         [BindProperty]
@@ -40,9 +44,7 @@ namespace LearningDocumentSystem.Web.Pages.Documents
 
         public async Task OnGetAsync()
         {
-            int userId = GetCurrentUserId();
-            if (userId > 0)
-                Settings = await _chunkSettingsService.GetSettingsAsync(userId);
+            Settings = await _chunkSettingsService.GetGlobalSettingsAsync();
         }
 
         // ────────────────────────────────────────────────
@@ -94,16 +96,19 @@ namespace LearningDocumentSystem.Web.Pages.Documents
                 return new JsonResult(new { ok = false, message = ex.Message });
             }
 
-            // 2. Lấy upload path từ DocumentService (qua middleware) — dùng WebRootPath
-            var env = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>();
-            if (_documentService is LearningDocumentSystem.Business.Services.Implementations.DocumentService ds)
-            {
-                ds.SetUploadPath(Path.Combine(env.WebRootPath, "uploads"));
-            }
-
-            // 3. Chạy background task
+            // 3. Chạy background task trong Scope mới để tránh lỗi Disposed DbContext
             _ = Task.Run(async () =>
             {
+                using var scope = _scopeFactory.CreateScope();
+                var scopedDocService = scope.ServiceProvider.GetRequiredService<IDocumentService>();
+                var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+
+                // Lấy upload path từ DocumentService dùng WebRootPath
+                if (scopedDocService is LearningDocumentSystem.Business.Services.Implementations.DocumentService ds)
+                {
+                    ds.SetUploadPath(Path.Combine(env.WebRootPath, "uploads"));
+                }
+
                 try
                 {
                     await _hubContext.Clients.All.SendAsync("ReChunkProgress", new
@@ -111,7 +116,7 @@ namespace LearningDocumentSystem.Web.Pages.Documents
                         current = 0, total = -1, message = "Đang bắt đầu Re-chunk...", done = false
                     });
 
-                    await _documentService.ReChunkAllDocumentsAsync(userId,
+                    await scopedDocService.ReChunkAllDocumentsAsync(null,
                         async (current, total) =>
                         {
                             int pct = (int)(current * 100.0 / total);
@@ -127,13 +132,13 @@ namespace LearningDocumentSystem.Web.Pages.Documents
                     await _hubContext.Clients.All.SendAsync("ReChunkProgress", new
                     {
                         current = 0, total = 0, percent = 100,
-                        message = "✅ Re-chunk hoàn tất! Tất cả tài liệu đã được phân mảnh lại.",
+                        message = "Re-chunk hoàn tất! Tất cả tài liệu đã được phân mảnh lại.",
                         done = true
                     });
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Background re-chunk failed for teacher {UserId}", userId);
+                    _logger.LogError(ex, "Background re-chunk failed");
                     await _hubContext.Clients.All.SendAsync("ReChunkProgress", new
                     {
                         current = 0, total = 0, percent = 0,

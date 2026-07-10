@@ -102,7 +102,7 @@
                         </a>
                     </li>
 
-                    @if (!User.IsInRole("Admin"))
+                    @if (User.IsInRole("Student"))
                     {
                         <li class="menu-section">Trợ lý AI</li>
                         <li class="@(activePage.StartsWith("/Chat") ? "active" : "")">

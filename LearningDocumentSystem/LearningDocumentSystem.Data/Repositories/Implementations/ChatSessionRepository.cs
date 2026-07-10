@@ -44,5 +44,18 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
 
         public async Task AddMessageAsync(ChatMessage message)
             => await _context.ChatMessages.AddAsync(message);
+
+        public async Task<ChatMessage?> GetMessageAsync(int messageId)
+            => await _context.ChatMessages.FindAsync(messageId);
+
+        public async Task UpdateMessageFeedbackAsync(int messageId, int feedback)
+        {
+            var msg = await _context.ChatMessages.FindAsync(messageId);
+            if (msg != null)
+            {
+                msg.Feedback = feedback;
+                _context.ChatMessages.Update(msg);
+            }
+        }
     }
 }
