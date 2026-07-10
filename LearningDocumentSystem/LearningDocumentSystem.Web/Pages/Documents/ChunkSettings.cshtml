@@ -286,7 +286,7 @@
         </div>
         <div>
             <h1 class="mb-0" style="font-size:1.65rem;font-weight:800;">Cấu hình Chunking</h1>
-            <p class="text-muted mb-0 small">Tùy chỉnh cách hệ thống phân mảnh tài liệu của bạn</p>
+            <p class="text-muted mb-0 small">Cấu hình phân mảnh tài liệu toàn hệ thống</p>
         </div>
     </div>
 </div>
@@ -402,21 +402,103 @@
     </div>
 </form>
 
-<!-- Progress Section (hidden until re-chunk starts) -->
-<div class="progress-section" id="progressSection">
-    <h6><i class="bi bi-cpu me-2"></i>Tiến trình Re-chunk</h6>
-    <div class="progress-track">
-        <div class="progress-fill" id="progressFill"></div>
+<!-- Re-chunk Progress Modal -->
+<div class="modal fade" id="rechunkModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="rechunkModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 24px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.5);">
+            <div class="modal-header border-0 text-white p-4" style="background: linear-gradient(135deg, var(--cs-indigo), var(--cs-purple)); border-top-left-radius: 24px; border-top-right-radius: 24px;">
+                <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="rechunkModalLabel">
+                    <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+                    <span>Hệ thống đang Re-chunk tài liệu...</span>
+                </h5>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Status & Progress -->
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold" id="rechunkStatusLabel">Đang chuẩn bị...</span>
+                    <span class="badge px-3 py-1.5 rounded-pill fw-bold" id="rechunkPercentLabel" style="background: hsla(245, 78%, 56%, 0.1); color: var(--cs-indigo);">0%</span>
+                </div>
+                <div class="progress mb-4" style="height: 12px; border-radius: 999px; background: rgba(0,0,0,0.05); overflow: hidden;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" id="rechunkProgressBar" style="width: 0%; background: linear-gradient(90deg, var(--cs-indigo), var(--cs-cyan));" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="row g-3 mb-4">
+                    <div class="col-6">
+                        <div class="p-3 border rounded-3 text-center" style="background: rgba(248, 250, 252, 0.8); border-color: rgba(0,0,0,0.05) !important;">
+                            <div class="text-muted small fw-semibold">Đã xử lý</div>
+                            <h3 class="fw-bold mb-0 text-dark" id="rechunkProcessedCount">0</h3>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 border rounded-3 text-center" style="background: rgba(248, 250, 252, 0.8); border-color: rgba(0,0,0,0.05) !important;">
+                            <div class="text-muted small fw-semibold">Tổng số tài liệu</div>
+                            <h3 class="fw-bold mb-0 text-dark" id="rechunkTotalCount">-</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Log Terminal -->
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-2"><i class="bi bi-terminal me-1"></i> Nhật ký tiến trình</label>
+                    <div class="p-3 font-monospace text-light rounded-3" id="rechunkTerminal" style="height: 200px; overflow-y: auto; background: #0f172a; font-size: 0.825rem; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05);">
+                        <div style="color: #64748b;">[Chờ kết nối SignalR...]</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-4 pt-0 justify-content-between">
+                <button type="button" class="btn btn-outline-secondary px-4 py-2" style="border-radius: 12px;" onclick="minimizeRechunkModal()">
+                    <i class="bi bi-fullscreen-exit me-1"></i> Chạy dưới nền
+                </button>
+                <button type="button" class="btn btn-primary px-4 py-2 text-white" id="btnCompleteRechunk" style="border-radius: 12px; display: none; background: var(--cs-indigo); border: none;" data-bs-dismiss="modal">
+                    Đóng
+                </button>
+            </div>
+        </div>
     </div>
-    <div class="progress-text" id="progressText">Đang khởi động...</div>
-    <div class="progress-log" id="progressLog"></div>
+</div>
+
+<!-- Floating Mini Progress Badge -->
+<div id="miniProgressBadge" class="position-fixed bottom-0 end-0 m-4 p-3 shadow-lg border-0 bg-white" style="display: none; z-index: 1050; border-radius: 16px; width: 300px; transition: all 0.3s ease; box-shadow: 0 10px 40px rgba(0,0,0,0.12) !important; border: 1px solid rgba(0,0,0,0.05) !important;">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <strong class="small text-dark fw-bold"><span class="spinner-border spinner-border-sm text-primary me-2" style="width: 12px; height: 12px;"></span>Đang Re-chunk...</strong>
+        <button type="button" class="btn-close" style="font-size: 0.75rem;" onclick="closeMiniProgressBadge()"></button>
+    </div>
+    <div class="progress mb-2" style="height: 6px; border-radius: 999px; background: rgba(0,0,0,0.05);">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" id="miniProgressBar" style="width: 0%; background: linear-gradient(90deg, var(--cs-indigo), var(--cs-cyan));"></div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center">
+        <span class="text-muted text-truncate" style="font-size: 0.7rem; max-width: 180px;" id="miniProgressText">Đang chuẩn bị...</span>
+        <a href="javascript:void(0)" class="small text-primary fw-bold text-decoration-none" style="font-size: 0.75rem;" onclick="restoreRechunkModal()">Mở rộng</a>
+    </div>
 </div>
 
 @section Scripts {
 <script>
-    // ── Chọn strategy ─────────────────────────────────
     let currentStrategy = '@Model.Settings.Strategy';
+    let rechunkModal;
 
+    document.addEventListener("DOMContentLoaded", function() {
+        if (typeof bootstrap !== 'undefined') {
+            rechunkModal = new bootstrap.Modal(document.getElementById('rechunkModal'));
+        }
+    });
+
+    function minimizeRechunkModal() {
+        if (rechunkModal) rechunkModal.hide();
+        document.getElementById('miniProgressBadge').style.display = 'block';
+    }
+
+    function restoreRechunkModal() {
+        document.getElementById('miniProgressBadge').style.display = 'none';
+        if (rechunkModal) rechunkModal.show();
+    }
+
+    function closeMiniProgressBadge() {
+        document.getElementById('miniProgressBadge').style.display = 'none';
+    }
+
+    // ── Chọn strategy ─────────────────────────────────
     function selectStrategy(val) {
         currentStrategy = val;
         document.querySelectorAll('.strategy-card').forEach(c => c.classList.remove('selected'));
@@ -469,7 +551,6 @@
             const res = await r.json();
             showToast(res.message, res.ok ? 'success' : 'error');
             if (res.ok) {
-                // Update top config info dynamically
                 document.getElementById('currentStrategyBadge').textContent = d.strategy;
                 document.getElementById('currentParamsBadge').textContent = `Size: ${d.chunkSize} · Overlap: ${d.chunkOverlap} · Min: ${d.minChunkLength}`;
                 
@@ -487,17 +568,44 @@
     }
 
     // ── Apply & Re-chunk All ──────────────────────────
-    async function reChunkAll() {
-        if (!confirm('⚠️ Bạn có chắc muốn Re-chunk toàn bộ tài liệu?\nQuá trình này sẽ xóa và tạo lại toàn bộ chunks & embeddings.')) return;
+    function reChunkAll() {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Xác nhận Re-chunk',
+                html: '⚠️ Bạn có chắc muốn Re-chunk toàn bộ tài liệu?<br><span class="text-danger fw-semibold">Quá trình này sẽ xóa và tạo lại toàn bộ chunks & embeddings.</span>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: 'var(--cs-indigo)',
+                cancelButtonColor: '#cbd5e1',
+                confirmButtonText: 'Đồng ý, Re-chunk!',
+                cancelButtonText: 'Hủy',
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdrop: true,
+                customClass: {
+                    popup: 'border-0 rounded-4 shadow-lg'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    executeReChunk();
+                }
+            });
+        } else {
+            if (confirm('⚠️ Bạn có chắc muốn Re-chunk toàn bộ tài liệu?\nQuá trình này sẽ xóa và tạo lại toàn bộ chunks & embeddings.')) {
+                executeReChunk();
+            }
+        }
+    }
 
+    async function executeReChunk() {
         const btn = document.getElementById('btnReChunk');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
 
-        // Hiển thị progress section
-        const progressSection = document.getElementById('progressSection');
-        progressSection.classList.add('visible');
-        updateProgress(0, 'Đang khởi động job...');
+        // Khởi động UI progress
+        document.getElementById('rechunkTerminal').innerHTML = '';
+        updateProgress(0, 0, -1, 'Đang bắt đầu Re-chunk...');
+        document.getElementById('btnCompleteRechunk').style.display = 'none';
+        if (rechunkModal) rechunkModal.show();
 
         try {
             const d = getFormData();
@@ -514,8 +622,6 @@
             const res = await r.json();
             if (res.ok) {
                 showToast(res.message, 'success');
-                
-                // Update top config info dynamically since Re-chunk also saves the configuration
                 document.getElementById('currentStrategyBadge').textContent = d.strategy;
                 document.getElementById('currentParamsBadge').textContent = `Size: ${d.chunkSize} · Overlap: ${d.chunkOverlap} · Min: ${d.minChunkLength}`;
                 
@@ -527,22 +633,42 @@
                 showToast(res.message, 'error');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Apply & Re-chunk toàn bộ tài liệu';
+                if (rechunkModal) rechunkModal.hide();
             }
         } catch (e) {
             showToast('Lỗi kết nối khi khởi động Re-chunk.', 'error');
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Apply & Re-chunk toàn bộ tài liệu';
+            if (rechunkModal) rechunkModal.hide();
         }
     }
 
     // ── SignalR: nhận tiến trình ──────────────────────
-    function updateProgress(pct, message) {
-        document.getElementById('progressFill').style.width = Math.max(pct, 2) + '%';
-        document.getElementById('progressText').textContent = message;
-        const log = document.getElementById('progressLog');
+    function updateProgress(pct, current, total, message) {
+        document.getElementById('rechunkProgressBar').style.width = pct + '%';
+        document.getElementById('rechunkProgressBar').setAttribute('aria-valuenow', pct);
+        document.getElementById('rechunkPercentLabel').textContent = pct + '%';
+        document.getElementById('rechunkStatusLabel').textContent = message;
+
+        document.getElementById('rechunkProcessedCount').textContent = current;
+        document.getElementById('rechunkTotalCount').textContent = total >= 0 ? total : '-';
+
+        document.getElementById('miniProgressBar').style.width = pct + '%';
+        document.getElementById('miniProgressText').textContent = message;
+
+        const term = document.getElementById('rechunkTerminal');
         const entry = document.createElement('div');
-        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-        log.prepend(entry);
+        entry.style.marginBottom = '4px';
+        
+        let timeStr = new Date().toLocaleTimeString();
+        let colorClass = 'text-info';
+        if (message.includes('❌') || message.includes('Lỗi')) colorClass = 'text-danger';
+        else if (message.includes('✅') || message.includes('hoàn tất')) colorClass = 'text-success';
+        else if (message.includes('Đang xử lý')) colorClass = 'text-warning';
+        
+        entry.innerHTML = `<span style="color: #64748b;">[${timeStr}]</span> <span class="${colorClass}">${message}</span>`;
+        term.appendChild(entry);
+        term.scrollTop = term.scrollHeight;
     }
 
     // Connect SignalR
@@ -555,12 +681,20 @@
 
         conn.on('ReChunkProgress', function(data) {
             const pct = data.percent ?? 0;
-            updateProgress(pct, data.message ?? '');
+            const current = data.current ?? 0;
+            const total = data.total ?? -1;
+            const msg = data.message ?? '';
+
+            updateProgress(pct, current, total, msg);
+
             if (data.done) {
                 const btn = document.getElementById('btnReChunk');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Apply & Re-chunk toàn bộ tài liệu';
                 showToast(data.message, data.error ? 'error' : 'success');
+                
+                document.getElementById('btnCompleteRechunk').style.display = 'inline-block';
+                document.getElementById('miniProgressBadge').style.display = 'none';
             }
         });
 

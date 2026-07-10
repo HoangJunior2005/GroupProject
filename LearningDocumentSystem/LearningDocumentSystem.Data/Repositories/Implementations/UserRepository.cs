@@ -38,6 +38,15 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
 
         public async Task<bool> IsEmailExistsAsync(string email)
             => await _context.Users.AnyAsync(u => u.Email == email);
+
+        public async Task<Dictionary<(int Year, int Month), int>> GetMonthlyRegistrationsAsync(DateTime sinceDate)
+        {
+            return await _context.Users
+                .Where(u => u.CreatedAt >= sinceDate)
+                .GroupBy(u => new { u.CreatedAt.Year, u.CreatedAt.Month })
+                .Select(g => new { g.Key.Year, g.Key.Month, Count = g.Count() })
+                .ToDictionaryAsync(x => (x.Year, x.Month), x => x.Count);
+        }
     }
 
     public class RoleRepository : GenericRepository<Role>, IRoleRepository

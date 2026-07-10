@@ -43,5 +43,17 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
 
             return await query.ToListAsync();
         }
+
+        public async Task<Dictionary<int, int>> GetChunkCountsAsync(IEnumerable<int> documentIds)
+        {
+            if (documentIds == null || !documentIds.Any())
+                return new Dictionary<int, int>();
+
+            return await _context.DocumentChunks
+                .Where(c => documentIds.Contains(c.DocumentID))
+                .GroupBy(c => c.DocumentID)
+                .Select(g => new { DocumentID = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.DocumentID, x => x.Count);
+        }
     }
 }

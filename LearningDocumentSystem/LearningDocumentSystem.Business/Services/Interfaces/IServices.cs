@@ -52,8 +52,8 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
         Task<DocumentDto> UploadAsync(IFormFile file, int chapterId, string title, int uploadedByUserId);
         Task DeleteAsync(int id);
         Task<DashboardDto> GetDashboardAsync();
-        /// <summary>Re-chunk và re-index toàn bộ tài liệu của teacher. progressCallback(current, total).</summary>
-        Task ReChunkAllDocumentsAsync(int teacherId, Func<int, int, Task>? progressCallback = null);
+        /// <summary>Re-chunk và re-index toàn bộ tài liệu của teacher (hoặc toàn bộ nếu null). progressCallback(current, total).</summary>
+        Task ReChunkAllDocumentsAsync(int? teacherId, Func<int, int, Task>? progressCallback = null);
     }
 
     public interface IFileService
@@ -100,6 +100,9 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
     {
         /// <summary>Lấy cấu hình chunking của teacher (fallback về default nếu chưa cấu hình)</summary>
         Task<ChunkSettingsDto> GetSettingsAsync(int teacherId);
+
+        /// <summary>Lấy cấu hình chunking chung toàn hệ thống (do Admin thiết lập)</summary>
+        Task<ChunkSettingsDto> GetGlobalSettingsAsync();
 
         /// <summary>Lưu cấu hình chunking cho teacher</summary>
         Task SaveSettingsAsync(int teacherId, string strategy, int chunkSize, int chunkOverlap, int minChunkLength);

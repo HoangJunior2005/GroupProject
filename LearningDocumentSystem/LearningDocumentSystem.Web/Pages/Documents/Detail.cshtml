@@ -239,12 +239,13 @@
                 } else {
                     window.location.href = '/Documents/Index';
                 }
-            } else if (payload.action === "Upload" && payload.document && payload.document.documentID === currentDocId) {
-                console.log("Current document updated/indexed in realtime. Refreshing detail...");
+            } else if ((payload.action === "Upload" || payload.action === "UploadProcessing" || payload.action === "StatusUpdate") && 
+                       ((payload.document && payload.document.documentID === currentDocId) || (payload.documentId === currentDocId))) {
+                console.log("Current document updated/indexed/re-chunked in realtime. Refreshing detail...");
                 setTimeout(() => {
                     refreshPageFragments(["#document-detail-content"])
                         .catch(err => console.error("Document detail realtime refresh failed:", err));
-                }, 1000);
+                }, 100);
             }
             /*
             else if (type === "DocumentConflictDetected" && payload.documentId === currentDocId) {
