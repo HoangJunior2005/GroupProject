@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace LearningDocumentSystem.Web.Pages.Documents
 {
-    [Authorize(Policy = "TeacherUp")]
+    [Authorize(Policy = "AdminOnly")]
     public class ChunkSettingsModel : PageModel
     {
         private readonly IChunkSettingsService _chunkSettingsService;
@@ -40,9 +40,7 @@ namespace LearningDocumentSystem.Web.Pages.Documents
 
         public async Task OnGetAsync()
         {
-            int userId = GetCurrentUserId();
-            if (userId > 0)
-                Settings = await _chunkSettingsService.GetSettingsAsync(userId);
+            Settings = await _chunkSettingsService.GetGlobalSettingsAsync();
         }
 
         // ────────────────────────────────────────────────
@@ -111,7 +109,7 @@ namespace LearningDocumentSystem.Web.Pages.Documents
                         current = 0, total = -1, message = "Đang bắt đầu Re-chunk...", done = false
                     });
 
-                    await _documentService.ReChunkAllDocumentsAsync(userId,
+                    await _documentService.ReChunkAllDocumentsAsync(null,
                         async (current, total) =>
                         {
                             int pct = (int)(current * 100.0 / total);

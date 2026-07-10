@@ -143,15 +143,15 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 await _uow.Documents.UpdateStatusAsync(document.DocumentID, AppConstants.StatusProcessing);
                 await _uow.SaveChangesAsync();
 
-                // Step 4: Chunking — dùng settings của teacher
+                // Step 4: Chunking — dùng settings global (do Admin cấu hình)
                 var fullPath = Path.Combine(_uploadPath, storageName);
-                var teacherSettings = await _chunkSettingsService.GetSettingsAsync(uploadedByUserId);
+                var globalSettings = await _chunkSettingsService.GetGlobalSettingsAsync();
                 var chunks = await _chunkingService.ExtractChunksAsync(
                     fullPath, document.FileType,
-                    teacherSettings.Strategy,
-                    teacherSettings.ChunkSize,
-                    teacherSettings.ChunkOverlap,
-                    teacherSettings.MinChunkLength);
+                    globalSettings.Strategy,
+                    globalSettings.ChunkSize,
+                    globalSettings.ChunkOverlap,
+                    globalSettings.MinChunkLength);
 
                 // Step 5: Lưu chunks + embeddings
                 var chunkEntities = new List<DocumentChunk>();
@@ -410,11 +410,11 @@ Quy tắc trả về:
         // ============================================================
         // RE-CHUNK ALL DOCUMENTS
         // ============================================================
-        public async Task ReChunkAllDocumentsAsync(int teacherId, Func<int, int, Task>? progressCallback = null)
+        public async Task ReChunkAllDocumentsAsync(int? teacherId, Func<int, int, Task>? progressCallback = null)
         {
             _logger.LogInformation("ReChunkAll started for teacher {TeacherId}", teacherId);
 
-            // Lấy tất cả tài liệu của teacher này
+            // Lấy tất cả tài liệu của teacher này (hoặc toàn bộ nếu teacherId là null)
             var (allDocs, _) = await _uow.Documents.GetPagedAsync(
                 keyword: null, subjectId: null, chapterId: null,
                 status: null, teacherId: teacherId,
@@ -425,12 +425,12 @@ Quy tắc trả về:
 
             if (total == 0)
             {
-                _logger.LogInformation("ReChunkAll: teacher {TeacherId} has no documents.", teacherId);
+                _logger.LogInformation("ReChunkAll: no documents found.");
                 return;
             }
 
-            // Lấy settings của teacher
-            var settings = await _chunkSettingsService.GetSettingsAsync(teacherId);
+            // Lấy settings global (do Admin cấu hình)
+            var settings = await _chunkSettingsService.GetGlobalSettingsAsync();
 
             for (int i = 0; i < docs.Count; i++)
             {
@@ -517,7 +517,7 @@ Quy tắc trả về:
                     await progressCallback(i + 1, total);
             }
 
-            _logger.LogInformation("ReChunkAll completed for teacher {TeacherId}: {Total} documents.", teacherId, total);
+            _logger.LogInformation("ReChunkAll completed: {Total} documents.", total);
         }
     }
 }

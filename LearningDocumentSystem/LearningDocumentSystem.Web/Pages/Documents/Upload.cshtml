@@ -222,9 +222,12 @@
                     <a asp-page="/Documents/Index" class="btn btn-outline-secondary btn-sm w-100 text-start">
                         <i class="bi bi-list-ul me-2"></i>Danh sách tài liệu
                     </a>
-                    <a asp-page="/Documents/ChunkSettings" class="btn btn-sm w-100 text-start" style="background:linear-gradient(135deg,hsl(245,78%,62%),hsl(270,70%,58%));color:white;border:none;">
-                        <i class="bi bi-sliders me-2"></i>⚙️ Cấu hình Chunking
-                    </a>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-page="/Documents/ChunkSettings" class="btn btn-sm w-100 text-start" style="background:linear-gradient(135deg,hsl(245,78%,62%),hsl(270,70%,58%));color:white;border:none;">
+                            <i class="bi bi-sliders me-2"></i>⚙️ Cấu hình Chunking
+                        </a>
+                    }
                 </div>
             </div>
         </div>

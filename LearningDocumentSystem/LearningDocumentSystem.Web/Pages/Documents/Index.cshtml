@@ -10,18 +10,21 @@
         <h1 class="page-title"><i class="bi bi-file-earmark-text-fill me-2"></i>Tài liệu</h1>
         <p class="page-subtitle">Quản lý và tìm kiếm tài liệu học tập</p>
     </div>
-    @if (User.IsInRole("Teacher"))
-    {
-        <div class="d-flex gap-2">
+    <div class="d-flex gap-2">
+        @if (User.IsInRole("Teacher"))
+        {
             <a asp-page="/Documents/Upload" class="btn btn-primary btn-action">
                 <i class="bi bi-cloud-upload-fill me-2"></i>Upload tài liệu
             </a>
+        }
+        @if (User.IsInRole("Admin"))
+        {
             <a asp-page="/Documents/ChunkSettings" class="btn btn-action"
                style="background:linear-gradient(135deg,hsl(245,78%,62%),hsl(270,70%,58%));color:white;border:none;">
                 <i class="bi bi-sliders me-2"></i>Chunk Settings
             </a>
-        </div>
-    }
+        }
+    </div>
 </div>
 
 <!-- Search & Filter -->
