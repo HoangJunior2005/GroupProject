@@ -48,7 +48,6 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
             var query = _context.Documents
                 .Include(d => d.Chapter).ThenInclude(c => c.Subject)
                 .Include(d => d.UploadedByUser)
-                .Include(d => d.Chunks)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(keyword))
@@ -74,6 +73,23 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
 
         public async Task<int> CountByStatusAsync(string status)
             => await _context.Documents.CountAsync(d => d.IndexStatus == status);
+
+        public async Task<Dictionary<string, int>> GetStatusCountsAsync()
+        {
+            return await _context.Documents
+                .GroupBy(d => d.IndexStatus)
+                .Select(g => new { Status = g.Key ?? "Pending", Count = g.Count() })
+                .ToDictionaryAsync(x => x.Status, x => x.Count);
+        }
+
+        public async Task<Dictionary<(int Year, int Month), int>> GetMonthlyUploadsAsync(DateTime sinceDate)
+        {
+            return await _context.Documents
+                .Where(d => d.UploadedAt >= sinceDate)
+                .GroupBy(d => new { d.UploadedAt.Year, d.UploadedAt.Month })
+                .Select(g => new { g.Key.Year, g.Key.Month, Count = g.Count() })
+                .ToDictionaryAsync(x => (x.Year, x.Month), x => x.Count);
+        }
 
         public async Task UpdateStatusAsync(int documentId, string status)
         {

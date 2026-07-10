@@ -96,6 +96,7 @@ builder.Services.AddScoped<IChapterService, ChapterService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IChunkingService, ChunkingService>();
 builder.Services.AddScoped<IEmbeddingService, EmbeddingService>();
+builder.Services.AddScoped<IChunkSettingsService, ChunkSettingsService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 // LLM Services & Factory
 builder.Services.AddHttpClient<GeminiService>();
