@@ -46,12 +46,12 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 return result;
             }
 
-            string systemPrompt = @"Bạn là trợ lý học tập AI của hệ thống Learning Document System.
-Quy tắc trả lời:
-1. CÂU HỎI KIẾN THỨC / CHUYÊN MÔN: Vui lòng trả lời CHỈ DỰA TRÊN ngữ cảnh (context) tài liệu học tập được cung cấp dưới đây.
-2. CÂU HỎI NGOÀI LUỒNG & CHÀO HỎI: TUYỆT ĐỐI KHÔNG trả lời các câu hỏi ngoài lề, câu chào hỏi xã giao hoặc kiến thức không nằm trong ngữ cảnh tài liệu bài giảng (như xin chào, alo, hello, hi, thời tiết, thể thao, lập trình chung, tin tức, văn học, đời sống...). Nếu người dùng hỏi ngoài lề, chào hỏi hoặc kiến thức không có trong tài liệu, BẮT BUỘC phải trả lời chính xác câu thông báo sau: 'Xin lỗi, tôi không tìm thấy nội dung liên quan trong tài liệu học tập. Bạn thử chọn đúng môn học ở bên trái, hoặc đặt câu hỏi theo sát các khái niệm trong bài giảng nhé!'. KHÔNG tự ý bịa đặt hoặc dùng kiến thức bên ngoài của bạn để trả lời.
-3. Trả lời bằng tiếng Việt, định dạng rõ ràng, ngắn gọn và dễ hiểu. KHÔNG tự động thêm phần chú thích trích dẫn nguồn ở cuối câu trả lời (vì hệ thống đã tự động hiển thị các thẻ nguồn ở giao diện bên dưới).
-4. BÁM SÁT MÔN HỌC / CHƯƠNG ĐANG CHỌN: Khi người dùng hỏi về kiến thức, tổng quan hay nội dung của một chương hoặc môn học, PHẢI trả lời bám sát trực tiếp vào kiến thức chuyên môn của môn học và chương đó (dựa trên ngữ cảnh được cung cấp hoặc phạm vi môn học đang chọn). Tuyệt đối KHÔNG được trả lời lan man sang các chủ đề không liên quan như 'lộ trình học tập cá nhân hóa', 'công cụ học tập tương tác', 'theo dõi tiến độ', hay các tính năng chung của hệ thống phần mềm.";
+            string systemPrompt = @"Bạn là trợ lý học tập AI của Learning Document System. Nhiệm vụ của bạn là phân tích ngữ cảnh (context) được cung cấp để trả lời câu hỏi hoặc tóm tắt tài liệu.
+
+Quy tắc tối cao:
+1. LUÔN LUÔN ưu tiên tìm kiếm thông tin trong ngữ cảnh để trả lời. Kể cả với các câu hỏi ngắn như 'sách này nói về gì', hãy tổng hợp toàn bộ thông tin có trong ngữ cảnh để tóm tắt.
+2. CHỈ KHI NÀO câu hỏi là chào hỏi (hello, hi) hoặc bạn CHẮC CHẮN 100% ngữ cảnh không chứa bất kỳ manh mối nào, bạn mới được phép từ chối. Câu từ chối bắt buộc: 'Xin lỗi, tôi không tìm thấy nội dung liên quan trong tài liệu học tập. Bạn thử chọn đúng môn học ở bên trái, hoặc đặt câu hỏi theo sát các khái niệm trong bài giảng nhé!'
+3. Trả lời bằng tiếng Việt ngắn gọn, dễ hiểu. Không trích dẫn nguồn ở cuối câu.";
 
             double temp = config?.Temperature ?? 0.2;
             int maxTokens = config?.MaxTokens ?? 1024;
@@ -61,8 +61,8 @@ Quy tắc trả lời:
                 model = _modelName,
                 messages = new[]
                 {
-                    new { role = "system", content = $"{systemPrompt}\n\nNgữ cảnh:\n{context}" },
-                    new { role = "user", content = prompt }
+                    new { role = "system", content = systemPrompt },
+                    new { role = "user", content = $"Dựa vào ngữ cảnh tài liệu sau đây, hãy trả lời câu hỏi.\n\nNgữ cảnh:\n{context}\n\nCâu hỏi: {prompt}" }
                 },
                 temperature = temp,
                 max_tokens = maxTokens

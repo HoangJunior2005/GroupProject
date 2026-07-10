@@ -249,7 +249,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             var stopWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "who", "what", "where", "when", "why", "how", "is", "are", "the", "a", "an", "of", "in", "on", "at", "to", "for", "with", "by", "about",
-                "la", "ai", "cua", "trong", "va", "co", "cac", "cho", "nhu", "nhung", "mot", "voi", "duoc", "nay", "khi", "de", "sau", "tai", "noi", "nao", "thi"
+                "la", "ai", "cua", "trong", "va", "co", "cac", "cho", "nhu", "nhung", "mot", "voi", "duoc", "nay", "khi", "de", "sau", "tai", "noi", "nao", "thi",
+                "gi", "the", "do", "day", "bang", "qua", "tu", "toi"
             };
 
             // Filter out stopwords
@@ -296,7 +297,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 }
             }
 
-            boost += 0.15f * ((float)wordMatches / filteredWords.Count);
+            // Substantially boost exact word matches so they overcome semantic variance, especially for codes/acronyms
+            boost += 0.8f * ((float)wordMatches / filteredWords.Count);
 
             return boost;
         }
@@ -315,7 +317,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
             if (greetings.Contains(clean)) return true;
 
-            if (clean.Length <= 4 && !clean.Any(char.IsDigit)) return true;
+            if (clean.Length < 2) return true;
 
             return false;
         }
