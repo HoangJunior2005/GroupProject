@@ -319,7 +319,7 @@
             setTimeout(() => {
                 refreshPageFragments(["#documents-filter-panel", "#documents-result-info", "#documents-list-panel"])
                     .catch(err => console.error("Documents realtime refresh failed:", err));
-            }, 1000);
+            }, 100);
         }
     });
 </script>

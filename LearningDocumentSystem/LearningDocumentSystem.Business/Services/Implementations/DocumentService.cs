@@ -116,6 +116,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
             // --- Từ đây trở đi mới bắt đầu xử lý nặng: lưu file, chunk, embedding, Gemini conflict scan ---
             string? storageName = null;
+            Document? document = null;
             // Step 1: Lưu file vật lý
             await _uow.BeginTransactionAsync();
             try
@@ -123,14 +124,14 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 storageName = await _fileService.SaveFileAsync(file, _uploadPath);
 
                 // Step 2: Tạo Document record
-                var document = new Document
+                document = new Document
                 {
                     ChapterID      = chapterId,
                     Title          = title,
                     FileType       = FileHelper.GetFileType(file.FileName),
                     StoragePath    = storageName,
                     FileSizeInBytes = file.Length,
-                    IndexStatus    = AppConstants.StatusPending,
+                    IndexStatus    = AppConstants.StatusProcessing,
                     UploadedBy       = uploadedByUserId,
                     UploadedAt       = DateTime.UtcNow,
                     FileHash         = hash,
@@ -138,10 +139,12 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 };
                 await _uow.Documents.AddAsync(document);
                 await _uow.SaveChangesAsync();
+                await _uow.CommitAsync();
 
-                // Step 3: Cập nhật status → Processing
-                await _uow.Documents.UpdateStatusAsync(document.DocumentID, AppConstants.StatusProcessing);
-                await _uow.SaveChangesAsync();
+                // Gửi thông báo ngay lập tức cho các client
+                var docProcessing = await _uow.Documents.GetWithDetailsAsync(document.DocumentID);
+                var docProcessingDto = _mapper.Map<DocumentDto>(docProcessing!);
+                await _notificationService.SendNotificationAsync("DocumentChanged", new { action = "UploadProcessing", document = docProcessingDto });
 
                 // Step 4: Chunking — dùng settings global (do Admin cấu hình)
                 var fullPath = Path.Combine(_uploadPath, storageName);
@@ -154,61 +157,55 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                     globalSettings.MinChunkLength);
 
                 // Step 5: Lưu chunks + embeddings
-                var chunkEntities = new List<DocumentChunk>();
-                for (int i = 0; i < chunks.Count; i++)
-                {
-                    var (content, pageNum) = chunks[i];
-                    var chunk = new DocumentChunk
-                    {
-                        DocumentID = document.DocumentID,
-                        ChunkIndex = i,
-                        PageNumber = pageNum,
-                        ContentText = content
-                    };
-                    chunkEntities.Add(chunk);
-                }
-                await _uow.DocumentChunks.AddRangeAsync(chunkEntities);
-                await _uow.SaveChangesAsync();
-
-                // Step 6: Sinh embedding cho từng chunk
-                var embeddings = new List<Embedding>();
-                foreach (var chunk in chunkEntities)
-                {
-                    var vectorJson = await _embeddingService.GenerateEmbeddingAsync(chunk.ContentText);
-                    embeddings.Add(new Embedding
-                    {
-                        ChunkID    = chunk.ChunkID,
-                        VectorData = vectorJson,
-                        CreatedAt  = DateTime.UtcNow
-                    });
-                }
-                await _uow.Embeddings.AddRangeAsync(embeddings);
-
-                // Step 7: Quét mâu thuẫn kiến thức bằng AI (Cấp độ 4) - Đã tạm ẩn để tránh lỗi upload
-                /*
+                // Mở transaction mới cho phần lưu chunks + embeddings
+                await _uow.BeginTransactionAsync();
                 try
                 {
-                    await CheckForConflictsAsync(document, chapter.SubjectID, chunkEntities, embeddings);
-                }
-                catch (InvalidOperationException)
-                {
-                    throw; // Rethrow to abort transaction and reject upload
-                }
-                catch (Exception conflictEx)
-                {
-                    _logger.LogError(conflictEx, "Unexpected error scanning document conflicts for document {DocId}.", document.DocumentID);
-                }
-                */
+                    var chunkEntities = new List<DocumentChunk>();
+                    for (int i = 0; i < chunks.Count; i++)
+                    {
+                        var (content, pageNum) = chunks[i];
+                        var chunk = new DocumentChunk
+                        {
+                            DocumentID = document.DocumentID,
+                            ChunkIndex = i,
+                            PageNumber = pageNum,
+                            ContentText = content
+                        };
+                        chunkEntities.Add(chunk);
+                    }
+                    await _uow.DocumentChunks.AddRangeAsync(chunkEntities);
+                    await _uow.SaveChangesAsync();
 
-                // Step 8: Cập nhật status → Indexed
-                await _uow.Documents.UpdateStatusAsync(document.DocumentID, AppConstants.StatusIndexed);
-                await _uow.SaveChangesAsync();
+                    // Step 6: Sinh embedding cho từng chunk
+                    var embeddings = new List<Embedding>();
+                    foreach (var chunk in chunkEntities)
+                    {
+                        var vectorJson = await _embeddingService.GenerateEmbeddingAsync(chunk.ContentText);
+                        embeddings.Add(new Embedding
+                        {
+                            ChunkID    = chunk.ChunkID,
+                            VectorData = vectorJson,
+                            CreatedAt  = DateTime.UtcNow
+                        });
+                    }
+                    await _uow.Embeddings.AddRangeAsync(embeddings);
 
-                await _uow.CommitAsync();
+                    // Step 8: Cập nhật status → Indexed
+                    await _uow.Documents.UpdateStatusAsync(document.DocumentID, AppConstants.StatusIndexed);
+                    await _uow.SaveChangesAsync();
+
+                    await _uow.CommitAsync();
+                }
+                catch
+                {
+                    await _uow.RollbackAsync();
+                    throw;
+                }
 
                 _logger.LogInformation(
-                    "Document uploaded: {Title}, {ChunkCount} chunks, {EmbCount} embeddings.",
-                    title, chunkEntities.Count, embeddings.Count);
+                    "Document uploaded: {Title}, {ChunkCount} chunks.",
+                    title, chunks.Count);
 
                 // Reload với full details để map
                 var result = await _uow.Documents.GetWithDetailsAsync(document.DocumentID);
@@ -218,7 +215,25 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             }
             catch (Exception ex)
             {
-                await _uow.RollbackAsync();
+                if (document != null && document.DocumentID > 0)
+                {
+                    try
+                    {
+                        await _uow.Documents.UpdateStatusAsync(document.DocumentID, AppConstants.StatusFailed);
+                        await _uow.SaveChangesAsync();
+                        await _notificationService.SendNotificationAsync("DocumentChanged", new { action = "StatusUpdate", documentId = document.DocumentID, status = AppConstants.StatusFailed });
+                    }
+                    catch { /* ignore */ }
+                }
+                else
+                {
+                    try
+                    {
+                        await _uow.RollbackAsync();
+                    }
+                    catch { /* ignore */ }
+                }
+
                 try
                 {
                     if (!string.IsNullOrEmpty(storageName))
@@ -441,6 +456,8 @@ Quy tắc trả về:
                     await _uow.Documents.UpdateStatusAsync(docDto.DocumentID, AppConstants.StatusProcessing);
                     await _uow.SaveChangesAsync();
 
+                    await _notificationService.SendNotificationAsync("DocumentChanged", new { action = "StatusUpdate", documentId = docDto.DocumentID, status = AppConstants.StatusProcessing });
+
                     // 2. Xóa chunks cũ (cascade xóa embeddings)
                     var oldChunks = (await _uow.DocumentChunks.FindAsync(
                         c => c.DocumentID == docDto.DocumentID)).ToList();
@@ -454,6 +471,8 @@ Quy tắc trả về:
                         _logger.LogWarning("File not found for document {DocId}: {Path}", docDto.DocumentID, fullPath);
                         await _uow.Documents.UpdateStatusAsync(docDto.DocumentID, AppConstants.StatusFailed);
                         await _uow.SaveChangesAsync();
+
+                        await _notificationService.SendNotificationAsync("DocumentChanged", new { action = "StatusUpdate", documentId = docDto.DocumentID, status = AppConstants.StatusFailed });
                         continue;
                     }
 
@@ -497,6 +516,8 @@ Quy tắc trả về:
                     await _uow.Documents.UpdateStatusAsync(docDto.DocumentID, AppConstants.StatusIndexed);
                     await _uow.SaveChangesAsync();
 
+                    await _notificationService.SendNotificationAsync("DocumentChanged", new { action = "StatusUpdate", documentId = docDto.DocumentID, status = AppConstants.StatusIndexed, chunkCount = chunkEntities.Count });
+
                     _logger.LogInformation(
                         "ReChunked doc {DocId} ({Index}/{Total}): {ChunkCount} chunks",
                         docDto.DocumentID, i + 1, total, chunkEntities.Count);
@@ -508,6 +529,8 @@ Quy tắc trả về:
                     {
                         await _uow.Documents.UpdateStatusAsync(docDto.DocumentID, AppConstants.StatusFailed);
                         await _uow.SaveChangesAsync();
+
+                        await _notificationService.SendNotificationAsync("DocumentChanged", new { action = "StatusUpdate", documentId = docDto.DocumentID, status = AppConstants.StatusFailed });
                     }
                     catch { /* ignore secondary errors */ }
                 }
