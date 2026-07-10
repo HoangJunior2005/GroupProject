@@ -100,6 +100,7 @@ builder.Services.AddScoped<IChunkSettingsService, ChunkSettingsService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddHttpClient<IGeminiService, GeminiService>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IBenchmarkService, BenchmarkService>();
 
 // Seeder
 builder.Services.AddScoped<DataSeeder>();

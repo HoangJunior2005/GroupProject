@@ -76,6 +76,11 @@
                             <i class="bi bi-envelope-check-fill"></i> Whitelist email
                         </a>
                     </li>
+                    <li class="@(activePage.StartsWith("/Admin/Benchmarks") ? "active" : "")">
+                        <a asp-page="/Admin/Benchmarks">
+                            <i class="bi bi-graph-up"></i> Benchmark
+                        </a>
+                    </li>
                 }
 
                 @if (User.IsInRole("Admin") || User.IsInRole("Teacher") || User.IsInRole("Student"))
