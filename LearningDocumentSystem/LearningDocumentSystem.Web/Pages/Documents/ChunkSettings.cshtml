@@ -568,9 +568,35 @@
     }
 
     // ── Apply & Re-chunk All ──────────────────────────
-    async function reChunkAll() {
-        if (!confirm('⚠️ Bạn có chắc muốn Re-chunk toàn bộ tài liệu?\nQuá trình này sẽ xóa và tạo lại toàn bộ chunks & embeddings.')) return;
+    function reChunkAll() {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Xác nhận Re-chunk',
+                html: '⚠️ Bạn có chắc muốn Re-chunk toàn bộ tài liệu?<br><span class="text-danger fw-semibold">Quá trình này sẽ xóa và tạo lại toàn bộ chunks & embeddings.</span>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: 'var(--cs-indigo)',
+                cancelButtonColor: '#cbd5e1',
+                confirmButtonText: 'Đồng ý, Re-chunk!',
+                cancelButtonText: 'Hủy',
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdrop: true,
+                customClass: {
+                    popup: 'border-0 rounded-4 shadow-lg'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    executeReChunk();
+                }
+            });
+        } else {
+            if (confirm('⚠️ Bạn có chắc muốn Re-chunk toàn bộ tài liệu?\nQuá trình này sẽ xóa và tạo lại toàn bộ chunks & embeddings.')) {
+                executeReChunk();
+            }
+        }
+    }
 
+    async function executeReChunk() {
         const btn = document.getElementById('btnReChunk');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
