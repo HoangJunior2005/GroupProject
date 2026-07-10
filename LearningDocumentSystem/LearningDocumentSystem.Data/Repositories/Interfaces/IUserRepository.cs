@@ -11,6 +11,7 @@ namespace LearningDocumentSystem.Data.Repositories.Interfaces
         Task<IEnumerable<string>> GetUserRolesAsync(int userId);
         Task<bool> IsUsernameExistsAsync(string username);
         Task<bool> IsEmailExistsAsync(string email);
+        Task<Dictionary<(int Year, int Month), int>> GetMonthlyRegistrationsAsync(DateTime sinceDate);
     }
 
     public interface IRoleRepository : IGenericRepository<Role>

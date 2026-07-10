@@ -11,6 +11,8 @@ namespace LearningDocumentSystem.Data.Repositories.Interfaces
             string? keyword, int? subjectId, int? chapterId, string? status, int? teacherId,
             int page, int pageSize);
         Task<int> CountByStatusAsync(string status);
+        Task<Dictionary<string, int>> GetStatusCountsAsync();
+        Task<Dictionary<(int Year, int Month), int>> GetMonthlyUploadsAsync(DateTime sinceDate);
         Task UpdateStatusAsync(int documentId, string status);
     }
 }

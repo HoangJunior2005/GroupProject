@@ -138,14 +138,27 @@ namespace LearningDocumentSystem.Data.Seeders
                     allSeedUsers.Add((student, "Student"));
                 }
             }
+            var existingUsernames = new HashSet<string>(
+                await _context.Users.Select(u => u.Username).ToListAsync(),
+                StringComparer.OrdinalIgnoreCase);
 
+            var usersToAdd = new List<(User User, string RoleName)>();
             foreach (var item in allSeedUsers)
             {
-                if (!await _context.Users.AnyAsync(u => u.Username == item.User.Username))
+                if (!existingUsernames.Contains(item.User.Username))
                 {
-                    await _context.Users.AddAsync(item.User);
-                    await _context.SaveChangesAsync();
+                    usersToAdd.Add(item);
+                }
+            }
 
+            if (usersToAdd.Any())
+            {
+                await _context.Users.AddRangeAsync(usersToAdd.Select(x => x.User));
+                await _context.SaveChangesAsync(); // Saves all users and generates IDs
+
+                var userRoles = new List<UserRole>();
+                foreach (var item in usersToAdd)
+                {
                     var role = item.RoleName switch
                     {
                         "Admin" => adminRole,
@@ -153,13 +166,14 @@ namespace LearningDocumentSystem.Data.Seeders
                         _ => studentRole
                     };
 
-                    await _context.UserRoles.AddAsync(new UserRole
+                    userRoles.Add(new UserRole
                     {
                         UserID = item.User.UserID,
                         RoleID = role.RoleID
                     });
-                    await _context.SaveChangesAsync();
                 }
+                await _context.UserRoles.AddRangeAsync(userRoles);
+                await _context.SaveChangesAsync();
             }
         }
 

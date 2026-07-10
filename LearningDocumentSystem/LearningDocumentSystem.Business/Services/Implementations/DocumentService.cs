@@ -58,7 +58,18 @@ namespace LearningDocumentSystem.Business.Services.Implementations
         {
             var (items, total) = await _uow.Documents.GetPagedAsync(
                 keyword, subjectId, chapterId, status, teacherId, page, pageSize);
-            return (_mapper.Map<IEnumerable<DocumentDto>>(items), total);
+
+            var dtos = _mapper.Map<List<DocumentDto>>(items);
+            if (dtos.Any())
+            {
+                var docIds = dtos.Select(d => d.DocumentID).ToList();
+                var chunkCounts = await _uow.DocumentChunks.GetChunkCountsAsync(docIds);
+                foreach (var dto in dtos)
+                {
+                    dto.ChunkCount = chunkCounts.GetValueOrDefault(dto.DocumentID, 0);
+                }
+            }
+            return (dtos, total);
         }
 
         public async Task<DocumentDetailDto?> GetDetailAsync(int id)
@@ -267,24 +278,32 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
         public async Task<DashboardDto> GetDashboardAsync()
         {
-            var totalDocs    = await _uow.Documents.CountAsync();
+            var statusCounts = await _uow.Documents.GetStatusCountsAsync();
+            var totalDocs    = statusCounts.Values.Sum();
             var totalChunks  = await _uow.DocumentChunks.CountAsync();
             var totalSubjects = await _uow.Subjects.CountAsync();
             var totalUsers   = await _uow.Users.CountAsync();
-            var indexed      = await _uow.Documents.CountByStatusAsync(AppConstants.StatusIndexed);
-            var pending      = await _uow.Documents.CountByStatusAsync(AppConstants.StatusPending);
-            var processing   = await _uow.Documents.CountByStatusAsync(AppConstants.StatusProcessing);
-            var failed       = await _uow.Documents.CountByStatusAsync(AppConstants.StatusFailed);
+            var indexed      = statusCounts.GetValueOrDefault(AppConstants.StatusIndexed, 0);
+            var pending      = statusCounts.GetValueOrDefault(AppConstants.StatusPending, 0);
+            var processing   = statusCounts.GetValueOrDefault(AppConstants.StatusProcessing, 0);
+            var failed       = statusCounts.GetValueOrDefault(AppConstants.StatusFailed, 0);
 
             var (recent, _) = await _uow.Documents.GetPagedAsync(null, null, null, null, null, 1, 5);
+            var recentDtos = _mapper.Map<List<DocumentDto>>(recent);
+            if (recentDtos.Any())
+            {
+                var docIds = recentDtos.Select(d => d.DocumentID).ToList();
+                var chunkCounts = await _uow.DocumentChunks.GetChunkCountsAsync(docIds);
+                foreach (var dto in recentDtos)
+                {
+                    dto.ChunkCount = chunkCounts.GetValueOrDefault(dto.DocumentID, 0);
+                }
+            }
 
             // Monthly uploads - last 12 months
             var now = DateTime.UtcNow;
             var twelveMonthsAgo = new DateTime(now.Year, now.Month, 1).AddMonths(-11);
-            var allDocs = await _uow.Documents.FindAsync(d => d.UploadedAt >= twelveMonthsAgo);
-            var uploadGroups = allDocs
-                .GroupBy(d => new { d.UploadedAt.Year, d.UploadedAt.Month })
-                .ToDictionary(g => (g.Key.Year, g.Key.Month), g => g.Count());
+            var uploadGroups = await _uow.Documents.GetMonthlyUploadsAsync(twelveMonthsAgo);
 
             var monthlyUploads = new List<DTOs.MonthlyUploadDto>();
             for (int i = 0; i < 12; i++)
@@ -300,10 +319,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             }
 
             // Monthly registrations - last 12 months
-            var allUsers = await _uow.Users.FindAsync(u => u.CreatedAt >= twelveMonthsAgo);
-            var userGroups = allUsers
-                .GroupBy(u => new { u.CreatedAt.Year, u.CreatedAt.Month })
-                .ToDictionary(g => (g.Key.Year, g.Key.Month), g => g.Count());
+            var userGroups = await _uow.Users.GetMonthlyRegistrationsAsync(twelveMonthsAgo);
 
             var monthlyRegistrations = new List<DTOs.MonthlyUploadDto>();
             for (int i = 0; i < 12; i++)
@@ -328,7 +344,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 PendingDocuments  = pending,
                 ProcessingDocuments = processing,
                 FailedDocuments   = failed,
-                RecentDocuments   = _mapper.Map<List<DocumentDto>>(recent),
+                RecentDocuments   = recentDtos,
                 MonthlyUploads    = monthlyUploads,
                 MonthlyRegistrations = monthlyRegistrations
             };
