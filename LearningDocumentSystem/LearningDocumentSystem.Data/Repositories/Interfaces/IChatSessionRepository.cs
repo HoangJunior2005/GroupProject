@@ -25,5 +25,11 @@ namespace LearningDocumentSystem.Data.Repositories.Interfaces
 
         /// <summary>Cập nhật phản hồi benchmark (thumbs up/down) cho tin nhắn.</summary>
         Task UpdateMessageFeedbackAsync(int messageId, int feedback);
+
+        /// <summary>Lấy toàn bộ ChatMessage kèm Session + User — dùng cho analytics.</summary>
+        Task<IEnumerable<ChatMessage>> GetAllMessagesWithUserAsync();
+
+        /// <summary>Lấy tổng số sessions.</summary>
+        Task<int> GetTotalSessionCountAsync();
     }
 }

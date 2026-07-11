@@ -13,6 +13,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
         private readonly IEmbeddingService _embeddingService;
         private readonly IGeminiService _geminiService;
         private readonly ILLMProviderFactory _llmFactory;
+        private readonly INotificationService _notificationService;
         private readonly ILogger<ChatService> _logger;
 
         private const int ExpectedDimension = 512;
@@ -22,12 +23,14 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             IEmbeddingService embeddingService,
             IGeminiService geminiService,
             ILLMProviderFactory llmFactory,
+            INotificationService notificationService,
             ILogger<ChatService> logger)
         {
             _uow = uow;
             _embeddingService = embeddingService;
             _geminiService = geminiService;
             _llmFactory = llmFactory;
+            _notificationService = notificationService;
             _logger = logger;
         }
 
@@ -493,6 +496,10 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
             await _uow.ChatSessions.TouchUpdatedAtAsync(sessionId);
             await _uow.SaveChangesAsync();
+
+            // Broadcast real-time update to dashboard
+            await _notificationService.SendNotificationAsync("DashboardUpdated", new { Type = "NewMessage" });
+
             return assistantMsg.MessageID;
         }
 
@@ -540,6 +547,9 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 {
                     await _uow.ChatSessions.UpdateMessageFeedbackAsync(messageId, feedback);
                     await _uow.SaveChangesAsync();
+                    
+                    // Broadcast real-time update to dashboard
+                    await _notificationService.SendNotificationAsync("DashboardUpdated", new { Type = "Feedback" });
                 }
             }
         }

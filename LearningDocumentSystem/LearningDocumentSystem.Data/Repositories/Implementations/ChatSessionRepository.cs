@@ -57,5 +57,15 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
                 _context.ChatMessages.Update(msg);
             }
         }
+
+        public async Task<IEnumerable<ChatMessage>> GetAllMessagesWithUserAsync()
+            => await _context.ChatMessages
+                .Include(m => m.Session)
+                    .ThenInclude(s => s.User)
+                .OrderByDescending(m => m.CreatedAt)
+                .ToListAsync();
+
+        public async Task<int> GetTotalSessionCountAsync()
+            => await _context.ChatSessions.CountAsync();
     }
 }

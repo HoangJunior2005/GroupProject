@@ -1,82 +1,74 @@
 namespace LearningDocumentSystem.Business.DTOs
 {
     // ================================================================
-    // BENCHMARK DASHBOARD DTOs
+    // THỐNG KÊ HOẠT ĐỘNG HỌC TẬP — DTOs
     // ================================================================
 
     /// <summary>
-    /// Tổng hợp toàn bộ dữ liệu cho trang Benchmark Dashboard.
+    /// Tổng hợp toàn bộ dữ liệu cho trang Thống kê Hoạt động.
     /// </summary>
     public class BenchmarkDashboardDto
     {
-        // --- KPI Cards ---
+        // --- KPI ---
+        public int TotalActiveStudents { get; set; }
+        public int TotalSessions { get; set; }
         public int TotalQueries { get; set; }
-        public double AvgRetrievalTimeMs { get; set; }
-        public double AvgGenerationTimeMs { get; set; }
-        public double HelpfulnessRate { get; set; }
-        public double AvgChunksPerDocument { get; set; }
-        public double AvgChunkSizeChars { get; set; }
+        public string MostUsedModel { get; set; } = "—";
 
         // --- Chart Data ---
-        public List<EmbeddingLatencyDto> EmbeddingLatencies { get; set; } = new();
-        public List<LlmLatencyDto> LlmLatencies { get; set; } = new();
-        public List<SatisfactionRateDto> SatisfactionRates { get; set; } = new();
-        public List<ChunkingBenchmarkDto> ChunkingBenchmarks { get; set; } = new();
+        public List<ModelUsageDto> ModelUsage { get; set; } = new();
+        public List<ModelRatingDto> ModelRatings { get; set; } = new();
+        public List<MonthlyTokenDto> MonthlyTokens { get; set; } = new();
+        public List<MonthlyLatencyDto> MonthlyLatency { get; set; } = new();
     }
 
-    /// <summary>
-    /// Thời gian truy xuất trung bình của mỗi mô hình nhúng (ms).
-    /// </summary>
-    public class EmbeddingLatencyDto
+    /// <summary>Tần suất sử dụng từng Model AI bởi sinh viên.</summary>
+    public class ModelUsageDto
     {
+        public string ProviderName { get; set; } = string.Empty;
         public string ModelName { get; set; } = string.Empty;
-        public double AvgLatencyMs { get; set; }
-        public double MinLatencyMs { get; set; }
-        public double MaxLatencyMs { get; set; }
+        public int TotalQueries { get; set; }
+        public int UniqueStudents { get; set; }
+        public double UsagePercent { get; set; }
     }
 
-    /// <summary>
-    /// Thời gian sinh câu trả lời trung bình của mỗi mô hình LLM (ms).
-    /// </summary>
-    public class LlmLatencyDto
+    /// <summary>Đánh giá (thumbs up/down) của từng Model AI.</summary>
+    public class ModelRatingDto
     {
-        public string ModelName { get; set; } = string.Empty;
-        public double AvgLatencyMs { get; set; }
-        public double MinLatencyMs { get; set; }
-        public double MaxLatencyMs { get; set; }
-    }
-
-    /// <summary>
-    /// Tỷ lệ hài lòng (Thumbs Up %) theo tổ hợp Strategy + Embedding + LLM.
-    /// </summary>
-    public class SatisfactionRateDto
-    {
-        public string Label { get; set; } = string.Empty;
-        public string EmbeddingModel { get; set; } = string.Empty;
-        public string LlmModel { get; set; } = string.Empty;
-        public double ThumbsUpPercent { get; set; }
-        public double ThumbsDownPercent { get; set; }
+        public string ProviderName { get; set; } = string.Empty;
+        public int ThumbsUp { get; set; }
+        public int ThumbsDown { get; set; }
         public int TotalVotes { get; set; }
+        public double RatingPercent { get; set; }
     }
 
-    /// <summary>
-    /// Benchmark cho mỗi chiến lược chunking: avg chunk count & avg chunk size.
-    /// </summary>
-    public class ChunkingBenchmarkDto
+    /// <summary>Lượng token tiêu thụ hàng tháng theo từng provider.</summary>
+    public class MonthlyTokenDto
     {
-        public string Strategy { get; set; } = string.Empty;
-        public double AvgChunkCount { get; set; }
-        public double AvgChunkSize { get; set; }
-        public int TotalDocuments { get; set; }
+        public string Month { get; set; } = string.Empty;
+        public string MonthLabel { get; set; } = string.Empty;
+        public string ProviderName { get; set; } = string.Empty;
+        public int TotalPromptTokens { get; set; }
+        public int TotalCompletionTokens { get; set; }
+        public int TotalTokens => TotalPromptTokens + TotalCompletionTokens;
+        public int QueryCount { get; set; }
+    }
+
+    /// <summary>Latency trung bình hàng tháng theo từng provider.</summary>
+    public class MonthlyLatencyDto
+    {
+        public string Month { get; set; } = string.Empty;
+        public string MonthLabel { get; set; } = string.Empty;
+        public string ProviderName { get; set; } = string.Empty;
+        public double AvgLatencyMs { get; set; }
+        public double MinLatencyMs { get; set; }
+        public double MaxLatencyMs { get; set; }
+        public int SampleCount { get; set; }
     }
 
     // ================================================================
-    // PLAYGROUND DTOs
+    // PLAYGROUND DTOs (giữ lại cho backward compat — không dùng)
     // ================================================================
-
-    /// <summary>
-    /// Kết quả thử nghiệm truy xuất từ một mô hình nhúng cụ thể.
-    /// </summary>
     public class PlaygroundResultDto
     {
         public string ModelName { get; set; } = string.Empty;
@@ -86,9 +78,6 @@ namespace LearningDocumentSystem.Business.DTOs
         public List<PlaygroundChunkResultDto> TopChunks { get; set; } = new();
     }
 
-    /// <summary>
-    /// Một chunk được tìm thấy bởi playground, kèm cosine score.
-    /// </summary>
     public class PlaygroundChunkResultDto
     {
         public int ChunkID { get; set; }
