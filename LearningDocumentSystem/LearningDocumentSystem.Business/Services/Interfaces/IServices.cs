@@ -108,4 +108,10 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
         /// <summary>Lưu cấu hình chunking cho teacher</summary>
         Task SaveSettingsAsync(int teacherId, string strategy, int chunkSize, int chunkOverlap, int minChunkLength);
     }
+
+    public interface IBenchmarkService
+    {
+        Task<BenchmarkDashboardDto> GetDashboardAsync();
+        Task<BenchmarkRetrievalDto> RunRetrievalAsync(string question, int? subjectId = null, int? chapterId = null);
+    }
 }

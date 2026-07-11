@@ -25,5 +25,8 @@ namespace LearningDocumentSystem.Data.Repositories.Interfaces
 
         /// <summary>Cập nhật phản hồi benchmark (thumbs up/down) cho tin nhắn.</summary>
         Task UpdateMessageFeedbackAsync(int messageId, int feedback);
+
+        /// <summary>Lay cac cau tra loi co du lieu do luong de tong hop Benchmark.</summary>
+        Task<IEnumerable<ChatMessage>> GetBenchmarkMessagesAsync();
     }
 }

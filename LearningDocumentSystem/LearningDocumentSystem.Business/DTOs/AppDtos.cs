@@ -250,4 +250,61 @@ namespace LearningDocumentSystem.Business.DTOs
         public int MinChunkLength { get; set; } = 50;
         public DateTime? UpdatedAt { get; set; }
     }
+
+    // ================================================================
+    // BENCHMARK DTOs
+    // ================================================================
+    public class BenchmarkDashboardDto
+    {
+        public int TotalQuestions { get; set; }
+        public double AverageLatencyMs { get; set; }
+        public int TotalTokens { get; set; }
+        public int RatedResponses { get; set; }
+        public double HelpfulnessRate { get; set; }
+        public int TotalDocuments { get; set; }
+        public int TotalChunks { get; set; }
+        public double AverageChunksPerDocument { get; set; }
+        public double AverageChunkLength { get; set; }
+        public List<LlmBenchmarkDto> Providers { get; set; } = new();
+        public List<RecentBenchmarkDto> RecentResponses { get; set; } = new();
+    }
+
+    public class LlmBenchmarkDto
+    {
+        public string ProviderName { get; set; } = string.Empty;
+        public string ModelName { get; set; } = string.Empty;
+        public int RequestCount { get; set; }
+        public double AverageLatencyMs { get; set; }
+        public double AveragePromptTokens { get; set; }
+        public double AverageCompletionTokens { get; set; }
+        public int RatedCount { get; set; }
+        public double HelpfulnessRate { get; set; }
+    }
+
+    public class RecentBenchmarkDto
+    {
+        public string ProviderName { get; set; } = string.Empty;
+        public string ModelName { get; set; } = string.Empty;
+        public double? ExecutionTimeMs { get; set; }
+        public int TotalTokens { get; set; }
+        public int? Feedback { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class BenchmarkRetrievalDto
+    {
+        public double ExecutionTimeMs { get; set; }
+        public int ScannedChunks { get; set; }
+        public List<BenchmarkRetrievalResultDto> Results { get; set; } = new();
+    }
+
+    public class BenchmarkRetrievalResultDto
+    {
+        public int DocumentID { get; set; }
+        public string DocumentTitle { get; set; } = string.Empty;
+        public string ChapterName { get; set; } = string.Empty;
+        public int? PageNumber { get; set; }
+        public float SimilarityScore { get; set; }
+        public string ContentSnippet { get; set; } = string.Empty;
+    }
 }

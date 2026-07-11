@@ -57,5 +57,12 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
                 _context.ChatMessages.Update(msg);
             }
         }
+
+        public async Task<IEnumerable<ChatMessage>> GetBenchmarkMessagesAsync()
+            => await _context.ChatMessages
+                .AsNoTracking()
+                .Where(m => m.Role == "assistant" && m.ProviderName != null)
+                .OrderByDescending(m => m.CreatedAt)
+                .ToListAsync();
     }
 }

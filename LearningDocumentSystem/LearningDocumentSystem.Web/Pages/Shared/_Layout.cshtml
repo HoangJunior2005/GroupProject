@@ -61,6 +61,11 @@
                             <i class="bi bi-speedometer2"></i> Dashboard
                         </a>
                     </li>
+                    <li class="@(activePage == "/Admin/Benchmarks" ? "active" : "")">
+                        <a asp-page="/Admin/Benchmarks">
+                            <i class="bi bi-bar-chart-line-fill"></i> Benchmark
+                        </a>
+                    </li>
                 }
 
                 @if (User.IsInRole("Admin"))

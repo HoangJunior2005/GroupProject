@@ -111,6 +111,7 @@ builder.Services.AddTransient<ILLMService>(sp => sp.GetRequiredService<GroqLlmSe
 
 builder.Services.AddScoped<ILLMProviderFactory, LLMProviderFactory>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IBenchmarkService, BenchmarkService>();
 
 // Seeder
 builder.Services.AddScoped<DataSeeder>();
