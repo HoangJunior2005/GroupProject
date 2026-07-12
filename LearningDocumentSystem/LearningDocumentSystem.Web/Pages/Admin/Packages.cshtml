@@ -1,0 +1,97 @@
+@page
+@model LearningDocumentSystem.Web.Pages.Admin.PackagesModel
+@{
+    ViewData["Title"] = "Quan ly goi";
+}
+
+<style>
+    .admin-package-grid { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr); gap:1rem; align-items:start; }
+    .admin-panel { background:#fff; border:1px solid #dbe3ed; border-radius:8px; }
+    .admin-panel-header { padding:1rem 1.1rem; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+    .admin-panel-body { padding:1.1rem; }
+    .status-dot-plan { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:.4rem; }
+    @@media (max-width:1050px) { .admin-package-grid { grid-template-columns:1fr; } }
+</style>
+
+<div class="page-header d-flex justify-content-between align-items-end gap-3">
+    <div>
+        <h1 class="page-title"><i class="bi bi-box-seam-fill me-2"></i>Qu&#7843;n l&#253; g&#243;i d&#7883;ch v&#7909;</h1>
+        <p class="page-subtitle">C&#7845;u h&#236;nh gi&#225;, h&#7841;n m&#7913;c v&#224; m&#244; h&#236;nh AI cho Free, Plus, Pro.</p>
+    </div>
+    <a asp-page="./Packages" class="btn btn-outline-secondary"><i class="bi bi-plus-lg me-1"></i>T&#7841;o g&#243;i</a>
+</div>
+
+<div class="admin-package-grid">
+    <section class="admin-panel">
+        <div class="admin-panel-header"><strong>Danh s&#225;ch g&#243;i</strong><span class="text-muted small">@Model.Plans.Count / 3 g&#243;i</span></div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>G&#243;i</th><th>Gi&#225;</th><th>H&#7841;n m&#7913;c</th><th>Models</th><th>Tr&#7841;ng th&#225;i</th><th class="text-end">Thao t&#225;c</th></tr></thead>
+                <tbody>
+                @foreach (var plan in Model.Plans)
+                {
+                    <tr>
+                        <td><strong>@plan.Name</strong><div class="small text-muted">@plan.Code</div></td>
+                        <td>@plan.Price.ToString("N0") &#8363;</td>
+                        <td>@(plan.DailyMessageLimit?.ToString() ?? "Khong gioi han")</td>
+                        <td><span class="small">@string.Join(", ", plan.AllowedProviders)</span></td>
+                        <td><span><i class="status-dot-plan" style="background:@(plan.IsActive ? "#16a34a" : "#94a3b8")"></i>@(plan.IsActive ? "Dang bat" : "Tam dung")</span></td>
+                        <td class="text-end text-nowrap">
+                            <a asp-page="./Packages" asp-route-editCode="@plan.Code" class="btn btn-sm btn-outline-primary" title="Sua"><i class="bi bi-pencil-square"></i></a>
+                            @if (plan.Code != "Free")
+                            {
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Xoa goi @plan.Code?');">
+                                    <input type="hidden" name="code" value="@plan.Code" />
+                                    <button class="btn btn-sm btn-outline-danger" type="submit" title="Xoa"><i class="bi bi-trash"></i></button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="admin-panel">
+        <div class="admin-panel-header"><strong>@(Model.IsEditing ? "Cap nhat goi" : "Tao goi")</strong></div>
+        <div class="admin-panel-body">
+            <form method="post" asp-page-handler="Save">
+                <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+                <input type="hidden" asp-for="OriginalCode" />
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" asp-for="Code">M&#227; g&#243;i</label>
+                    <select class="form-select" asp-for="Code" disabled="@Model.IsEditing">
+                        <option value="">-- Chon ma goi --</option><option>Free</option><option>Plus</option><option>Pro</option>
+                    </select>
+                    @if (Model.IsEditing) { <input type="hidden" asp-for="Code" /> }
+                </div>
+                <div class="mb-3"><label class="form-label fw-semibold" asp-for="Name">T&#234;n hi&#7875;n th&#7883;</label><input class="form-control" asp-for="Name" required maxlength="50" /></div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6"><label class="form-label fw-semibold" asp-for="Price">Gi&#225; (VND)</label><input class="form-control" asp-for="Price" type="number" min="0" step="1000" required /></div>
+                    <div class="col-6"><label class="form-label fw-semibold" asp-for="DailyMessageLimit">C&#226;u/ng&#224;y</label><input class="form-control" asp-for="DailyMessageLimit" type="number" min="1" placeholder="Trong" /></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">M&#244; h&#236;nh AI</label>
+                    @foreach (var provider in new[] { "Gemini", "Groq", "OpenAI" })
+                    {
+                        <div class="form-check">
+                            @if (Model.Providers.Contains(provider))
+                            {
+                                <input class="form-check-input" type="checkbox" name="Providers" value="@provider" id="provider-@provider" checked>
+                            }
+                            else
+                            {
+                                <input class="form-check-input" type="checkbox" name="Providers" value="@provider" id="provider-@provider">
+                            }
+                            <label class="form-check-label" for="provider-@provider">@provider</label>
+                        </div>
+                    }
+                </div>
+                <div class="mb-3"><label class="form-label fw-semibold" asp-for="Features">T&#237;nh n&#259;ng (m&#7895;i d&#242;ng m&#7897;t m&#7909;c)</label><textarea class="form-control" asp-for="Features" rows="5"></textarea></div>
+                <div class="form-check form-switch mb-3"><input class="form-check-input" asp-for="IsActive"><label class="form-check-label" asp-for="IsActive">Cho ph&#233;p &#273;&#259;ng k&#253;</label></div>
+                <button class="btn btn-primary w-100" type="submit"><i class="bi bi-save me-1"></i>L&#432;u g&#243;i</button>
+            </form>
+        </div>
+    </section>
+</div>

@@ -1,0 +1,53 @@
+[
+  {
+    "Code": "Free",
+    "Name": "Free",
+    "Price": 0,
+    "DailyMessageLimit": 10,
+    "AllowedProviders": [
+      "Gemini"
+    ],
+    "Features": [
+      "10 c\u00E2u h\u1ECFi AI m\u1ED7i ng\u00E0y",
+      "Truy c\u1EADp m\u00F4 h\u00ECnh Gemini",
+      "T\u00ECm ki\u1EBFm tr\u00EAn t\u00E0i li\u1EC7u h\u1ECDc t\u1EADp"
+    ],
+    "IsCurrent": false,
+    "IsActive": true
+  },
+  {
+    "Code": "Plus",
+    "Name": "Plus",
+    "Price": 99000,
+    "DailyMessageLimit": 100,
+    "AllowedProviders": [
+      "Gemini",
+      "Groq"
+    ],
+    "Features": [
+      "100 c\u00E2u h\u1ECFi AI m\u1ED7i ng\u00E0y",
+      "S\u1EED d\u1EE5ng Gemini v\u00E0 Groq",
+      "T\u1ED1c \u0111\u1ED9 ph\u1EA3n h\u1ED3i \u01B0u ti\u00EAn"
+    ],
+    "IsCurrent": false,
+    "IsActive": true
+  },
+  {
+    "Code": "Pro",
+    "Name": "Pro",
+    "Price": 199000,
+    "DailyMessageLimit": null,
+    "AllowedProviders": [
+      "Gemini",
+      "Groq",
+      "OpenAI"
+    ],
+    "Features": [
+      "Kh\u00F4ng gi\u1EDBi h\u1EA1n c\u00E2u h\u1ECFi",
+      "M\u1EDF kh\u00F3a t\u1EA5t c\u1EA3 m\u00F4 h\u00ECnh AI",
+      "Quy\u1EC1n truy c\u1EADp cao nh\u1EA5t"
+    ],
+    "IsCurrent": false,
+    "IsActive": true
+  }
+]

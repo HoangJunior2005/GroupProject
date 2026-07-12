@@ -41,16 +41,17 @@ namespace LearningDocumentSystem.Data.Seeders
 
         private async Task SeedRolesAsync()
         {
-            if (await _context.Roles.AnyAsync()) return;
+            var requiredRoles = new[] { "Admin", "Teacher", "Student", "Plus", "Pro" };
+            var existingRoles = await _context.Roles.Select(r => r.RoleName).ToListAsync();
+            var missingRoles = requiredRoles
+                .Where(name => !existingRoles.Contains(name, StringComparer.OrdinalIgnoreCase))
+                .Select(name => new Role { RoleName = name })
+                .ToList();
 
-            _logger.LogInformation("Seeding roles...");
-            var roles = new List<Role>
-            {
-                new() { RoleName = "Admin" },
-                new() { RoleName = "Teacher" },
-                new() { RoleName = "Student" }
-            };
-            await _context.Roles.AddRangeAsync(roles);
+            if (missingRoles.Count == 0) return;
+
+            _logger.LogInformation("Seeding missing roles...");
+            await _context.Roles.AddRangeAsync(missingRoles);
             await _context.SaveChangesAsync(); // Save để lấy RoleID
         }
 

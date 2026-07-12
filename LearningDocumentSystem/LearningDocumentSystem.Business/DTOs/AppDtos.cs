@@ -252,59 +252,43 @@ namespace LearningDocumentSystem.Business.DTOs
     }
 
     // ================================================================
-    // BENCHMARK DTOs
+    // PACKAGE DTOs
     // ================================================================
-    public class BenchmarkDashboardDto
+    public class PackagePlanDto
     {
-        public int TotalQuestions { get; set; }
-        public double AverageLatencyMs { get; set; }
-        public int TotalTokens { get; set; }
-        public int RatedResponses { get; set; }
-        public double HelpfulnessRate { get; set; }
-        public int TotalDocuments { get; set; }
-        public int TotalChunks { get; set; }
-        public double AverageChunksPerDocument { get; set; }
-        public double AverageChunkLength { get; set; }
-        public List<LlmBenchmarkDto> Providers { get; set; } = new();
-        public List<RecentBenchmarkDto> RecentResponses { get; set; } = new();
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public int? DailyMessageLimit { get; set; }
+        public List<string> AllowedProviders { get; set; } = new();
+        public List<string> Features { get; set; } = new();
+        public bool IsCurrent { get; set; }
+        public bool IsActive { get; set; } = true;
     }
 
-    public class LlmBenchmarkDto
+    public class PackageStatusDto
     {
-        public string ProviderName { get; set; } = string.Empty;
-        public string ModelName { get; set; } = string.Empty;
-        public int RequestCount { get; set; }
-        public double AverageLatencyMs { get; set; }
-        public double AveragePromptTokens { get; set; }
-        public double AverageCompletionTokens { get; set; }
-        public int RatedCount { get; set; }
-        public double HelpfulnessRate { get; set; }
+        public string CurrentPlan { get; set; } = "Free";
+        public int UsedToday { get; set; }
+        public int? DailyMessageLimit { get; set; }
+        public int? RemainingToday { get; set; }
+        public List<string> AllowedProviders { get; set; } = new();
     }
 
-    public class RecentBenchmarkDto
+    public class ChatAccessDto
     {
-        public string ProviderName { get; set; } = string.Empty;
-        public string ModelName { get; set; } = string.Empty;
-        public double? ExecutionTimeMs { get; set; }
-        public int TotalTokens { get; set; }
-        public int? Feedback { get; set; }
-        public DateTime CreatedAt { get; set; }
+        public bool IsAllowed { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public PackageStatusDto Status { get; set; } = new();
     }
 
-    public class BenchmarkRetrievalDto
+    public class VnpayPaymentResultDto
     {
-        public double ExecutionTimeMs { get; set; }
-        public int ScannedChunks { get; set; }
-        public List<BenchmarkRetrievalResultDto> Results { get; set; } = new();
-    }
-
-    public class BenchmarkRetrievalResultDto
-    {
-        public int DocumentID { get; set; }
-        public string DocumentTitle { get; set; } = string.Empty;
-        public string ChapterName { get; set; } = string.Empty;
-        public int? PageNumber { get; set; }
-        public float SimilarityScore { get; set; }
-        public string ContentSnippet { get; set; } = string.Empty;
+        public bool IsValid { get; set; }
+        public bool IsSuccess { get; set; }
+        public int UserId { get; set; }
+        public string PlanCode { get; set; } = string.Empty;
+        public string TransactionReference { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
     }
 }

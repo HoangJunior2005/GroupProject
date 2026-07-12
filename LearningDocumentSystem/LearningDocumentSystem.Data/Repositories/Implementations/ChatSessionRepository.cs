@@ -58,11 +58,11 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
             }
         }
 
-        public async Task<IEnumerable<ChatMessage>> GetBenchmarkMessagesAsync()
+        public async Task<int> CountUserQuestionsSinceAsync(int userId, DateTime sinceUtc)
             => await _context.ChatMessages
                 .AsNoTracking()
-                .Where(m => m.Role == "assistant" && m.ProviderName != null)
-                .OrderByDescending(m => m.CreatedAt)
-                .ToListAsync();
+                .CountAsync(m => m.Role == "user"
+                    && m.CreatedAt >= sinceUtc
+                    && m.Session.UserID == userId);
     }
 }

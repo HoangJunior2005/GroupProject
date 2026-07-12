@@ -156,7 +156,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
         public async Task<IEnumerable<RoleDto>> GetAllRolesAsync()
         {
             var roles = await _uow.Roles.GetAllAsync();
-            return _mapper.Map<IEnumerable<RoleDto>>(roles);
+            return _mapper.Map<IEnumerable<RoleDto>>(roles)
+                .Where(r => r.RoleName != PackageService.PlusCode && r.RoleName != PackageService.ProCode);
         }
 
         public async Task UpdateUserRolesAsync(int userId, IEnumerable<int> roleIds, bool canUpload)
@@ -189,7 +190,10 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             }
 
             var existingRoleIds = user.UserRoles.Select(ur => ur.RoleID).ToHashSet();
-            var targetRoleIds = new HashSet<int> { singleRoleId };
+            var packageRoleIds = user.UserRoles
+                .Where(ur => ur.Role.RoleName == PackageService.PlusCode || ur.Role.RoleName == PackageService.ProCode)
+                .Select(ur => ur.RoleID);
+            var targetRoleIds = new HashSet<int>(packageRoleIds) { singleRoleId };
 
             foreach (var roleId in existingRoleIds.Except(targetRoleIds))
             {
