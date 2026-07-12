@@ -2,7 +2,6 @@ using LearningDocumentSystem.Business.DTOs;
 using LearningDocumentSystem.Business.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
@@ -15,13 +14,11 @@ namespace LearningDocumentSystem.Business.Services.Implementations
     {
         private readonly IConfiguration _configuration;
         private readonly IPackageService _packageService;
-        private readonly ILogger<VnpayService> _logger;
 
-        public VnpayService(IConfiguration configuration, IPackageService packageService, ILogger<VnpayService> logger)
+        public VnpayService(IConfiguration configuration, IPackageService packageService)
         {
             _configuration = configuration;
             _packageService = packageService;
-            _logger = logger;
         }
 
         public bool IsConfigured =>
@@ -59,8 +56,6 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             var paymentUrl = _configuration["Vnpay:PaymentUrl"]
                 ?? "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
             var fullUrl = $"{paymentUrl}?{query}&vnp_SecureHash={secureHash}";
-
-            _logger.LogInformation("[VNPAY] Redirecting to payment page. TxnRef={TxnRef}", transactionReference);
 
             return fullUrl;
         }
