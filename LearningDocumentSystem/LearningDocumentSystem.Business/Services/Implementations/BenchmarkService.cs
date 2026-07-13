@@ -22,12 +22,21 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
             try
             {
-                var providers = new[] { "Gemini", "OpenAI", "Groq" };
-
                 // Load tất cả messages kèm user
                 var allMessages = (await _uow.ChatSessions.GetAllMessagesWithUserAsync()).ToList();
                 var assistantMsgs = allMessages.Where(m => m.Role == "assistant").ToList();
                 var userMsgs = allMessages.Where(m => m.Role == "user").ToList();
+
+                var providers = assistantMsgs
+                    .Where(m => !string.IsNullOrEmpty(m.ProviderName))
+                    .Select(m => m.ProviderName!)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (!providers.Any())
+                {
+                    providers = new List<string> { "Gemini", "OpenAI", "Groq" };
+                }
 
                 // ── KPI ──
                 dto.TotalSessions = await _uow.ChatSessions.GetTotalSessionCountAsync();
@@ -39,9 +48,11 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                     .Count();
 
                 // ── 1. Tần suất sử dụng Model (Donut) ──
-                var totalAssistant = assistantMsgs.Count;
-                var modelUsage = assistantMsgs
+                var assistantMsgsWithProvider = assistantMsgs
                     .Where(m => !string.IsNullOrEmpty(m.ProviderName))
+                    .ToList();
+                var totalAssistantWithProvider = assistantMsgsWithProvider.Count;
+                var modelUsage = assistantMsgsWithProvider
                     .GroupBy(m => m.ProviderName!)
                     .Select(g => new ModelUsageDto
                     {
@@ -49,8 +60,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                         ModelName = g.First().ModelName ?? g.Key,
                         TotalQueries = g.Count(),
                         UniqueStudents = g.Select(m => m.Session?.UserID).Distinct().Count(),
-                        UsagePercent = totalAssistant > 0
-                            ? Math.Round((double)g.Count() / totalAssistant * 100, 1) : 0
+                        UsagePercent = totalAssistantWithProvider > 0
+                            ? Math.Round((double)g.Count() / totalAssistantWithProvider * 100, 1) : 0
                     })
                     .OrderByDescending(m => m.TotalQueries)
                     .ToList();
