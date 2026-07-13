@@ -40,6 +40,31 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
             var response = new ChatResponseDto();
 
+            // Pre-resolve selected provider and default model name for query tracking
+            string resolvedProvider = "Gemini";
+            string resolvedModel = "gemini-2.5-flash";
+            try
+            {
+                var providerInstance = _llmFactory.GetProvider(modelProvider);
+                if (providerInstance != null)
+                {
+                    resolvedProvider = providerInstance.ProviderName;
+                    resolvedModel = resolvedProvider switch
+                    {
+                        "OpenAI" => "gpt-4o-mini",
+                        "Groq" => "llama-3.1-8b-instant",
+                        _ => "gemini-2.5-flash"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to resolve LLM provider instance for: {Provider}", modelProvider);
+            }
+
+            response.ProviderName = resolvedProvider;
+            response.ModelName = resolvedModel;
+
             if (string.IsNullOrWhiteSpace(question))
             {
                 response.Answer = "Vui lòng nhập câu hỏi để tôi có thể hỗ trợ bạn.";
