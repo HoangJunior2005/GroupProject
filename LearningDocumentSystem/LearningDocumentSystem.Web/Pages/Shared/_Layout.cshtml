@@ -217,6 +217,13 @@ else
         connection.on("ReceiveNotification", (messageType, payload) => {
             console.log("Realtime notification received:", messageType, payload);
             
+            // Skip showing toast alert for internal dashboard updates (e.g. chat usage metrics)
+            if (messageType === "DashboardUpdated") {
+                const event = new CustomEvent("realtimeUpdate", { detail: { messageType, payload } });
+                document.dispatchEvent(event);
+                return;
+            }
+
             if (typeof Swal !== 'undefined') {
                 const Toast = Swal.mixin({
                     toast: true,
