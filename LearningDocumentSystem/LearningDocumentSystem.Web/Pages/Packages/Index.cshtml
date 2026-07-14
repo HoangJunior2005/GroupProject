@@ -11,8 +11,9 @@
     .usage-box { background:#fff; border:1px solid #dbe3ed; border-radius:8px; padding:.75rem 1rem; min-width:210px; }
     .usage-box strong { color:#0f172a; }
     .package-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; align-items:stretch; }
-    .package-card { background:#fff; border:1px solid #dbe3ed; border-radius:8px; padding:1.4rem; display:flex; flex-direction:column; min-width:0; }
-    .package-card.recommended { border:2px solid #2563eb; box-shadow:0 8px 24px rgba(37,99,235,.12); }
+    .package-card { background:#fff; border:2px solid var(--border); border-radius:8px; padding:1.4rem; display:flex; flex-direction:column; min-width:0; transition: all var(--transition); }
+    .package-card.active { border-color: var(--success); }
+    .package-card:hover { border-color: #2563eb; box-shadow: 0 8px 24px rgba(37,99,235,.12); transform: translateY(-2px); }
     .package-name { font-size:1.25rem; font-weight:700; color:#111827; }
     .package-price { font-size:2rem; font-weight:750; margin:.8rem 0 .2rem; color:#0f172a; }
     .package-price small { font-size:.78rem; font-weight:500; color:#64748b; }
@@ -22,6 +23,8 @@
     .package-features i { color:#0f766e; }
     .current-tag { display:inline-flex; align-items:center; color:#0f766e; background:#ecfdf5; border:1px solid #a7f3d0; padding:.25rem .55rem; border-radius:6px; font-size:.78rem; font-weight:700; }
     .vnpay-note { margin-top:1rem; color:#64748b; font-size:.82rem; }
+    .btn-vnpay { background: #ffffff !important; color: #2563eb !important; border: 1.5px solid #2563eb !important; font-weight: 600; transition: all var(--transition); }
+    .btn-vnpay:hover { background: #2563eb !important; color: #ffffff !important; border-color: #2563eb !important; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
     @@media (max-width:900px) { .package-grid { grid-template-columns:1fr; } .package-header { align-items:flex-start; flex-direction:column; } }
 </style>
 
@@ -54,10 +57,16 @@
     </div>
 }
 
+@{
+    var currentPlan = Model.Plans.FirstOrDefault(p => p.IsCurrent);
+    var currentPrice = currentPlan?.Price ?? 0;
+}
+
 <div class="package-grid">
     @foreach (var plan in Model.Plans)
     {
-        <article class="package-card @(plan.Code == "Plus" ? "recommended" : "")">
+        var isDowngrade = plan.Price < currentPrice;
+        <article class="package-card @(plan.IsCurrent ? "active" : "")">
             <div class="d-flex align-items-center justify-content-between gap-2">
                 <div class="package-name">@plan.Name</div>
                 @if (plan.IsCurrent) { <span class="current-tag"><i class="bi bi-check-circle-fill me-1"></i>&#272;ang d&#249;ng</span> }
@@ -76,14 +85,17 @@
                     <li><i class="bi bi-check2-circle"></i><span>@feature</span></li>
                 }
             </ul>
-            <form method="post" asp-page-handler="Checkout">
-                <input type="hidden" name="planCode" value="@plan.Code" />
-                <button class="btn @(plan.Code == "Plus" ? "btn-primary" : "btn-outline-dark") w-100" type="submit" disabled="@(plan.IsCurrent)">
-                    @if (plan.IsCurrent) { <span>G&#243;i hi&#7879;n t&#7841;i</span> }
-                    else if (plan.Price == 0) { <span>Chuy&#7875;n v&#7873; Free</span> }
-                    else { <span><i class="bi bi-qr-code me-1"></i>Thanh to&#225;n VNPAY QR</span> }
-                </button>
-            </form>
+            @if (!isDowngrade || plan.Price == 0)
+            {
+                <form method="post" asp-page-handler="Checkout">
+                    <input type="hidden" name="planCode" value="@plan.Code" />
+                    <button class="btn @(plan.IsCurrent ? "btn-outline-secondary" : (plan.Price == 0 ? "btn-outline-dark" : "btn-vnpay")) w-100" type="submit" disabled="@(plan.IsCurrent)">
+                        @if (plan.IsCurrent) { <span>G&#243;i hi&#7879;n t&#7841;i</span> }
+                        else if (plan.Price == 0) { <span>Chuy&#7875;n v&#7873; Free</span> }
+                        else { <span><i class="bi bi-qr-code me-1"></i>Thanh to&#225;n VNPAY QR</span> }
+                    </button>
+                </form>
+            }
         </article>
     }
 </div>
