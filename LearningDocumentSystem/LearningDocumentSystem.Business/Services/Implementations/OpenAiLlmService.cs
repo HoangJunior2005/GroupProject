@@ -85,6 +85,23 @@ Quy tắc trả lời:
                 {
                     string errorBody = await response.Content.ReadAsStringAsync();
                     _logger.LogError("OpenAI API error. Status: {StatusCode}. Body: {Body}", response.StatusCode, errorBody);
+                    try
+                    {
+                        using var errDoc = JsonDocument.Parse(errorBody);
+                        if (errDoc.RootElement.TryGetProperty("error", out var errorEl) &&
+                            errorEl.TryGetProperty("message", out var msgEl))
+                        {
+                            var msg = msgEl.GetString();
+                            if (errorEl.TryGetProperty("code", out var codeEl) && codeEl.GetString() == "insufficient_quota")
+                            {
+                                result.Answer = "Tài khoản OpenAI của bạn đã hết hạn mức sử dụng (insufficient_quota). Vui lòng nạp thêm tiền vào tài khoản OpenAI hoặc kiểm tra lại khóa API.";
+                                return result;
+                            }
+                            result.Answer = $"Lỗi OpenAI: {msg}";
+                            return result;
+                        }
+                    }
+                    catch { /* fallback to default */ }
                     result.Answer = "Đã xảy ra lỗi khi kết nối tới OpenAI API.";
                     return result;
                 }
@@ -155,6 +172,21 @@ Quy tắc trả lời:
                 {
                     string errorBody = await response.Content.ReadAsStringAsync();
                     _logger.LogError("OpenAI API error. Status: {StatusCode}. Body: {Body}", response.StatusCode, errorBody);
+                    try
+                    {
+                        using var errDoc = JsonDocument.Parse(errorBody);
+                        if (errDoc.RootElement.TryGetProperty("error", out var errorEl) &&
+                            errorEl.TryGetProperty("message", out var msgEl))
+                        {
+                            var msg = msgEl.GetString();
+                            if (errorEl.TryGetProperty("code", out var codeEl) && codeEl.GetString() == "insufficient_quota")
+                            {
+                                return "Tài khoản OpenAI của bạn đã hết hạn mức sử dụng (insufficient_quota). Vui lòng nạp thêm tiền hoặc kiểm tra lại khóa API.";
+                            }
+                            return $"Lỗi OpenAI: {msg}";
+                        }
+                    }
+                    catch { /* fallback */ }
                     return "Đã xảy ra lỗi khi kết nối tới OpenAI API.";
                 }
 

@@ -250,4 +250,45 @@ namespace LearningDocumentSystem.Business.DTOs
         public int MinChunkLength { get; set; } = 50;
         public DateTime? UpdatedAt { get; set; }
     }
+
+    // ================================================================
+    // PACKAGE DTOs
+    // ================================================================
+    public class PackagePlanDto
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public int? DailyMessageLimit { get; set; }
+        public List<string> AllowedProviders { get; set; } = new();
+        public List<string> Features { get; set; } = new();
+        public bool IsCurrent { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class PackageStatusDto
+    {
+        public string CurrentPlan { get; set; } = "Free";
+        public int UsedToday { get; set; }
+        public int? DailyMessageLimit { get; set; }
+        public int? RemainingToday { get; set; }
+        public List<string> AllowedProviders { get; set; } = new();
+    }
+
+    public class ChatAccessDto
+    {
+        public bool IsAllowed { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public PackageStatusDto Status { get; set; } = new();
+    }
+
+    public class VnpayPaymentResultDto
+    {
+        public bool IsValid { get; set; }
+        public bool IsSuccess { get; set; }
+        public int UserId { get; set; }
+        public string PlanCode { get; set; } = string.Empty;
+        public string TransactionReference { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+    }
 }

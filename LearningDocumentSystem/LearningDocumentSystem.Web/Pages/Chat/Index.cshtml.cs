@@ -18,19 +18,23 @@ namespace LearningDocumentSystem.Web.Pages.Chat
     {
         private readonly IChatService _chatService;
         private readonly ISubjectService _subjectService;
+        private readonly IPackageService _packageService;
         private readonly ILogger<IndexModel> _logger;
 
         public IndexModel(
             IChatService chatService,
             ISubjectService subjectService,
+            IPackageService packageService,
             ILogger<IndexModel> logger)
         {
             _chatService = chatService;
             _subjectService = subjectService;
+            _packageService = packageService;
             _logger = logger;
         }
 
         public IEnumerable<SubjectDto> Subjects { get; set; } = [];
+        public PackageStatusDto PackageStatus { get; set; } = new();
 
         // Lấy UserID từ claims
         private int GetCurrentUserId()
@@ -42,6 +46,7 @@ namespace LearningDocumentSystem.Web.Pages.Chat
         public async Task OnGetAsync()
         {
             Subjects = await _subjectService.GetAllAsync();
+            PackageStatus = await _packageService.GetStatusAsync(GetCurrentUserId());
         }
 
         // ────────────────────────────────────────────────────────────
@@ -54,6 +59,18 @@ namespace LearningDocumentSystem.Web.Pages.Chat
 
             try
             {
+                var access = await _packageService.ValidateChatAccessAsync(GetCurrentUserId(), modelProvider);
+                if (!access.IsAllowed)
+                {
+                    return new JsonResult(new
+                    {
+                        answer = access.Message,
+                        packageLimitReached = true,
+                        currentPlan = access.Status.CurrentPlan,
+                        remainingToday = access.Status.RemainingToday
+                    });
+                }
+
                 var result = await _chatService.AskQuestionAsync(question.Trim(), subjectId, chapterId, modelProvider);
                 return new JsonResult(result);
             }

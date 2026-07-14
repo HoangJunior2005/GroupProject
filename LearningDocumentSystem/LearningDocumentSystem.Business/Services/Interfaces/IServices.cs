@@ -109,6 +109,25 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
         Task SaveSettingsAsync(int teacherId, string strategy, int chunkSize, int chunkOverlap, int minChunkLength);
     }
 
+    public interface IPackageService
+    {
+        Task<IReadOnlyList<PackagePlanDto>> GetPlansAsync(int userId);
+        Task<PackageStatusDto> GetStatusAsync(int userId);
+        Task<ChatAccessDto> ValidateChatAccessAsync(int userId, string? provider);
+        Task SetPlanAsync(int userId, string planCode);
+        PackagePlanDto? FindPlan(string planCode);
+        Task CreatePlanAsync(PackagePlanDto plan);
+        Task UpdatePlanAsync(PackagePlanDto plan);
+        Task DeletePlanAsync(string planCode);
+    }
+
+    public interface IVnpayService
+    {
+        bool IsConfigured { get; }
+        string CreatePaymentUrl(PackagePlanDto plan, int userId, string ipAddress, string returnUrl);
+        VnpayPaymentResultDto ValidatePayment(IQueryCollection query);
+    }
+
     public interface IBenchmarkService
     {
         /// <summary>Lấy toàn bộ dữ liệu cho Benchmark Dashboard (KPI + Charts)</summary>

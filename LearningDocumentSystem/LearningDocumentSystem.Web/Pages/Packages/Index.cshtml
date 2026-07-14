@@ -1,0 +1,103 @@
+@page
+@model LearningDocumentSystem.Web.Pages.Packages.IndexModel
+@{
+    ViewData["Title"] = "Goi dich vu";
+}
+
+<style>
+    .package-header { display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; margin-bottom:1.25rem; }
+    .package-header h1 { margin:0 0 .3rem; font-size:1.55rem; font-weight:700; }
+    .package-header p { margin:0; color:#64748b; }
+    .usage-box { background:#fff; border:1px solid #dbe3ed; border-radius:8px; padding:.75rem 1rem; min-width:210px; }
+    .usage-box strong { color:#0f172a; }
+    .package-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; align-items:stretch; }
+    .package-card { background:#fff; border:2px solid var(--border); border-radius:8px; padding:1.4rem; display:flex; flex-direction:column; min-width:0; transition: all var(--transition); }
+    .package-card.active { border-color: var(--success); }
+    .package-card:hover { border-color: #2563eb; box-shadow: 0 8px 24px rgba(37,99,235,.12); transform: translateY(-2px); }
+    .package-name { font-size:1.25rem; font-weight:700; color:#111827; }
+    .package-price { font-size:2rem; font-weight:750; margin:.8rem 0 .2rem; color:#0f172a; }
+    .package-price small { font-size:.78rem; font-weight:500; color:#64748b; }
+    .package-subtitle { color:#64748b; font-size:.86rem; min-height:2.5rem; }
+    .package-features { list-style:none; padding:0; margin:1.2rem 0; flex:1; }
+    .package-features li { display:flex; gap:.55rem; margin:.65rem 0; color:#334155; }
+    .package-features i { color:#0f766e; }
+    .current-tag { display:inline-flex; align-items:center; color:#0f766e; background:#ecfdf5; border:1px solid #a7f3d0; padding:.25rem .55rem; border-radius:6px; font-size:.78rem; font-weight:700; }
+    .vnpay-note { margin-top:1rem; color:#64748b; font-size:.82rem; }
+    .btn-vnpay { background: #ffffff !important; color: #2563eb !important; border: 1.5px solid #2563eb !important; font-weight: 600; transition: all var(--transition); }
+    .btn-vnpay:hover { background: #2563eb !important; color: #ffffff !important; border-color: #2563eb !important; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
+    @@media (max-width:900px) { .package-grid { grid-template-columns:1fr; } .package-header { align-items:flex-start; flex-direction:column; } }
+</style>
+
+<div class="package-header">
+    <div>
+        <h1>Ch&#7885;n g&#243;i ph&#249; h&#7907;p</h1>
+        <p>N&#226;ng c&#7845;p h&#7841;n m&#7913;c h&#7887;i &#273;&#225;p AI cho t&#224;i kho&#7843;n sinh vi&#234;n.</p>
+    </div>
+    <div class="usage-box">
+        <div class="small text-muted">G&#243;i hi&#7879;n t&#7841;i</div>
+        <strong>@Model.Status.CurrentPlan</strong>
+        <div class="small text-muted mt-1">
+            @if (Model.Status.DailyMessageLimit.HasValue)
+            {
+                <span>&#272;&#227; d&#249;ng @Model.Status.UsedToday / @Model.Status.DailyMessageLimit c&#226;u h&#244;m nay</span>
+            }
+            else
+            {
+                <span>Kh&#244;ng gi&#7899;i h&#7841;n c&#226;u h&#7887;i</span>
+            }
+        </div>
+    </div>
+</div>
+
+@if (!Model.VnpayConfigured)
+{
+    <div class="alert alert-warning border-0 mb-3">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        VNPAY ch&#432;a c&#243; TmnCode/HashSecret. Trang g&#243;i v&#7851;n ho&#7841;t &#273;&#7897;ng, nh&#432;ng Plus v&#224; Pro ch&#432;a th&#7875; checkout.
+    </div>
+}
+
+@{
+    var currentPlan = Model.Plans.FirstOrDefault(p => p.IsCurrent);
+    var currentPrice = currentPlan?.Price ?? 0;
+}
+
+<div class="package-grid">
+    @foreach (var plan in Model.Plans)
+    {
+        var isDowngrade = plan.Price < currentPrice;
+        <article class="package-card @(plan.IsCurrent ? "active" : "")">
+            <div class="d-flex align-items-center justify-content-between gap-2">
+                <div class="package-name">@plan.Name</div>
+                @if (plan.IsCurrent) { <span class="current-tag"><i class="bi bi-check-circle-fill me-1"></i>&#272;ang d&#249;ng</span> }
+            </div>
+            <div class="package-price">
+                @plan.Price.ToString("N0") &#8363;
+                <small>@(plan.Price == 0 ? "" : "/ l\u1ea7n n\u00e2ng c\u1ea5p")</small>
+            </div>
+            <div class="package-subtitle">
+                @if (plan.DailyMessageLimit.HasValue) { <span>@plan.DailyMessageLimit c&#226;u h&#7887;i m&#7895;i ng&#224;y</span> }
+                else { <span>Quy&#7873;n truy c&#7853;p AI kh&#244;ng gi&#7899;i h&#7841;n</span> }
+            </div>
+            <ul class="package-features">
+                @foreach (var feature in plan.Features)
+                {
+                    <li><i class="bi bi-check2-circle"></i><span>@feature</span></li>
+                }
+            </ul>
+            @if (!isDowngrade || plan.Price == 0)
+            {
+                <form method="post" asp-page-handler="Checkout">
+                    <input type="hidden" name="planCode" value="@plan.Code" />
+                    <button class="btn @(plan.IsCurrent ? "btn-outline-secondary" : (plan.Price == 0 ? "btn-outline-dark" : "btn-vnpay")) w-100" type="submit" disabled="@(plan.IsCurrent)">
+                        @if (plan.IsCurrent) { <span>G&#243;i hi&#7879;n t&#7841;i</span> }
+                        else if (plan.Price == 0) { <span>Chuy&#7875;n v&#7873; Free</span> }
+                        else { <span><i class="bi bi-qr-code me-1"></i>Thanh to&#225;n VNPAY QR</span> }
+                    </button>
+                </form>
+            }
+        </article>
+    }
+</div>
+
+<div class="vnpay-note"><i class="bi bi-shield-lock me-1"></i>G&#243;i ch&#7881; &#273;&#432;&#7907;c k&#237;ch ho&#7841;t sau khi VNPAY x&#225;c nh&#7853;n ch&#7919; k&#253; v&#224; s&#7889; ti&#7873;n giao d&#7883;ch.</div>

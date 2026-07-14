@@ -58,6 +58,12 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
             }
         }
 
+        public async Task<int> CountUserQuestionsSinceAsync(int userId, DateTime sinceUtc)
+            => await _context.ChatMessages
+                .AsNoTracking()
+                .CountAsync(m => m.Role == "user"
+                    && m.CreatedAt >= sinceUtc
+                    && m.Session.UserID == userId);
         public async Task<IEnumerable<ChatMessage>> GetAllMessagesWithUserAsync()
             => await _context.ChatMessages
                 .Include(m => m.Session)

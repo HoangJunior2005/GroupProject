@@ -35,6 +35,8 @@ obj/
 
 # Package folders
 packages/
+!LearningDocumentSystem/LearningDocumentSystem.Web/Pages/Packages/
+!LearningDocumentSystem/LearningDocumentSystem.Web/Pages/Packages/**
 *.nuget.props
 *.nuget.targets
 

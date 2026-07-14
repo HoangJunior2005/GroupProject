@@ -1,9 +1,11 @@
 @page
 @model LearningDocumentSystem.Web.Pages.Chat.IndexModel
 @using LearningDocumentSystem.Business.DTOs
+@using System.Text.Json
 @{
     ViewData["Title"] = "Hỏi đáp AI";
     var subjects = Model.Subjects ?? Enumerable.Empty<SubjectDto>();
+    var allowedProviders = JsonSerializer.Serialize(Model.PackageStatus.AllowedProviders);
 }
 
 <!-- Custom Styles for Premium Chat Interface -->
@@ -698,6 +700,20 @@
         </div>
 
         <!-- Model Selector Sub-header (Antigravity IDE Style) -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 24px;background:#ecfdf5;border-bottom:1px solid #a7f3d0;font-size:.82rem;">
+            <span><strong>G&#243;i @Model.PackageStatus.CurrentPlan</strong> &middot;
+                @if (Model.PackageStatus.DailyMessageLimit.HasValue)
+                {
+                    <span>C&#242;n @Model.PackageStatus.RemainingToday / @Model.PackageStatus.DailyMessageLimit c&#226;u h&#244;m nay</span>
+                }
+                else
+                {
+                    <span>Kh&#244;ng gi&#7899;i h&#7841;n c&#226;u h&#7887;i</span>
+                }
+            </span>
+            <a asp-page="/Packages/Index" class="text-decoration-none fw-semibold">Qu&#7843;n l&#253; g&#243;i</a>
+        </div>
+
         <div class="model-selector-bar" style="display:flex; align-items:center; justify-content:space-between; padding:10px 24px; background: #f8fafc; border-bottom:1px solid #e2e8f0; position: relative; z-index: 50;">
             <div class="d-flex align-items-center gap-2">
                 <span style="font-size: 0.82rem; color: #64748b; font-weight: 600;"><i class="bi bi-cpu me-1"></i>AI Model:</span>
@@ -1235,20 +1251,12 @@
             }
             saveForm.append('__RequestVerificationToken', antiForgeryToken);
 
-            let renamePromise = Promise.resolve();
             if (isFirst) {
                 const autoTitle = userContent.split(' ').slice(0, 6).join(' ') + (userContent.split(' ').length > 6 ? '...' : '');
                 
                 if (activeSessionId === sessionId) {
                     document.getElementById('activeSessionTitle').textContent = autoTitle;
                 }
-                
-                const renameForm = new FormData();
-                renameForm.append('sessionId', sessionId);
-                renameForm.append('title', autoTitle);
-                renameForm.append('__RequestVerificationToken', antiForgeryToken);
-                
-                renamePromise = fetch('/Chat?handler=UpdateSessionTitle', { method: 'POST', body: renameForm });
             }
 
             const saveRes = await fetch('/Chat?handler=SaveMessages', { method: 'POST', body: saveForm });
@@ -1264,7 +1272,6 @@
                 }
             }
 
-            if (renamePromise) await renamePromise;
 
             if (activeSessionId === sessionId) {
                 const ind = document.getElementById('saveIndicator');
@@ -1441,6 +1448,10 @@
 
     // ── Model Provider Selector (Tab/Card style) ───────────────
     function selectModelProvider(card) {
+        if (card.classList.contains('package-locked')) {
+            window.location.href = '/Packages';
+            return;
+        }
         // Remove active state from all options
         document.querySelectorAll('#modelDropdownMenu .model-option').forEach(c => {
             c.classList.remove('active');
@@ -1487,8 +1498,19 @@
     // ── Restore model selection from localStorage ────────────────
     (function restoreModelSelection() {
         try {
+            const allowedProviders = @Html.Raw(allowedProviders);
+            document.querySelectorAll('#modelDropdownMenu .model-option').forEach(card => {
+                if (!allowedProviders.some(provider => provider.toLowerCase() === card.dataset.provider.toLowerCase())) {
+                    card.classList.add('package-locked');
+                    card.style.opacity = '0.45';
+                    card.style.cursor = 'not-allowed';
+                    const badge = card.querySelector('.model-option-badge');
+                    if (badge) badge.textContent = 'Nang cap';
+                }
+            });
+
             const saved = localStorage.getItem('lds_selected_model_provider');
-            if (saved) {
+            if (saved && allowedProviders.some(provider => provider.toLowerCase() === saved.toLowerCase())) {
                 const card = document.querySelector(`#modelDropdownMenu .model-option[data-provider="${saved}"]`);
                 if (card) {
                     selectModelProvider(card);
