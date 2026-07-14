@@ -1,24 +1,335 @@
 @page
 @model LearningDocumentSystem.Web.Pages.Packages.ReturnModel
 @{
-    ViewData["Title"] = "Ket qua thanh toan";
+    ViewData["Title"] = Model.Result.IsValid && Model.Result.IsSuccess ? "Thanh toán thành công" : "Thanh toán thất bại";
 }
 
-<div class="mx-auto" style="max-width:620px;">
-    <div class="bg-white border p-4 text-center" style="border-radius:8px;">
+<div class="payment-status-container">
+    <div class="payment-status-card">
         @if (Model.Result.IsValid && Model.Result.IsSuccess)
         {
-            <i class="bi bi-check-circle-fill text-success" style="font-size:3rem;"></i>
-            <h1 class="h4 mt-3">Thanh toan thanh cong</h1>
-            <p class="text-muted">Goi <strong>@Model.Result.PlanCode</strong> da duoc kich hoat cho tai khoan cua ban.</p>
+            <div class="success-animation">
+                <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
+                    <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                </svg>
+            </div>
+            
+            <h1 class="status-title text-success">Thanh toán thành công!</h1>
+            <p class="status-message">
+                Cảm ơn bạn đã đăng ký dịch vụ. Gói hội viên <strong>@Model.Result.PlanCode</strong> đã được kích hoạt thành công cho tài khoản của bạn.
+            </p>
         }
         else
         {
-            <i class="bi bi-x-circle-fill text-danger" style="font-size:3rem;"></i>
-            <h1 class="h4 mt-3">Thanh toan chua hoan tat</h1>
-            <p class="text-muted">@Model.Result.Message</p>
+            <div class="error-animation">
+                <svg class="crossmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle class="crossmark__circle" cx="26" cy="26" r="25" fill="none" />
+                    <path class="crossmark__check" fill="none" d="M16 16 36 36 M36 16 16 36" />
+                </svg>
+            </div>
+            
+            <h1 class="status-title text-danger">Thanh toán chưa hoàn tất</h1>
+            <p class="status-message">
+                @if (Model.Result.Message == "Giao dich chua thanh cong hoac da bi huy.")
+                {
+                    <span>Giao dịch của bạn đã bị hủy hoặc chưa được hoàn tất qua cổng thanh toán VNPay. Vui lòng thử lại.</span>
+                }
+                else
+                {
+                    <span>@Model.Result.Message</span>
+                }
+            </p>
         }
-        <div class="small text-muted mb-3">Ma giao dich: @Model.Result.TransactionReference</div>
-        <a asp-page="/Packages/Index" class="btn btn-primary">Quay lai cac goi</a>
+
+        <div class="receipt-details">
+            <div class="receipt-row">
+                <span class="receipt-label">Mã giao dịch</span>
+                <span class="receipt-value font-monospace text-break text-end ms-2">@Model.Result.TransactionReference</span>
+            </div>
+            <div class="receipt-row">
+                <span class="receipt-label">Gói đăng ký</span>
+                <span class="receipt-value text-primary">@Model.Result.PlanCode</span>
+            </div>
+            <div class="receipt-row">
+                <span class="receipt-label">Cổng thanh toán</span>
+                <span class="receipt-value">VNPay</span>
+            </div>
+            <div class="receipt-row">
+                <span class="receipt-label">Trạng thái</span>
+                @if (Model.Result.IsValid && Model.Result.IsSuccess)
+                {
+                    <span class="badge-success-custom">
+                        <i class="bi bi-check-circle-fill me-1"></i>Thành công
+                    </span>
+                }
+                else
+                {
+                    <span class="badge-danger-custom">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Chưa hoàn tất
+                    </span>
+                }
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            @if (Model.Result.IsValid && Model.Result.IsSuccess)
+            {
+                <a asp-page="/Chat/Index" class="btn-primary-premium">
+                    <i class="bi bi-chat-left-text-fill"></i>Hỏi đáp AI ngay
+                </a>
+                <a asp-page="/Packages/Index" class="btn-secondary-premium">
+                    <i class="bi bi-card-list"></i>Quản lý các gói
+                </a>
+            }
+            else
+            {
+                <a asp-page="/Packages/Index" class="btn-primary-premium" style="background: linear-gradient(135deg, var(--danger), #dc2626); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);">
+                    <i class="bi bi-arrow-repeat"></i>Thử thanh toán lại
+                </a>
+                <a asp-page="/Index" class="btn-secondary-premium">
+                    <i class="bi bi-house-door"></i>Về trang chủ
+                </a>
+            }
+        </div>
     </div>
 </div>
+
+<style>
+    .payment-status-container {
+        max-width: 580px;
+        margin: 4rem auto;
+        padding: 0 1rem;
+    }
+
+    .payment-status-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-lg);
+        padding: 3.5rem 2.5rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        transition: transform var(--transition), box-shadow var(--transition);
+    }
+
+    .payment-status-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .status-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        margin-bottom: 0.75rem;
+        letter-spacing: -0.02em;
+    }
+
+    .status-message {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+    }
+
+    /* Success Checkmark Animation */
+    .checkmark {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: block;
+        stroke-width: 3;
+        stroke: var(--success);
+        stroke-miterlimit: 10;
+        box-shadow: inset 0px 0px 0px var(--success);
+        animation: fill-success .4s ease-in-out .4s forwards, scale-up .3s ease-in-out .9s both;
+        margin: 0 auto 1.5rem;
+    }
+
+    .checkmark__circle {
+        stroke-dasharray: 166;
+        stroke-dashoffset: 166;
+        stroke-width: 3;
+        stroke-miterlimit: 10;
+        stroke: var(--success);
+        fill: none;
+        animation: stroke-anim 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+
+    .checkmark__check {
+        transform-origin: 50% 50%;
+        stroke-dasharray: 48;
+        stroke-dashoffset: 48;
+        animation: stroke-anim 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+    }
+
+    /* Error Crossmark Animation */
+    .crossmark {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: block;
+        stroke-width: 3;
+        stroke: var(--danger);
+        stroke-miterlimit: 10;
+        box-shadow: inset 0px 0px 0px var(--danger);
+        animation: fill-danger .4s ease-in-out .4s forwards, scale-up .3s ease-in-out .9s both;
+        margin: 0 auto 1.5rem;
+    }
+
+    .crossmark__circle {
+        stroke-dasharray: 166;
+        stroke-dashoffset: 166;
+        stroke-width: 3;
+        stroke-miterlimit: 10;
+        stroke: var(--danger);
+        fill: none;
+        animation: stroke-anim 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+
+    .crossmark__check {
+        transform-origin: 50% 50%;
+        stroke-dasharray: 48;
+        stroke-dashoffset: 48;
+        animation: stroke-anim 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+    }
+
+    @@keyframes stroke-anim {
+        100% {
+            stroke-dashoffset: 0;
+        }
+    }
+
+    @@keyframes scale-up {
+        0%, 100% {
+            transform: none;
+        }
+        50% {
+            transform: scale3d(1.15, 1.15, 1);
+        }
+    }
+
+    @@keyframes fill-success {
+        100% {
+            box-shadow: inset 0px 0px 0px 40px rgba(16, 185, 129, 0.1);
+        }
+    }
+
+    @@keyframes fill-danger {
+        100% {
+            box-shadow: inset 0px 0px 0px 40px rgba(239, 68, 68, 0.1);
+        }
+    }
+
+    /* Receipt Details */
+    .receipt-details {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 1.5rem;
+        margin: 2rem 0;
+        text-align: left;
+    }
+
+    .receipt-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px dashed var(--border);
+        font-size: 0.9rem;
+    }
+
+    .receipt-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .receipt-row:first-child {
+        padding-top: 0;
+    }
+
+    .receipt-label {
+        color: var(--text-secondary);
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .receipt-value {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .badge-success-custom {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .badge-danger-custom {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+
+    .btn-primary-premium {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white !important;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-decoration: none;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+        transition: all var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-secondary-premium {
+        background: var(--surface);
+        color: var(--text-secondary) !important;
+        border: 1px solid var(--border);
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-decoration: none;
+        transition: all var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-secondary-premium:hover {
+        background: var(--surface-2);
+        color: var(--text-primary) !important;
+        border-color: var(--text-muted);
+        transform: translateY(-2px);
+    }
+</style>
