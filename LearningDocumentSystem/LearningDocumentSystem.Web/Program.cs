@@ -113,6 +113,7 @@ builder.Services.AddScoped<ILLMProviderFactory, LLMProviderFactory>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IPackageService, PackageService>();
 builder.Services.AddScoped<IVnpayService, VnpayService>();
+builder.Services.AddScoped<IBenchmarkService, BenchmarkService>();
 
 // Seeder
 builder.Services.AddScoped<DataSeeder>();

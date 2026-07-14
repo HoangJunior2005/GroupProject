@@ -28,6 +28,7 @@ namespace LearningDocumentSystem.Data.Seeders
                 await SeedUsersAsync();
                 await SeedSubjectsAsync();
                 await SeedDocumentsAsync();
+                await SeedChatSessionsAndMessagesAsync();
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("✅ Database seeded successfully.");
@@ -288,6 +289,147 @@ namespace LearningDocumentSystem.Data.Seeders
             await _context.Documents.AddRangeAsync(documents);
             await _context.SaveChangesAsync();
             _logger.LogInformation("✅ Seeded {Count} historical documents successfully.", documents.Count);
+        }
+
+        private async Task SeedChatSessionsAndMessagesAsync()
+        {
+            if (await _context.ChatSessions.AnyAsync())
+            {
+                _logger.LogInformation("Clearing old chat history to seed realistic dashboard data...");
+                _context.ChatMessages.RemoveRange(_context.ChatMessages);
+                _context.ChatSessions.RemoveRange(_context.ChatSessions);
+                await _context.SaveChangesAsync();
+            }
+
+            _logger.LogInformation("Seeding historical ChatSessions and ChatMessages for Benchmarks...");
+
+            var students = await _context.Users
+                .Where(u => u.UserRoles.Any(ur => ur.Role.RoleName == "Student"))
+                .ToListAsync();
+
+            if (!students.Any())
+            {
+                _logger.LogWarning("No student users found. Cannot seed chat messages.");
+                return;
+            }
+
+            var now = DateTime.UtcNow;
+            var random = new Random(101);
+
+            var providers = new[] { "Gemini", "OpenAI", "Groq" };
+            var models = new Dictionary<string, string[]>
+            {
+                { "Gemini", new[] { "gemini-2.5-flash", "gemini-1.5-pro" } },
+                { "OpenAI", new[] { "gpt-4o-mini", "gpt-4o" } },
+                { "Groq", new[] { "llama-3.1-8b-instant", "mixtral-8x7b-32768" } }
+            };
+
+            var sampleQueries = new[]
+            {
+                "Biến cấu trúc trong C# là gì?",
+                "Sự khác biệt giữa Struct và Class?",
+                "Cách sử dụng vòng lặp foreach trong C#?",
+                "Mảng 2 chiều khai báo thế nào?",
+                "Hàm tạo (constructor) dùng làm gì?",
+                "Từ khóa static có ý nghĩa gì?",
+                "Cách dùng List trong .NET?",
+                "StringBuilder khác gì String?",
+                "Xử lý ngoại lệ với try-catch ra sao?",
+                "Interface và Abstract Class khác nhau thế nào?",
+                "LINQ Select và Where hoạt động thế nào?",
+                "Lập trình bất đồng bộ async/await là gì?"
+            };
+
+            var sampleAnswers = new[]
+            {
+                "Biến cấu trúc (struct) trong C# là kiểu dữ liệu tham trị (value type)...",
+                "Struct là kiểu tham trị lưu trên Stack, còn Class là kiểu tham chiếu lưu trên Heap...",
+                "Vòng lặp foreach dùng để duyệt qua các phần tử của một tập hợp có triển khai IEnumerable...",
+                "Mảng hai chiều được khai báo bằng cú pháp: int[,] matrix = new int[row, col]...",
+                "Hàm tạo (Constructor) là phương thức đặc biệt dùng để khởi tạo đối tượng khi được tạo bằng từ khóa new...",
+                "Static khai báo thành viên tĩnh, thuộc về lớp chứ không thuộc về thực thể đối tượng cụ thể...",
+                "List<T> là một collection động trong C# cho phép thêm, xóa phần tử dễ dàng...",
+                "StringBuilder cho phép thay đổi chuỗi mà không tạo ra đối tượng mới trong bộ nhớ, hiệu quả hơn String...",
+                "Try-catch dùng để bắt và xử lý các Exception có thể xảy ra trong khối lệnh try...",
+                "Interface chỉ chứa định nghĩa phương thức, còn Abstract Class có thể chứa cả triển khai thực tế...",
+                "Select dùng để biến đổi kiểu dữ liệu, còn Where dùng để lọc các phần tử thỏa mãn điều kiện...",
+                "Async/await giúp chạy các tác vụ bất đồng bộ mà không làm nghẽn luồng chính của ứng dụng..."
+            };
+
+            var chatSessions = new List<ChatSession>();
+            var chatMessages = new List<ChatMessage>();
+
+            for (int i = 0; i < 6; i++)
+            {
+                var monthDate = now.AddMonths(-i);
+                int sessionCount = random.Next(8, 15);
+                for (int s = 0; s < sessionCount; s++)
+                {
+                    var student = students[random.Next(students.Count)];
+                    var createdDate = new DateTime(monthDate.Year, monthDate.Month, random.Next(1, 28), random.Next(0, 24), random.Next(0, 60), 0, DateTimeKind.Utc);
+
+                    var session = new ChatSession
+                    {
+                        UserID = student.UserID,
+                        Title = $"Học tập tháng {createdDate.Month}/{createdDate.Year} - {s + 1}",
+                        CreatedAt = createdDate,
+                        UpdatedAt = createdDate
+                    };
+                    chatSessions.Add(session);
+
+                    int turnCount = random.Next(1, 4);
+                    for (int t = 0; t < turnCount; t++)
+                    {
+                        var queryIdx = random.Next(sampleQueries.Length);
+                        var userMsgTime = createdDate.AddSeconds(t * 60);
+                        var assistantMsgTime = userMsgTime.AddSeconds(random.Next(1, 5));
+
+                        var provider = providers[random.Next(providers.Length)];
+                        var modelList = models[provider];
+                        var model = modelList[random.Next(modelList.Length)];
+
+                        // User message
+                        var userMsg = new ChatMessage
+                        {
+                            Session = session,
+                            Role = "user",
+                            Content = sampleQueries[queryIdx],
+                            CreatedAt = userMsgTime
+                        };
+                        chatMessages.Add(userMsg);
+
+                        // Assistant message (LLM response)
+                        int? feedback = null;
+                        int rVal = random.Next(100);
+                        if (rVal < 70) feedback = 1;
+                        else if (rVal < 85) feedback = -1;
+
+                        int promptTokens = random.Next(300, 1000);
+                        int completionTokens = random.Next(150, 700);
+                        double latency = random.Next(400, 2200);
+
+                        var assistantMsg = new ChatMessage
+                        {
+                            Session = session,
+                            Role = "assistant",
+                            Content = sampleAnswers[queryIdx],
+                            ProviderName = provider,
+                            ModelName = model,
+                            Feedback = feedback,
+                            PromptTokens = promptTokens,
+                            CompletionTokens = completionTokens,
+                            ExecutionTimeMs = latency,
+                            CreatedAt = assistantMsgTime
+                        };
+                        chatMessages.Add(assistantMsg);
+                    }
+                }
+            }
+
+            await _context.ChatSessions.AddRangeAsync(chatSessions);
+            await _context.ChatMessages.AddRangeAsync(chatMessages);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("✅ Seeded {SessionCount} ChatSessions and {MessageCount} ChatMessages successfully.", chatSessions.Count, chatMessages.Count);
         }
     }
 }

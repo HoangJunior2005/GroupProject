@@ -127,4 +127,13 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
         string CreatePaymentUrl(PackagePlanDto plan, int userId, string ipAddress, string returnUrl);
         VnpayPaymentResultDto ValidatePayment(IQueryCollection query);
     }
+
+    public interface IBenchmarkService
+    {
+        /// <summary>Lấy toàn bộ dữ liệu cho Benchmark Dashboard (KPI + Charts)</summary>
+        Task<BenchmarkDashboardDto> GetDashboardDataAsync();
+
+        /// <summary>Chạy thử nghiệm truy xuất side-by-side cho một câu hỏi</summary>
+        Task<List<PlaygroundResultDto>> RunPlaygroundAsync(string question, int? subjectId, int? chapterId);
+    }
 }

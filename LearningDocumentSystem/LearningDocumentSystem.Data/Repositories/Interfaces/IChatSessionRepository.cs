@@ -27,5 +27,10 @@ namespace LearningDocumentSystem.Data.Repositories.Interfaces
         Task UpdateMessageFeedbackAsync(int messageId, int feedback);
 
         Task<int> CountUserQuestionsSinceAsync(int userId, DateTime sinceUtc);
+        /// <summary>Lấy toàn bộ ChatMessage kèm Session + User — dùng cho analytics.</summary>
+        Task<IEnumerable<ChatMessage>> GetAllMessagesWithUserAsync();
+
+        /// <summary>Lấy tổng số sessions.</summary>
+        Task<int> GetTotalSessionCountAsync();
     }
 }

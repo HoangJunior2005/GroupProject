@@ -81,6 +81,11 @@
                             <i class="bi bi-box-seam-fill"></i> Qu&#7843;n l&#253; g&#243;i
                         </a>
                     </li>
+                    <li class="@(activePage.StartsWith("/Admin/Benchmarks") ? "active" : "")">
+                        <a asp-page="/Admin/Benchmarks">
+                            <i class="bi bi-bar-chart-line-fill"></i> Thống kê hoạt động
+                        </a>
+                    </li>
                 }
 
                 @if (User.IsInRole("Admin") || User.IsInRole("Teacher") || User.IsInRole("Student"))
@@ -222,6 +227,13 @@ else
         connection.on("ReceiveNotification", (messageType, payload) => {
             console.log("Realtime notification received:", messageType, payload);
             
+            // Skip showing toast alert for internal dashboard updates (e.g. chat usage metrics)
+            if (messageType === "DashboardUpdated") {
+                const event = new CustomEvent("realtimeUpdate", { detail: { messageType, payload } });
+                document.dispatchEvent(event);
+                return;
+            }
+
             if (typeof Swal !== 'undefined') {
                 const Toast = Swal.mixin({
                     toast: true,

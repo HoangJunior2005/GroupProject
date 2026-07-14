@@ -64,5 +64,14 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
                 .CountAsync(m => m.Role == "user"
                     && m.CreatedAt >= sinceUtc
                     && m.Session.UserID == userId);
+        public async Task<IEnumerable<ChatMessage>> GetAllMessagesWithUserAsync()
+            => await _context.ChatMessages
+                .Include(m => m.Session)
+                    .ThenInclude(s => s.User)
+                .OrderByDescending(m => m.CreatedAt)
+                .ToListAsync();
+
+        public async Task<int> GetTotalSessionCountAsync()
+            => await _context.ChatSessions.CountAsync();
     }
 }
