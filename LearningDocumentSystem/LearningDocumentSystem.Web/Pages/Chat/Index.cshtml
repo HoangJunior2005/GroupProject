@@ -1251,20 +1251,12 @@
             }
             saveForm.append('__RequestVerificationToken', antiForgeryToken);
 
-            let renamePromise = Promise.resolve();
             if (isFirst) {
                 const autoTitle = userContent.split(' ').slice(0, 6).join(' ') + (userContent.split(' ').length > 6 ? '...' : '');
                 
                 if (activeSessionId === sessionId) {
                     document.getElementById('activeSessionTitle').textContent = autoTitle;
                 }
-                
-                const renameForm = new FormData();
-                renameForm.append('sessionId', sessionId);
-                renameForm.append('title', autoTitle);
-                renameForm.append('__RequestVerificationToken', antiForgeryToken);
-                
-                renamePromise = fetch('/Chat?handler=UpdateSessionTitle', { method: 'POST', body: renameForm });
             }
 
             const saveRes = await fetch('/Chat?handler=SaveMessages', { method: 'POST', body: saveForm });
@@ -1280,7 +1272,6 @@
                 }
             }
 
-            if (renamePromise) await renamePromise;
 
             if (activeSessionId === sessionId) {
                 const ind = document.getElementById('saveIndicator');

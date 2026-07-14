@@ -295,10 +295,7 @@ namespace LearningDocumentSystem.Data.Seeders
         {
             if (await _context.ChatSessions.AnyAsync())
             {
-                _logger.LogInformation("Clearing old chat history to seed realistic dashboard data...");
-                _context.ChatMessages.RemoveRange(_context.ChatMessages);
-                _context.ChatSessions.RemoveRange(_context.ChatSessions);
-                await _context.SaveChangesAsync();
+                return;
             }
 
             _logger.LogInformation("Seeding historical ChatSessions and ChatMessages for Benchmarks...");
