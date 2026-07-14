@@ -865,16 +865,8 @@
     }
 
     function updateChatLockState() {
-        const subjectSelect = document.getElementById('chatSubjectSelect');
-        const subjectId = subjectSelect.value;
-        
         if (!activeSessionId) {
             setChatLocked(true, 'Chọn hoặc tạo phiên hội thoại trước...');
-            return;
-        }
-        
-        if (!subjectId) {
-            setChatLocked(true, 'Vui lòng chọn môn học ở cột trái để bắt đầu hỏi đáp...');
             return;
         }
         
@@ -1032,7 +1024,7 @@
                 <div class="message assistant" id="welcomeMessage">
                     <div class="message-avatar">AI</div>
                     <div class="message-content">
-                        <p>Phiên mới đã được tạo! Hãy chọn môn học ở cột trái và nhập câu hỏi để bắt đầu. 🚀</p>
+                        <p>Phiên mới đã được tạo! Bạn có thể nhập câu hỏi để bắt đầu trò chuyện ngay, hoặc chọn môn học ở cột trái để giới hạn phạm vi tìm kiếm tài liệu. 🚀</p>
                     </div>
                 </div>`;
 
