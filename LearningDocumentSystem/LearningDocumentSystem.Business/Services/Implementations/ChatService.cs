@@ -186,6 +186,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                     contextBuilder.AppendLine($"[PHẠM VI ĐANG CHỌN]: {subName}{chapName}");
                 }
 
+                bool isFirstSource = true;
                 foreach (var item in validChunks)
                 {
                     var source = new ChatSourceDto
@@ -198,7 +199,12 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                             ? item.Chunk.ContentText[..300] + "..."
                             : item.Chunk.ContentText
                     };
-                    response.Sources.Add(source);
+                    
+                    if (isFirstSource)
+                    {
+                        response.Sources.Add(source);
+                        isFirstSource = false;
+                    }
                     
                     contextBuilder.AppendLine($"[Tài liệu: {source.DocumentTitle}, Trang {source.PageNumber?.ToString() ?? "N/A"}]: {item.Chunk.ContentText}");
                 }
