@@ -24,6 +24,7 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
         private IDocumentConflictRepository? _documentConflicts;
         private ISystemChunkSettingRepository? _systemChunkSettings;
         private IPaymentTransactionRepository? _paymentTransactions;
+        private IPackagePlanRepository? _packagePlans;
 
         public UnitOfWork(AppDbContext context)
         {
@@ -43,6 +44,7 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
         public IDocumentConflictRepository DocumentConflicts => _documentConflicts ??= new DocumentConflictRepository(_context);
         public ISystemChunkSettingRepository SystemChunkSettings => _systemChunkSettings ??= new SystemChunkSettingRepository(_context);
         public IPaymentTransactionRepository PaymentTransactions => _paymentTransactions ??= new PaymentTransactionRepository(_context);
+        public IPackagePlanRepository PackagePlans => _packagePlans ??= new PackagePlanRepository(_context);
 
         public async Task<int> SaveChangesAsync() => await _context.SaveChangesAsync();
 

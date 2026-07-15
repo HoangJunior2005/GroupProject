@@ -17,6 +17,7 @@ namespace LearningDocumentSystem.Data.Repositories.Interfaces
         IDocumentConflictRepository DocumentConflicts { get; }
         ISystemChunkSettingRepository SystemChunkSettings { get; }
         IPaymentTransactionRepository PaymentTransactions { get; }
+        IPackagePlanRepository PackagePlans { get; }
 
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();

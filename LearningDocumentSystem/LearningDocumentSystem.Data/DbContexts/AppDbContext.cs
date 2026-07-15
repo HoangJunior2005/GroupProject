@@ -22,6 +22,7 @@ namespace LearningDocumentSystem.Data.DbContexts
         public DbSet<DocumentConflict> DocumentConflicts { get; set; } = null!;
         public DbSet<SystemChunkSetting> SystemChunkSettings { get; set; } = null!;
         public DbSet<PaymentTransaction> PaymentTransactions { get; set; } = null!;
+        public DbSet<PackagePlan> PackagePlans { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -321,6 +322,24 @@ namespace LearningDocumentSystem.Data.DbContexts
 
                 entity.HasIndex(dc => dc.DocumentID).HasDatabaseName("IX_DocumentConflicts_DocumentID");
                 entity.HasIndex(dc => dc.ConflictingDocumentID).HasDatabaseName("IX_DocumentConflicts_ConflictingDocumentID");
+            });
+
+            // ============================================================
+            // BẢNG PackagePlans
+            // ============================================================
+            modelBuilder.Entity<PackagePlan>(entity =>
+            {
+                entity.ToTable("PackagePlans");
+                entity.HasKey(p => p.PackagePlanID);
+                entity.Property(p => p.PackagePlanID).UseIdentityColumn();
+                entity.Property(p => p.Code).IsRequired().HasMaxLength(50);
+                entity.Property(p => p.Name).IsRequired().HasMaxLength(100);
+                entity.Property(p => p.Price).IsRequired().HasColumnType("decimal(18,2)");
+                entity.Property(p => p.AllowedProvidersJson).IsRequired().HasColumnType("nvarchar(max)");
+                entity.Property(p => p.FeaturesJson).IsRequired().HasColumnType("nvarchar(max)");
+                entity.Property(p => p.IsActive).HasDefaultValue(true);
+                entity.Property(p => p.DisplayOrder).HasDefaultValue(0);
+                entity.HasIndex(p => p.Code).IsUnique().HasDatabaseName("IX_PackagePlans_Code");
             });
 
             // ============================================================
