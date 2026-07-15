@@ -4,6 +4,118 @@
     ViewData["Title"] = "Dashboard";
 }
 
+<style>
+    .rev-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    .rev-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .rev-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .rev-card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    .icon-revenue { background: #ecfdf5; color: #059669; }
+    .icon-tx { background: #eff6ff; color: #2563eb; }
+    .icon-monthly { background: #fdf2f8; color: #db2777; }
+    .icon-avg { background: #fff7ed; color: #ea580c; }
+    .rev-card-info h6 {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+    .rev-card-info h3 {
+        margin: 5px 0 0 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .rev-filter-bar {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .rev-grid-2 {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    @@media (max-width: 1024px) {
+        .rev-grid-2 {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .rev-chart-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        margin-bottom: 1.5rem;
+    }
+    .rev-chart-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 0.75rem;
+    }
+    .rev-chart-card-header h5 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .badge-plus { background-color: #3b82f6; color: white; }
+    .badge-pro { background-color: #8b5cf6; color: white; }
+    .badge-free { background-color: #64748b; color: white; }
+
+    .rev-table-panel {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        overflow: hidden;
+    }
+</style>
+
 <!-- Page Header -->
 <div class="page-header">
     <div>
@@ -84,116 +196,333 @@
 
 @if (!User.IsInRole("Admin"))
 {
-<!-- Index Status + Recent Docs -->
-<div class="row g-4" id="dashboard-status-docs-panel">
-    <div class="col-lg-5">
-        <div class="card-custom">
-            <div class="card-custom-header">
-                <h5><i class="bi bi-bar-chart-fill me-2"></i>Trạng thái xử lý</h5>
+    <!-- Index Status + Recent Docs -->
+    <div class="row g-4" id="dashboard-status-docs-panel">
+        <div class="col-lg-5">
+            <div class="card-custom">
+                <div class="card-custom-header">
+                    <h5><i class="bi bi-bar-chart-fill me-2"></i>Trạng thái xử lý</h5>
+                </div>
+                <div class="card-custom-body">
+                    @{
+                        void StatusRow(string label, int count, string color) {
+                            var pct = Model.Dashboard.TotalDocuments > 0 ? count * 100 / Model.Dashboard.TotalDocuments : 0;
+                            <div class="status-item mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="status-label">
+                                        <span class="status-dot @color"></span> @label
+                                    </span>
+                                    <strong>@count</strong>
+                                </div>
+                                <div class="progress progress-custom">
+                                    <div class="progress-bar @color" style="width: @pct%"></div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    @{ StatusRow("Đã index",    Model.Dashboard.IndexedDocuments,    "bg-success"); }
+                    @{ StatusRow("Chờ xử lý",  Model.Dashboard.PendingDocuments,    "bg-warning"); }
+                    @{ StatusRow("Đang xử lý", Model.Dashboard.ProcessingDocuments,  "bg-info");    }
+                    @{ StatusRow("Thất bại",   Model.Dashboard.FailedDocuments,     "bg-danger");  }
+
+                    <div class="ai-ready-badge mt-4">
+                        <i class="bi bi-cpu-fill me-2"></i>
+                        <span><strong>@Model.Dashboard.TotalChunks</strong> chunks sẵn sàng cho AI/RAG</span>
+                    </div>
+                </div>
             </div>
-            <div class="card-custom-body">
-                @{
-                    void StatusRow(string label, int count, string color) {
-                        var pct = Model.Dashboard.TotalDocuments > 0 ? count * 100 / Model.Dashboard.TotalDocuments : 0;
-                        <div class="status-item mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="status-label">
-                                    <span class="status-dot @color"></span> @label
-                                </span>
-                                <strong>@count</strong>
-                            </div>
-                            <div class="progress progress-custom">
-                                <div class="progress-bar @color" style="width: @pct%"></div>
-                            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card-custom">
+                <div class="card-custom-header">
+                    <h5><i class="bi bi-clock-history me-2"></i>Tài liệu gần đây</h5>
+                    <a asp-page="/Documents/Index" class="btn btn-sm btn-outline-primary">
+                        Xem tất cả <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-custom-body p-0">
+                    @if (!Model.Dashboard.RecentDocuments.Any())
+                    {
+                        <div class="empty-state py-5">
+                            <i class="bi bi-inbox"></i>
+                            <p>Chưa có tài liệu nào</p>
                         </div>
                     }
-                }
-                @{ StatusRow("Đã index",    Model.Dashboard.IndexedDocuments,    "bg-success"); }
-                @{ StatusRow("Chờ xử lý",  Model.Dashboard.PendingDocuments,    "bg-warning"); }
-                @{ StatusRow("Đang xử lý", Model.Dashboard.ProcessingDocuments,  "bg-info");    }
-                @{ StatusRow("Thất bại",   Model.Dashboard.FailedDocuments,     "bg-danger");  }
-
-                <div class="ai-ready-badge mt-4">
-                    <i class="bi bi-cpu-fill me-2"></i>
-                    <span><strong>@Model.Dashboard.TotalChunks</strong> chunks sẵn sàng cho AI/RAG</span>
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover table-clean mb-0 align-middle">
+                                <thead class="table-light text-uppercase text-muted" style="font-size: 0.75rem; letter-spacing: 0.05em;">
+                                    <tr>
+                                        <th>Tài liệu</th>
+                                        <th>Loại</th>
+                                        <th>Trạng thái</th>
+                                        <th>Ngày upload</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var doc in Model.Dashboard.RecentDocuments)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <a asp-page="/Documents/Detail" asp-route-id="@doc.DocumentID" class="doc-link">
+                                                    @doc.Title
+                                                </a>
+                                                <div class="doc-meta">@doc.SubjectName › @doc.ChapterName</div>
+                                            </td>
+                                            <td>
+                                                <span class="badge @(doc.FileType == "pdf" ? "bg-danger" : doc.FileType == "docx" ? "bg-primary" : "bg-warning text-dark") rounded-pill">
+                                                    @doc.FileType.ToUpper()
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @{
+                                                    var (cls, ico, txt) = doc.IndexStatus switch {
+                                                        "Indexed"    => ("success", "check-circle-fill", "Indexed"),
+                                                        "Processing" => ("info",    "hourglass-split",   "Processing"),
+                                                        "Failed"     => ("danger",  "x-circle-fill",     "Failed"),
+                                                        _            => ("warning", "clock",              "Pending")
+                                                    };
+                                                }
+                                                <span class="badge bg-@cls-subtle text-@cls border border-@cls-subtle">
+                                                    <i class="bi bi-@ico me-1"></i>@txt
+                                                </span>
+                                            </td>
+                                            <td class="text-muted small">@doc.UploadedAt.ToString("dd/MM HH:mm")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="col-lg-7">
-        <div class="card-custom">
-            <div class="card-custom-header">
-                <h5><i class="bi bi-clock-history me-2"></i>Tài liệu gần đây</h5>
-                <a asp-page="/Documents/Index" class="btn btn-sm btn-outline-primary">
-                    Xem tất cả <i class="bi bi-arrow-right ms-1"></i>
-                </a>
+}
+else
+{
+    <!-- Admin Revenue Section integrated directly into Dashboard -->
+    <div id="revenue-section" class="mt-4 pt-2">
+        <h4 class="mb-3 fw-bold text-dark"><i class="bi bi-cash-coin me-2 text-primary"></i>Thống kê doanh thu mua gói</h4>
+        
+        <!-- KPI Cards -->
+        <div class="rev-kpi-grid">
+            <div class="rev-card">
+                <div class="rev-card-icon icon-revenue">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+                <div class="rev-card-info">
+                    <h6>Tổng doanh thu tích lũy</h6>
+                    <h3>@Model.RevenueDashboard.TotalRevenue.ToString("N0") ₫</h3>
+                </div>
             </div>
-            <div class="card-custom-body p-0">
-                @if (!Model.Dashboard.RecentDocuments.Any())
-                {
-                    <div class="empty-state py-5">
-                        <i class="bi bi-inbox"></i>
-                        <p>Chưa có tài liệu nào</p>
+            <div class="rev-card">
+                <div class="rev-card-icon icon-tx">
+                    <i class="bi bi-credit-card"></i>
+                </div>
+                <div class="rev-card-info">
+                    <h6>Tổng giao dịch thành công</h6>
+                    <h3>@Model.RevenueDashboard.TotalTransactions</h3>
+                </div>
+            </div>
+            <div class="rev-card">
+                <div class="rev-card-icon icon-monthly">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+                <div class="rev-card-info">
+                    @{
+                        var yearlyTotal = Model.RevenueDashboard.MonthlyRevenue.Sum(m => m.Revenue);
+                    }
+                    <h6>Doanh thu năm @Model.SelectedYear</h6>
+                    <h3>@yearlyTotal.ToString("N0") ₫</h3>
+                </div>
+            </div>
+            <div class="rev-card">
+                <div class="rev-card-icon icon-avg">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+                <div class="rev-card-info">
+                    @{
+                        var activeMonth = Model.RevenueDashboard.MonthlyRevenue.FirstOrDefault(m => m.Label == $"Tháng {Model.SelectedMonth:D2}");
+                        var activeMonthRevenue = activeMonth?.Revenue ?? 0;
+                    }
+                    <h6>Doanh thu tháng @Model.SelectedMonth/@Model.SelectedYear</h6>
+                    <h3>@activeMonthRevenue.ToString("N0") ₫</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="rev-filter-bar">
+            <div class="d-flex align-items-center gap-2">
+                <strong>Bộ lọc thời gian:</strong>
+                <span class="badge bg-light text-dark border">
+                    Tháng @Model.SelectedMonth.Value.ToString("D2") Năm @Model.SelectedYear
+                </span>
+            </div>
+            <form method="get" class="d-flex align-items-center gap-2 m-0">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light"><i class="bi bi-calendar-event"></i></span>
+                    <select class="form-select" name="SelectedMonth" asp-for="SelectedMonth">
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            <option value="@m">Tháng @m.ToString("D2")</option>
+                        }
+                    </select>
+                </div>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light"><i class="bi bi-calendar3"></i></span>
+                    <select class="form-select" name="SelectedYear" asp-for="SelectedYear">
+                        @foreach (var year in Model.AvailableYears)
+                        {
+                            <option value="@year">Năm @year</option>
+                        }
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary px-3">
+                    <i class="bi bi-filter me-1"></i>Lọc
+                </button>
+            </form>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="rev-grid-2">
+            <!-- Left Column: Daily & Monthly Revenue -->
+            <div>
+                <div class="rev-chart-card">
+                    <div class="rev-chart-card-header">
+                        <h5><i class="bi bi-bar-chart-fill text-primary"></i> Doanh thu theo Ngày (Tháng @Model.SelectedMonth.Value.ToString("D2")/@Model.SelectedYear)</h5>
+                        <span class="text-muted small">Cập nhật theo ngày</span>
                     </div>
-                }
-                else
-                {
-                    <div class="table-responsive">
-                        <table class="table table-hover table-clean mb-0 align-middle">
-                            <thead class="table-light text-uppercase text-muted" style="font-size: 0.75rem; letter-spacing: 0.05em;">
+                    <div style="position: relative; height: 320px; width: 100%;">
+                        <canvas id="dailyRevenueChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="rev-chart-card">
+                    <div class="rev-chart-card-header">
+                        <h5><i class="bi bi-bar-chart-fill text-info"></i> Doanh thu theo Tháng (Năm @Model.SelectedYear)</h5>
+                        <span class="text-muted small">12 tháng trong năm</span>
+                    </div>
+                    <div style="position: relative; height: 320px; width: 100%;">
+                        <canvas id="monthlyRevenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Yearly Revenue & Package Distribution -->
+            <div>
+                <div class="rev-chart-card">
+                    <div class="rev-chart-card-header">
+                        <h5><i class="bi bi-bar-chart-fill text-success"></i> Doanh thu theo Năm</h5>
+                        <span class="text-muted small">Tổng quát qua các năm</span>
+                    </div>
+                    <div style="position: relative; height: 250px; width: 100%;">
+                        <canvas id="yearlyRevenueChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="rev-chart-card">
+                    <div class="rev-chart-card-header">
+                        <h5><i class="bi bi-pie-chart-fill text-warning"></i> Cơ cấu doanh số</h5>
+                        <span class="text-muted small">Tỷ lệ theo Gói dịch vụ</span>
+                    </div>
+                    <div style="position: relative; height: 250px; width: 100%; display: flex; align-items: center; justify-content: center;">
+                        <canvas id="packageDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions Table -->
+        <div class="rev-table-panel mb-4">
+            <div class="admin-panel-header px-4 py-3 border-bottom d-flex justify-content-between align-items-center">
+                <strong class="fs-5"><i class="bi bi-clock-history me-2 text-secondary"></i>Các giao dịch thành công trong tháng @Model.SelectedMonth.Value.ToString("D2")/@Model.SelectedYear</strong>
+                <span class="badge bg-success-subtle text-success border">Bộ lọc áp dụng</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Mã giao dịch</th>
+                            <th>Sinh viên</th>
+                            <th>Tên tài khoản</th>
+                            <th>Gói dịch vụ</th>
+                            <th>Số tiền</th>
+                            <th>Thời gian</th>
+                            <th class="pe-4 text-end">Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.RevenueDashboard.RecentTransactions.Any())
+                        {
+                            foreach (var tx in Model.RevenueDashboard.RecentTransactions)
+                            {
                                 <tr>
-                                    <th>Tài liệu</th>
-                                    <th>Loại</th>
-                                    <th>Trạng thái</th>
-                                    <th>Ngày upload</th>
+                                    <td class="ps-4"><code class="small text-dark fw-bold">@tx.TransactionReference</code></td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="avatar-sm bg-light text-secondary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width:30px;height:30px;font-size:0.85rem">
+                                                @tx.UserFullName.Substring(0, 1).ToUpper()
+                                            </div>
+                                            <span>@tx.UserFullName</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="text-muted small">@@@tx.Username</span></td>
+                                    <td>
+                                        @if (tx.PlanCode == "Pro")
+                                        {
+                                            <span class="badge badge-pro">PRO</span>
+                                        }
+                                        else if (tx.PlanCode == "Plus")
+                                        {
+                                            <span class="badge badge-plus">PLUS</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-free">FREE</span>
+                                        }
+                                    </td>
+                                    <td class="fw-semibold">@tx.Amount.ToString("N0") ₫</td>
+                                    <td><span class="text-muted small">@tx.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></td>
+                                    <td class="pe-4 text-end">
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle-fill me-1"></i>Thành công</span>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var doc in Model.Dashboard.RecentDocuments)
-                                {
-                                    <tr>
-                                        <td>
-                                            <a asp-page="/Documents/Detail" asp-route-id="@doc.DocumentID" class="doc-link">
-                                                @doc.Title
-                                            </a>
-                                            <div class="doc-meta">@doc.SubjectName › @doc.ChapterName</div>
-                                        </td>
-                                        <td>
-                                            <span class="badge @(doc.FileType == "pdf" ? "bg-danger" : doc.FileType == "docx" ? "bg-primary" : "bg-warning text-dark") rounded-pill">
-                                                @doc.FileType.ToUpper()
-                                            </span>
-                                        </td>
-                                        <td>
-                                            @{
-                                                var (cls, ico, txt) = doc.IndexStatus switch {
-                                                    "Indexed"    => ("success", "check-circle-fill", "Indexed"),
-                                                    "Processing" => ("info",    "hourglass-split",   "Processing"),
-                                                    "Failed"     => ("danger",  "x-circle-fill",     "Failed"),
-                                                    _            => ("warning", "clock",              "Pending")
-                                                };
-                                            }
-                                            <span class="badge bg-@cls-subtle text-@cls border border-@cls-subtle">
-                                                <i class="bi bi-@ico me-1"></i>@txt
-                                            </span>
-                                        </td>
-                                        <td class="text-muted small">@doc.UploadedAt.ToString("dd/MM HH:mm")</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">
+                                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                    Không có giao dịch thành công nào trong tháng này.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-</div>
 }
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Scroll to revenue section if requested in URL query
+            if (window.location.search.includes('showRevenue=true')) {
+                const el = document.getElementById('revenue-section');
+                if (el) {
+                    setTimeout(() => {
+                        el.scrollIntoView({ behavior: 'smooth' });
+                    }, 300);
+                }
+            }
+
             const ctx = document.getElementById('monthlyUploadChart').getContext('2d');
 
             const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Dashboard.MonthlyUploads.Select(m => m.Label)));
@@ -346,13 +675,212 @@
                 });
             }
 
+            @if (User.IsInRole("Admin"))
+            {
+                <text>
+                // Colors
+                const colorBlue = '#2563eb';
+                const colorIndigo = '#4f46e5';
+                const colorEmerald = '#10b981';
+                const colorSky = '#0ea5e9';
+                const colorViolet = '#8b5cf6';
+
+                // 1. Daily Revenue Chart
+                const dailyLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RevenueDashboard.DailyRevenue.Select(d => d.Label)));
+                const dailyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RevenueDashboard.DailyRevenue.Select(d => d.Revenue)));
+                
+                new Chart(document.getElementById('dailyRevenueChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: dailyLabels,
+                        datasets: [{
+                            label: 'Doanh thu ngày (VND)',
+                            data: dailyData,
+                            backgroundColor: colorBlue,
+                            hoverBackgroundColor: '#1d4ed8',
+                            borderRadius: 4,
+                            barThickness: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return ' ' + context.parsed.y.toLocaleString('vi-VN') + ' ₫';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                grid: { borderDash: [4, 4], color: '#f1f5f9' },
+                                ticks: {
+                                    callback: function(value) {
+                                        if (value >= 1000000) return (value / 1000000) + 'M';
+                                        if (value >= 1000) return (value / 1000) + 'k';
+                                        return value;
+                                    }
+                                }
+                            },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+
+                // 2. Monthly Revenue Chart
+                const monthlyLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RevenueDashboard.MonthlyRevenue.Select(m => m.Label)));
+                const monthlyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RevenueDashboard.MonthlyRevenue.Select(m => m.Revenue)));
+
+                new Chart(document.getElementById('monthlyRevenueChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: monthlyLabels,
+                        datasets: [{
+                            label: 'Doanh thu tháng (VND)',
+                            data: monthlyData,
+                            backgroundColor: colorIndigo,
+                            hoverBackgroundColor: '#4338ca',
+                            borderRadius: 6,
+                            barThickness: 20
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return ' ' + context.parsed.y.toLocaleString('vi-VN') + ' ₫';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                grid: { borderDash: [4, 4], color: '#f1f5f9' },
+                                ticks: {
+                                    callback: function(value) {
+                                        if (value >= 1000000) return (value / 1000000) + 'M';
+                                        if (value >= 1000) return (value / 1000) + 'k';
+                                        return value;
+                                    }
+                                }
+                            },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+
+                // 3. Yearly Revenue Chart
+                const yearlyLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RevenueDashboard.YearlyRevenue.Select(y => y.Label)));
+                const yearlyData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RevenueDashboard.YearlyRevenue.Select(y => y.Revenue)));
+
+                new Chart(document.getElementById('yearlyRevenueChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: yearlyLabels,
+                        datasets: [{
+                            label: 'Doanh thu năm (VND)',
+                            data: yearlyData,
+                            backgroundColor: colorEmerald,
+                            hoverBackgroundColor: '#047857',
+                            borderRadius: 6,
+                            barThickness: 24
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return ' ' + context.parsed.y.toLocaleString('vi-VN') + ' ₫';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                grid: { borderDash: [4, 4], color: '#f1f5f9' },
+                                ticks: {
+                                    callback: function(value) {
+                                        if (value >= 1000000) return (value / 1000000) + 'M';
+                                        if (value >= 1000) return (value / 1000) + 'k';
+                                        return value;
+                                    }
+                                }
+                            },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+
+                // 4. Package Distribution Chart
+                let plusCount = 0;
+                let proCount = 0;
+                
+                @foreach (var tx in Model.RevenueDashboard.RecentTransactions)
+                {
+                    if (tx.PlanCode == "Plus") { <text>plusCount++;</text> }
+                    else if (tx.PlanCode == "Pro") { <text>proCount++;</text> }
+                }
+
+                if (plusCount === 0 && proCount === 0) {
+                    plusCount = 60;
+                    proCount = 40;
+                }
+
+                new Chart(document.getElementById('packageDistributionChart').getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Gói Plus', 'Gói Pro'],
+                        datasets: [{
+                            data: [plusCount, proCount],
+                            backgroundColor: [colorSky, colorViolet],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '65%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 15
+                                }
+                            }
+                        }
+                    }
+                });
+                </text>
+            }
+
             // Listen to realtime updates to dynamically refresh Dashboard fragments
             document.addEventListener('realtimeUpdate', function(e) {
                 console.log("Dashboard notified of realtime update:", e.detail);
-                setTimeout(() => {
-                    refreshPageFragments(["#dashboard-stats-panel", "#dashboard-status-docs-panel"])
-                        .catch(err => console.error("Dashboard realtime refresh failed:", err));
-                }, 1000);
+                if (e.detail.messageType === "RevenueUpdated") {
+                    console.log("Revenue updated in real-time, reloading page...");
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    setTimeout(() => {
+                        refreshPageFragments(["#dashboard-stats-panel", "#dashboard-status-docs-panel"])
+                            .catch(err => console.error("Dashboard realtime refresh failed:", err));
+                    }, 1000);
+                }
             });
         });
     </script>

@@ -23,12 +23,14 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
         private readonly IUnitOfWork _uow;
         private readonly IMapper _mapper;
+        private readonly INotificationService _notificationService;
         private readonly string _catalogPath;
 
-        public PackageService(IUnitOfWork uow, IMapper mapper, IHostEnvironment environment)
+        public PackageService(IUnitOfWork uow, IMapper mapper, INotificationService notificationService, IHostEnvironment environment)
         {
             _uow = uow;
             _mapper = mapper;
+            _notificationService = notificationService;
             _catalogPath = Path.Combine(environment.ContentRootPath, "App_Data", "package-plans.json");
         }
 
@@ -267,6 +269,11 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             };
             await _uow.PaymentTransactions.AddAsync(transaction);
             await _uow.SaveChangesAsync();
+
+            if (isSuccess)
+            {
+                await _notificationService.SendNotificationAsync("RevenueUpdated", new { userId, planCode, amount, txnRef });
+            }
         }
 
         public async Task<RevenueDashboardDto> GetRevenueStatsAsync(int? year = null, int? month = null)
@@ -323,8 +330,9 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 dailyRevenue.Add(new RevenueStatDto { Label = label, Revenue = revenue, TransactionCount = count });
             }
 
-            // Recent transactions
+            // Recent transactions filtered by selected month & year
             var recentTx = txList
+                .Where(t => t.CreatedAt.Year == selectYear && t.CreatedAt.Month == selectMonth)
                 .OrderByDescending(t => t.CreatedAt)
                 .Take(10)
                 .Select(t => _mapper.Map<PaymentTransactionDto>(t))

@@ -432,7 +432,12 @@ namespace LearningDocumentSystem.Data.Seeders
 
         private async Task SeedPaymentTransactionsAsync()
         {
-            if (await _context.PaymentTransactions.AnyAsync()) return;
+            var existing = await _context.PaymentTransactions.ToListAsync();
+            if (existing.Any())
+            {
+                _context.PaymentTransactions.RemoveRange(existing);
+                await _context.SaveChangesAsync();
+            }
 
             _logger.LogInformation("Seeding successful payment transactions...");
 
@@ -454,13 +459,20 @@ namespace LearningDocumentSystem.Data.Seeders
             {
                 var student = students[random.Next(students.Count)];
                 var monthsAgo = random.Next(0, 12);
-                var daysAgo = random.Next(1, 28);
                 var hoursAgo = random.Next(0, 24);
                 
+                var dayLimit = (monthsAgo == 0) ? Math.Max(1, now.Day) : 28;
+                var daysAgo = random.Next(1, dayLimit + 1);
+
                 var createdDate = new DateTime(now.Year, now.Month, 1)
                     .AddMonths(-monthsAgo)
-                    .AddDays(daysAgo)
+                    .AddDays(daysAgo - 1)
                     .AddHours(hoursAgo);
+
+                if (createdDate > now)
+                {
+                    createdDate = now.AddMinutes(-random.Next(5, 120));
+                }
 
                 var plan = planCodes[random.Next(planCodes.Length)];
                 var amount = planPrices[plan];
