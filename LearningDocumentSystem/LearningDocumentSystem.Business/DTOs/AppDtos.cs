@@ -273,6 +273,14 @@ namespace LearningDocumentSystem.Business.DTOs
         public int? DailyMessageLimit { get; set; }
         public int? RemainingToday { get; set; }
         public List<string> AllowedProviders { get; set; } = new();
+
+        /// <summary>Ngày hết hạn gói trả phí. Null nếu đang dùng Free hoặc không giới hạn.</summary>
+        public DateTime? PlanExpiresAt { get; set; }
+
+        /// <summary>Số ngày còn lại. Null nếu đang dùng Free.</summary>
+        public int? DaysRemaining => PlanExpiresAt.HasValue
+            ? Math.Max(0, (int)Math.Ceiling((PlanExpiresAt.Value - DateTime.UtcNow).TotalDays))
+            : null;
     }
 
     public class ChatAccessDto
@@ -288,6 +296,7 @@ namespace LearningDocumentSystem.Business.DTOs
         public bool IsSuccess { get; set; }
         public int UserId { get; set; }
         public string PlanCode { get; set; } = string.Empty;
+        public decimal Amount { get; set; }  // Giá trị thực (VNĐ), đã chia 100 từ vnp_Amount
         public string TransactionReference { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
     }
