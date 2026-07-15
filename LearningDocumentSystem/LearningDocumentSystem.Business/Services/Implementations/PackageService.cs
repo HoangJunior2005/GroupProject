@@ -3,7 +3,6 @@ using LearningDocumentSystem.Business.DTOs;
 using LearningDocumentSystem.Business.Services.Interfaces;
 using LearningDocumentSystem.Data.Repositories.Interfaces;
 using LearningDocumentSystem.Entities.Models;
-using Microsoft.Extensions.Hosting;
 using System.Text.Json;
 
 namespace LearningDocumentSystem.Business.Services.Implementations
@@ -24,14 +23,12 @@ namespace LearningDocumentSystem.Business.Services.Implementations
         private readonly IUnitOfWork _uow;
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
-        private readonly string _catalogPath;
 
-        public PackageService(IUnitOfWork uow, IMapper mapper, INotificationService notificationService, IHostEnvironment environment)
+        public PackageService(IUnitOfWork uow, IMapper mapper, INotificationService notificationService)
         {
             _uow = uow;
             _mapper = mapper;
             _notificationService = notificationService;
-            _catalogPath = Path.Combine(environment.ContentRootPath, "App_Data", "package-plans.json");
         }
 
         public async Task<IReadOnlyList<PackagePlanDto>> GetPlansAsync(int userId)
@@ -131,7 +128,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
         public PackagePlanDto? FindPlan(string planCode)
         {
-            var plan = LoadPlans().FirstOrDefault(x =>
+            var plan = LoadPlansAsync().GetAwaiter().GetResult().FirstOrDefault(x =>
                 x.Code.Equals(planCode, StringComparison.OrdinalIgnoreCase));
             return plan == null ? null : CopyPlan(plan, false);
         }
@@ -142,7 +139,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             await CatalogLock.WaitAsync();
             try
             {
-                var plans = LoadPlans();
+                var plans = await LoadPlans();
                 if (plans.Any(x => x.Code.Equals(plan.Code, StringComparison.OrdinalIgnoreCase)))
                     throw new InvalidOperationException("Ma goi da ton tai.");
                 plans.Add(CopyPlan(plan, false));
@@ -159,7 +156,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             await CatalogLock.WaitAsync();
             try
             {
-                var plans = LoadPlans();
+                var plans = await LoadPlans();
                 var index = plans.FindIndex(x => x.Code.Equals(plan.Code, StringComparison.OrdinalIgnoreCase));
                 if (index < 0) throw new InvalidOperationException("Khong tim thay goi can cap nhat.");
                 plans[index] = CopyPlan(plan, false);
@@ -178,7 +175,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             await CatalogLock.WaitAsync();
             try
             {
-                var plans = LoadPlans();
+                var plans = await LoadPlans();
                 var removed = plans.RemoveAll(x => x.Code.Equals(planCode, StringComparison.OrdinalIgnoreCase));
                 if (removed == 0) throw new InvalidOperationException("Khong tim thay goi can xoa.");
                 await SavePlansAsync(plans);
@@ -201,25 +198,74 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             return FreeCode;
         }
 
-        private List<PackagePlanDto> LoadPlans()
+        private async Task<List<PackagePlanDto>> LoadPlansAsync()
         {
-            if (!File.Exists(_catalogPath))
-                throw new InvalidOperationException("Khong tim thay file cau hinh package-plans.json.");
-            var plans = JsonSerializer.Deserialize<List<PackagePlanDto>>(File.ReadAllText(_catalogPath), JsonOptions)
-                ?? new List<PackagePlanDto>();
+            var entities = await _uow.PackagePlans.GetAllAsync();
+            var plans = entities.Select(ToDto).ToList();
             if (!plans.Any(x => x.Code == FreeCode))
-                throw new InvalidOperationException("Catalog bat buoc phai co goi Free.");
-            return plans;
+            {
+                plans.Insert(0, new PackagePlanDto
+                {
+                    Code = FreeCode,
+                    Name = FreeCode,
+                    Price = 0,
+                    DailyMessageLimit = 20,
+                    AllowedProviders = new List<string> { "Gemini" },
+                    Features = new List<string> { "10 câu hỏi AI mỗi ngày", "Truy cập mô hình Gemini" },
+                    IsActive = true
+                });
+                await SavePlansAsync(plans);
+            }
+            return plans.OrderBy(PlanOrder).ToList();
         }
 
-        private Task<List<PackagePlanDto>> LoadPlansAsync() => Task.FromResult(LoadPlans());
+        private async Task<List<PackagePlanDto>> LoadPlans()
+        {
+            return await LoadPlansAsync();
+        }
 
         private async Task SavePlansAsync(List<PackagePlanDto> plans)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(_catalogPath)!);
-            var tempPath = _catalogPath + ".tmp";
-            await File.WriteAllTextAsync(tempPath, JsonSerializer.Serialize(plans.OrderBy(PlanOrder), JsonOptions));
-            File.Move(tempPath, _catalogPath, true);
+            var existing = await _uow.PackagePlans.GetAllAsync();
+            var existingByCode = existing.ToDictionary(x => x.Code, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var plan in plans.OrderBy(PlanOrder))
+            {
+                var entity = existingByCode.TryGetValue(plan.Code, out var current)
+                    ? current
+                    : new PackagePlan
+                    {
+                        Code = plan.Code,
+                        DisplayOrder = PlanOrder(plan)
+                    };
+
+                entity.Code = plan.Code;
+                entity.Name = plan.Name;
+                entity.Price = plan.Price;
+                entity.DailyMessageLimit = plan.DailyMessageLimit;
+                entity.AllowedProvidersJson = JsonSerializer.Serialize(plan.AllowedProviders, JsonOptions);
+                entity.FeaturesJson = JsonSerializer.Serialize(plan.Features, JsonOptions);
+                entity.IsActive = plan.IsActive;
+                entity.DisplayOrder = PlanOrder(plan);
+
+                if (entity.PackagePlanID == 0)
+                {
+                    await _uow.PackagePlans.AddAsync(entity);
+                }
+                else
+                {
+                    _uow.PackagePlans.Update(entity);
+                }
+            }
+
+            var allDbPlans = await _uow.PackagePlans.GetAllAsync();
+            var codesToKeep = plans.Select(p => p.Code).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var plan in allDbPlans.Where(p => !codesToKeep.Contains(p.Code)))
+            {
+                _uow.PackagePlans.Remove(plan);
+            }
+
+            await _uow.SaveChangesAsync();
         }
 
         private static int PlanOrder(PackagePlanDto plan) => plan.Code switch
@@ -270,6 +316,17 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             Features = new List<string>(plan.Features),
             IsCurrent = isCurrent,
             IsActive = plan.IsActive
+        };
+
+        private static PackagePlanDto ToDto(PackagePlan entity) => new()
+        {
+            Code = entity.Code,
+            Name = entity.Name,
+            Price = entity.Price,
+            DailyMessageLimit = entity.DailyMessageLimit,
+            AllowedProviders = JsonSerializer.Deserialize<List<string>>(entity.AllowedProvidersJson, JsonOptions) ?? new List<string>(),
+            Features = JsonSerializer.Deserialize<List<string>>(entity.FeaturesJson, JsonOptions) ?? new List<string>(),
+            IsActive = entity.IsActive
         };
 
         public async Task RecordTransactionAsync(int userId, string planCode, decimal amount, string txnRef, bool isSuccess)

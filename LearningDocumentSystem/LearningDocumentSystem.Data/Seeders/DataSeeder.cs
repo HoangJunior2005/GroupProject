@@ -29,6 +29,7 @@ namespace LearningDocumentSystem.Data.Seeders
                 await SeedSubjectsAsync();
                 await SeedDocumentsAsync();
                 await SeedChatSessionsAndMessagesAsync();
+                await SeedPackagePlansAsync();
                 await SeedPaymentTransactionsAsync();
                 await _context.SaveChangesAsync();
 
@@ -430,13 +431,64 @@ namespace LearningDocumentSystem.Data.Seeders
             _logger.LogInformation("✅ Seeded {SessionCount} ChatSessions and {MessageCount} ChatMessages successfully.", chatSessions.Count, chatMessages.Count);
         }
 
+        private async Task SeedPackagePlansAsync()
+        {
+            if (await _context.PackagePlans.AnyAsync())
+            {
+                _logger.LogInformation("Package plans already exist; skipping seed generation.");
+                return;
+            }
+
+            _logger.LogInformation("Seeding default package plans...");
+
+            var plans = new List<PackagePlan>
+            {
+                new()
+                {
+                    Code = "Free",
+                    Name = "Free",
+                    Price = 0,
+                    DailyMessageLimit = 20,
+                    AllowedProvidersJson = "[\"Gemini\"]",
+                    FeaturesJson = "[\"10 câu hỏi AI mỗi ngày\",\"Truy cập mô hình Gemini\"]",
+                    IsActive = true,
+                    DisplayOrder = 0
+                },
+                new()
+                {
+                    Code = "Plus",
+                    Name = "Plus",
+                    Price = 99000,
+                    DailyMessageLimit = 100,
+                    AllowedProvidersJson = "[\"Gemini\",\"Groq\"]",
+                    FeaturesJson = "[\"100 câu hỏi AI mỗi ngày\",\"Sử dụng Gemini và Groq\"]",
+                    IsActive = true,
+                    DisplayOrder = 1
+                },
+                new()
+                {
+                    Code = "Pro",
+                    Name = "Pro",
+                    Price = 199000,
+                    DailyMessageLimit = null,
+                    AllowedProvidersJson = "[\"Gemini\",\"Groq\",\"OpenAI\"]",
+                    FeaturesJson = "[\"Không giới hạn câu hỏi\",\"Mở khóa tất cả mô hình AI\"]",
+                    IsActive = true,
+                    DisplayOrder = 2
+                }
+            };
+
+            await _context.PackagePlans.AddRangeAsync(plans);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("✅ Seeded {Count} package plans successfully.", plans.Count);
+        }
+
         private async Task SeedPaymentTransactionsAsync()
         {
-            var existing = await _context.PaymentTransactions.ToListAsync();
-            if (existing.Any())
+            if (await _context.PaymentTransactions.AnyAsync())
             {
-                _context.PaymentTransactions.RemoveRange(existing);
-                await _context.SaveChangesAsync();
+                _logger.LogInformation("Payment transactions already exist; skipping seed generation.");
+                return;
             }
 
             _logger.LogInformation("Seeding successful payment transactions...");
