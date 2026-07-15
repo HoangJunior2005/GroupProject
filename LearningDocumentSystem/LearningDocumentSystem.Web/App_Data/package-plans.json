@@ -3,7 +3,7 @@
     "Code": "Free",
     "Name": "Free",
     "Price": 0,
-    "DailyMessageLimit": 10,
+    "DailyMessageLimit": 20,
     "AllowedProviders": [
       "Gemini"
     ],

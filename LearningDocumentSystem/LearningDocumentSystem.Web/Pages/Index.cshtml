@@ -67,9 +67,12 @@
 
     .rev-grid-2 {
         display: grid;
-        grid-template-columns: 2fr 1fr;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
         gap: 1.5rem;
         margin-bottom: 1.5rem;
+    }
+    .rev-grid-2 > div {
+        min-width: 0;
     }
     @@media (max-width: 1024px) {
         .rev-grid-2 {
@@ -459,8 +462,7 @@ else
                 <table class="table align-middle mb-0 table-hover">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-4">Mã giao dịch</th>
-                            <th>Sinh viên</th>
+                            <th class="ps-4">Sinh viên</th>
                             <th>Tên tài khoản</th>
                             <th>Gói dịch vụ</th>
                             <th>Số tiền</th>
@@ -474,8 +476,7 @@ else
                             foreach (var tx in Model.RevenueDashboard.RecentTransactions)
                             {
                                 <tr class="tx-row" data-fullname="@tx.UserFullName" data-username="@tx.Username">
-                                    <td class="ps-4"><code class="small text-dark fw-bold">@tx.TransactionReference</code></td>
-                                    <td>
+                                    <td class="ps-4">
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="avatar-sm bg-light text-secondary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width:30px;height:30px;font-size:0.85rem">
                                                 @tx.UserFullName.Substring(0, 1).ToUpper()
@@ -509,14 +510,14 @@ else
                         else
                         {
                             <tr id="txEmptyRow">
-                                <td colspan="7" class="text-center py-4 text-muted">
+                                <td colspan="6" class="text-center py-4 text-muted">
                                     <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                                     Không có giao dịch thành công nào trong tháng này.
                                 </td>
                             </tr>
                         }
                         <tr id="txNoResultsRow" style="display: none;">
-                            <td colspan="7" class="text-center py-4 text-muted">
+                            <td colspan="6" class="text-center py-4 text-muted">
                                 <i class="bi bi-search fs-2 d-block mb-2"></i>
                                 Không tìm thấy giao dịch nào khớp với từ khóa tìm kiếm.
                             </td>
