@@ -138,6 +138,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 await SavePlansAsync(plans);
             }
             finally { CatalogLock.Release(); }
+
+            await _notificationService.SendNotificationAsync("PlanChanged", new { action = "Create", code = plan.Code });
         }
 
         public async Task UpdatePlanAsync(PackagePlanDto plan)
@@ -153,6 +155,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 await SavePlansAsync(plans);
             }
             finally { CatalogLock.Release(); }
+
+            await _notificationService.SendNotificationAsync("PlanChanged", new { action = "Update", code = plan.Code });
         }
 
         public async Task DeletePlanAsync(string planCode)
@@ -169,6 +173,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 await SavePlansAsync(plans);
             }
             finally { CatalogLock.Release(); }
+
+            await _notificationService.SendNotificationAsync("PlanChanged", new { action = "Delete", code = planCode });
         }
 
         private async Task<string> GetCurrentPlanCodeAsync(int userId, IReadOnlyList<PackagePlanDto> plans)

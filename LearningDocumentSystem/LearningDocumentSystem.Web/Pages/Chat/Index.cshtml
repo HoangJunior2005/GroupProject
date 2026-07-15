@@ -1512,6 +1512,13 @@
     })();
 
     // ── Init ──────────────────────────────────────────────────────
+    document.addEventListener("realtimeUpdate", function(e) {
+        if (e.detail.messageType === "PlanChanged") {
+            console.log("Plans changed in real-time, reloading chat page...");
+            window.location.reload();
+        }
+    });
+
     loadUserSessions();
     scrollToBottom();
 </script>

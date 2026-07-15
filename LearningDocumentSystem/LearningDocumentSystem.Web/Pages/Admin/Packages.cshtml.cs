@@ -65,7 +65,7 @@ namespace LearningDocumentSystem.Web.Pages.Admin
             {
                 if (!string.IsNullOrWhiteSpace(OriginalCode)
                     && !OriginalCode.Equals(Code, StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidOperationException("Khong the thay doi ma goi khi cap nhat.");
+                    throw new InvalidOperationException("Không thể thay đổi mã gói khi cập nhật.");
 
                 if (string.IsNullOrWhiteSpace(OriginalCode))
                     await _packageService.CreatePlanAsync(plan);
@@ -73,8 +73,8 @@ namespace LearningDocumentSystem.Web.Pages.Admin
                     await _packageService.UpdatePlanAsync(plan);
 
                 TempData["Success"] = string.IsNullOrWhiteSpace(OriginalCode)
-                    ? "Da tao goi dich vu."
-                    : "Da cap nhat goi dich vu.";
+                    ? "Đã tạo gói dịch vụ."
+                    : "Đã cập nhật gói dịch vụ.";
                 return RedirectToPage();
             }
             catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
@@ -91,7 +91,7 @@ namespace LearningDocumentSystem.Web.Pages.Admin
             try
             {
                 await _packageService.DeletePlanAsync(code);
-                TempData["Success"] = "Da xoa goi dich vu.";
+                TempData["Success"] = "Đã xóa gói dịch vụ.";
             }
             catch (InvalidOperationException ex)
             {
