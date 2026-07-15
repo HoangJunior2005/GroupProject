@@ -291,4 +291,37 @@ namespace LearningDocumentSystem.Business.DTOs
         public string TransactionReference { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
     }
+
+    // ================================================================
+    // REVENUE STATS DTOs
+    // ================================================================
+    public class RevenueStatDto
+    {
+        public string Label { get; set; } = string.Empty; // Year, Month (Tháng MM), or Day (DD/MM)
+        public decimal Revenue { get; set; }
+        public int TransactionCount { get; set; }
+    }
+
+    public class RevenueDashboardDto
+    {
+        public decimal TotalRevenue { get; set; }
+        public int TotalTransactions { get; set; }
+        public List<RevenueStatDto> YearlyRevenue { get; set; } = new();
+        public List<RevenueStatDto> MonthlyRevenue { get; set; } = new();
+        public List<RevenueStatDto> DailyRevenue { get; set; } = new();
+        public List<PaymentTransactionDto> RecentTransactions { get; set; } = new();
+    }
+
+    public class PaymentTransactionDto
+    {
+        public int TransactionID { get; set; }
+        public int UserID { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string UserFullName { get; set; } = string.Empty;
+        public string PlanCode { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public string TransactionReference { get; set; } = string.Empty;
+        public bool IsSuccess { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
 }

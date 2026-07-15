@@ -70,6 +70,13 @@ namespace LearningDocumentSystem.Business.Mapping
             CreateMap<DocumentConflict, DocumentConflictDto>()
                 .ForMember(dest => dest.ConflictingDocumentTitle,
                     opt => opt.MapFrom(src => src.ConflictingDocument.Title));
+
+            // PaymentTransaction
+            CreateMap<PaymentTransaction, PaymentTransactionDto>()
+                .ForMember(dest => dest.Username,
+                    opt => opt.MapFrom(src => src.User.Username))
+                .ForMember(dest => dest.UserFullName,
+                    opt => opt.MapFrom(src => src.User.FullName));
         }
     }
 }

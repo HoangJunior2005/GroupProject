@@ -21,6 +21,7 @@ namespace LearningDocumentSystem.Data.DbContexts
         public DbSet<ChatMessage> ChatMessages { get; set; } = null!;
         public DbSet<DocumentConflict> DocumentConflicts { get; set; } = null!;
         public DbSet<TeacherChunkSetting> TeacherChunkSettings { get; set; } = null!;
+        public DbSet<PaymentTransaction> PaymentTransactions { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -316,6 +317,30 @@ namespace LearningDocumentSystem.Data.DbContexts
 
                 entity.HasIndex(dc => dc.DocumentID).HasDatabaseName("IX_DocumentConflicts_DocumentID");
                 entity.HasIndex(dc => dc.ConflictingDocumentID).HasDatabaseName("IX_DocumentConflicts_ConflictingDocumentID");
+            });
+
+            // ============================================================
+            // BẢNG PaymentTransactions
+            // ============================================================
+            modelBuilder.Entity<PaymentTransaction>(entity =>
+            {
+                entity.ToTable("PaymentTransactions");
+                entity.HasKey(pt => pt.TransactionID);
+                entity.Property(pt => pt.TransactionID).UseIdentityColumn();
+                entity.Property(pt => pt.PlanCode).IsRequired().HasMaxLength(50);
+                entity.Property(pt => pt.Amount).IsRequired().HasColumnType("decimal(18,2)");
+                entity.Property(pt => pt.TransactionReference).IsRequired().HasMaxLength(100);
+                entity.Property(pt => pt.IsSuccess).IsRequired();
+                entity.Property(pt => pt.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+                // FK -> Users (CASCADE DELETE - if user is deleted, their payments are deleted)
+                entity.HasOne(pt => pt.User)
+                    .WithMany()
+                    .HasForeignKey(pt => pt.UserID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(pt => pt.UserID).HasDatabaseName("IX_PaymentTransactions_UserID");
+                entity.HasIndex(pt => pt.TransactionReference).IsUnique().HasDatabaseName("IX_PaymentTransactions_TransactionReference");
             });
         }
     }

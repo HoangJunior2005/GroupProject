@@ -119,6 +119,8 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
         Task CreatePlanAsync(PackagePlanDto plan);
         Task UpdatePlanAsync(PackagePlanDto plan);
         Task DeletePlanAsync(string planCode);
+        Task RecordTransactionAsync(int userId, string planCode, decimal amount, string txnRef, bool isSuccess);
+        Task<RevenueDashboardDto> GetRevenueStatsAsync(int? year = null, int? month = null);
     }
 
     public interface IVnpayService

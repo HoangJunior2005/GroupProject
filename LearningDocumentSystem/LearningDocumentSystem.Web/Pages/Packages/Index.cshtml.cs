@@ -43,6 +43,9 @@ namespace LearningDocumentSystem.Web.Pages.Packages
 
             if (plan.Price == 0)
             {
+                var now = DateTime.UtcNow;
+                var txnRef = $"LDS{userId}Free{now:yyyyMMddHHmmssfff}";
+                await _packageService.RecordTransactionAsync(userId, plan.Code, 0, txnRef, true);
                 await _packageService.SetPlanAsync(userId, plan.Code);
                 TempData["Success"] = "Da chuyen ve goi Free.";
                 return RedirectToPage();
