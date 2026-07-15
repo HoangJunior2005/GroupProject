@@ -19,18 +19,22 @@ namespace LearningDocumentSystem.Web.Pages.Packages
 
         public VnpayPaymentResultDto Result { get; private set; } = new();
 
+        /// <summary>Ngày hết hạn gói (UtcNow + 1 tháng), chỉ có giá trị khi thanh toán thành công.</summary>
+        public DateTime? PlanExpiresAt { get; private set; }
+
         public async Task OnGetAsync()
         {
             Result = _vnpayService.ValidatePayment(Request.Query);
             if (Result.IsValid)
             {
-                var plan = _packageService.FindPlan(Result.PlanCode);
-                decimal amount = plan?.Price ?? 0;
-                await _packageService.RecordTransactionAsync(Result.UserId, Result.PlanCode, amount, Result.TransactionReference, Result.IsSuccess);
+                await _packageService.RecordTransactionAsync(Result.UserId, Result.PlanCode, Result.Amount, Result.TransactionReference, Result.IsSuccess);
 
                 if (Result.IsSuccess)
                 {
                     await _packageService.SetPlanAsync(Result.UserId, Result.PlanCode);
+                    // Tính ngày hết hạn: 1 tháng từ lúc kích hoạt
+                    if (Result.Amount > 0)
+                        PlanExpiresAt = DateTime.UtcNow.AddMonths(1);
                 }
             }
         }

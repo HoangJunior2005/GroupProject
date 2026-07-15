@@ -25,6 +25,12 @@
     .vnpay-note { margin-top:1rem; color:#64748b; font-size:.82rem; }
     .btn-vnpay { background: #ffffff !important; color: #2563eb !important; border: 1.5px solid #2563eb !important; font-weight: 600; transition: all var(--transition); }
     .btn-vnpay:hover { background: #2563eb !important; color: #ffffff !important; border-color: #2563eb !important; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
+    /* Expiry badges */
+    .expiry-badge { display:inline-flex; align-items:center; gap:.3rem; padding:.2rem .55rem; border-radius:20px; font-size:.75rem; font-weight:700; margin-top:.35rem; }
+    .expiry-badge.safe { background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+    .expiry-badge.warn { background:#fefce8; color:#92400e; border:1px solid #fde68a; }
+    .expiry-badge.danger { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+    .expiry-card-row { margin-top:.6rem; padding:.5rem .7rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; font-size:.82rem; color:#475569; display:flex; align-items:center; gap:.4rem; }
     @@media (max-width:900px) { .package-grid { grid-template-columns:1fr; } .package-header { align-items:flex-start; flex-direction:column; } }
 </style>
 
@@ -46,6 +52,16 @@
                 <span>Kh&#244;ng gi&#7899;i h&#7841;n c&#226;u h&#7887;i</span>
             }
         </div>
+        @if (Model.Status.PlanExpiresAt.HasValue)
+        {
+            var days = Model.Status.DaysRemaining ?? 0;
+            var badgeClass = days <= 3 ? "danger" : (days <= 7 ? "warn" : "safe");
+            var icon = days <= 3 ? "bi-exclamation-triangle-fill" : "bi-clock-fill";
+            <span class="expiry-badge @badgeClass">
+                <i class="bi @icon"></i>
+                C&#242;n @days ng&#224;y (h&#7871;t @Model.Status.PlanExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy"))
+            </span>
+        }
     </div>
 </div>
 
@@ -60,12 +76,14 @@
 @{
     var currentPlan = Model.Plans.FirstOrDefault(p => p.IsCurrent);
     var currentPrice = currentPlan?.Price ?? 0;
+    var isOnPaidPlan = currentPrice > 0;
 }
 
 <div class="package-grid">
     @foreach (var plan in Model.Plans)
     {
         var isDowngrade = plan.Price < currentPrice;
+        var isFreeDowngrade = plan.Price == 0 && isOnPaidPlan;
         <article class="package-card @(plan.IsCurrent ? "active" : "")">
             <div class="d-flex align-items-center justify-content-between gap-2">
                 <div class="package-name">@plan.Name</div>
@@ -73,7 +91,7 @@
             </div>
             <div class="package-price">
                 @plan.Price.ToString("N0") &#8363;
-                <small>@(plan.Price == 0 ? "" : "/ l\u1ea7n n\u00e2ng c\u1ea5p")</small>
+                <small>@(plan.Price == 0 ? "" : "/ th\u00e1ng")</small>
             </div>
             <div class="package-subtitle">
                 @if (plan.DailyMessageLimit.HasValue) { <span>@plan.DailyMessageLimit c&#226;u h&#7887;i m&#7895;i ng&#224;y</span> }
@@ -85,22 +103,47 @@
                     <li><i class="bi bi-check2-circle"></i><span>@feature</span></li>
                 }
             </ul>
-            @if (!isDowngrade || plan.Price == 0)
+
+            @* Hiển thị thông tin hết hạn trên card gói đang dùng *@
+            @if (plan.IsCurrent && Model.Status.PlanExpiresAt.HasValue)
             {
-                <form method="post" asp-page-handler="Checkout">
-                    <input type="hidden" name="planCode" value="@plan.Code" />
-                    <button class="btn @(plan.IsCurrent ? "btn-outline-secondary" : (plan.Price == 0 ? "btn-outline-dark" : "btn-vnpay")) w-100" type="submit" disabled="@(plan.IsCurrent)">
-                        @if (plan.IsCurrent) { <span>G&#243;i hi&#7879;n t&#7841;i</span> }
-                        else if (plan.Price == 0) { <span>Chuy&#7875;n v&#7873; Free</span> }
-                        else { <span><i class="bi bi-qr-code me-1"></i>Thanh to&#225;n VNPAY QR</span> }
+                var days = Model.Status.DaysRemaining ?? 0;
+                var rowClass = days <= 3 ? "danger" : (days <= 7 ? "warn" : "safe");
+                var rowIcon = days <= 3 ? "bi-exclamation-triangle-fill" : "bi-calendar-check";
+                <div class="expiry-card-row text-@(days <= 3 ? "danger" : (days <= 7 ? "warning" : "success"))">
+                    <i class="bi @rowIcon"></i>
+                    <span>H&#7871;t h&#7841;n: <strong>@Model.Status.PlanExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy")</strong> &mdash; C&#242;n <strong>@days ng&#224;y</strong></span>
+                </div>
+            }
+
+            @* Ẩn nút "Chuyển về Free" khi đang dùng gói trả phí *@
+            @if (!isFreeDowngrade)
+            {
+                @if (!isDowngrade || plan.Price == 0)
+                {
+                    <form method="post" asp-page-handler="Checkout" class="mt-auto pt-3">
+                        <input type="hidden" name="planCode" value="@plan.Code" />
+                        <button class="btn @(plan.IsCurrent ? "btn-outline-secondary" : (plan.Price == 0 ? "btn-outline-dark" : "btn-vnpay")) w-100" type="submit" disabled="@(plan.IsCurrent)">
+                            @if (plan.IsCurrent) { <span>G&#243;i hi&#7879;n t&#7841;i</span> }
+                            else if (plan.Price == 0) { <span>Chuy&#7875;n v&#7873; Free</span> }
+                            else { <span><i class="bi bi-qr-code me-1"></i>Thanh to&#225;n VNPAY QR</span> }
+                        </button>
+                    </form>
+                }
+            }
+            else
+            {
+                <div class="mt-auto pt-3">
+                    <button class="btn btn-outline-secondary w-100" type="button" disabled title="Kh&#244;ng th&#7875; h&#7841; xu&#7889;ng Free khi &#273;ang d&#249;ng g&#243;i tr&#7843; ph&#237;">
+                        <i class="bi bi-lock me-1"></i>Kh&#244;ng kh&#7843; d&#7909;ng
                     </button>
-                </form>
+                </div>
             }
         </article>
     }
 </div>
 
-<div class="vnpay-note"><i class="bi bi-shield-lock me-1"></i>G&#243;i ch&#7881; &#273;&#432;&#7907;c k&#237;ch ho&#7841;t sau khi VNPAY x&#225;c nh&#7853;n ch&#7919; k&#253; v&#224; s&#7889; ti&#7873;n giao d&#7883;ch.</div>
+<div class="vnpay-note"><i class="bi bi-shield-lock me-1"></i>G&#243;i ch&#7881; &#273;&#432;&#7907;c k&#237;ch ho&#7841;t sau khi VNPAY x&#225;c nh&#7853;n ch&#7919; k&#253; v&#224; s&#7889; ti&#7873;n giao d&#7883;ch. Th&#7901;i h&#7841;n s&#7917; d&#7909;ng l&#224; <strong>1 th&#225;ng</strong> k&#7875; t&#7915; ng&#224;y thanh to&#225;n.</div>
 
 @section Scripts {
     <script>

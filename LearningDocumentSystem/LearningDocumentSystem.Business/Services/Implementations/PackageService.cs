@@ -49,6 +49,14 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 ?? plans.First(x => x.Code == FreeCode);
             var used = await _uow.ChatSessions.CountUserQuestionsSinceAsync(userId, GetVietnamDayStartUtc());
 
+            // Lấy ngày hết hạn của gói trả phí hiện tại
+            DateTime? expiresAt = null;
+            if (currentCode != FreeCode)
+            {
+                var paidRoles = new[] { PlusCode, ProCode };
+                expiresAt = await _uow.UserRoles.GetPaidRoleExpiryAsync(userId, paidRoles);
+            }
+
             return new PackageStatusDto
             {
                 CurrentPlan = plan.Code,
@@ -57,7 +65,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 RemainingToday = plan.DailyMessageLimit.HasValue
                     ? Math.Max(0, plan.DailyMessageLimit.Value - used)
                     : null,
-                AllowedProviders = new List<string>(plan.AllowedProviders)
+                AllowedProviders = new List<string>(plan.AllowedProviders),
+                PlanExpiresAt = expiresAt
             };
         }
 
@@ -112,7 +121,9 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             {
                 var role = await _uow.Roles.GetByNameAsync(normalizedPlan)
                     ?? throw new InvalidOperationException($"Role goi {normalizedPlan} chua duoc khoi tao.");
-                await _uow.UserRoles.AssignRoleAsync(userId, role.RoleID);
+                // Gói trả phí có thời hạn 1 tháng kể từ lúc kích hoạt
+                var expiresAt = DateTime.UtcNow.AddMonths(1);
+                await _uow.UserRoles.AssignRoleAsync(userId, role.RoleID, expiresAt);
             }
 
             await _uow.SaveChangesAsync();
@@ -179,9 +190,14 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
         private async Task<string> GetCurrentPlanCodeAsync(int userId, IReadOnlyList<PackagePlanDto> plans)
         {
-            var roles = (await _uow.Users.GetUserRolesAsync(userId)).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            if (roles.Contains(ProCode) && plans.Any(x => x.Code == ProCode && x.IsActive)) return ProCode;
-            if (roles.Contains(PlusCode) && plans.Any(x => x.Code == PlusCode && x.IsActive)) return PlusCode;
+            var paidRoles = new[] { PlusCode, ProCode };
+
+            // Lấy các role trả phí chưa hết hạn của user (qua repository)
+            var activeRoles = await _uow.UserRoles.GetActiveRoleNamesAsync(userId, paidRoles);
+            var roleSet = activeRoles.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (roleSet.Contains(ProCode) && plans.Any(x => x.Code == ProCode && x.IsActive)) return ProCode;
+            if (roleSet.Contains(PlusCode) && plans.Any(x => x.Code == PlusCode && x.IsActive)) return PlusCode;
             return FreeCode;
         }
 

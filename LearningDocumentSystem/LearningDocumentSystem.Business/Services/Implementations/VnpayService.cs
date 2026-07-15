@@ -122,6 +122,7 @@ namespace LearningDocumentSystem.Business.Services.Implementations
 
             result.UserId = userId;
             result.PlanCode = plan.Code;
+            result.Amount = amount / 100m;  // vnp_Amount là đơn vị x100, chuyển về VNĐ thực
             result.IsSuccess = query["vnp_ResponseCode"] == "00"
                 && (string.IsNullOrWhiteSpace(query["vnp_TransactionStatus"])
                     || query["vnp_TransactionStatus"] == "00");

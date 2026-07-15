@@ -65,12 +65,24 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
             => await _context.UserRoles
                 .AnyAsync(ur => ur.UserID == userId && ur.Role.RoleName == roleName);
 
-        public async Task AssignRoleAsync(int userId, int roleId)
+        public async Task AssignRoleAsync(int userId, int roleId, DateTime? expiresAt = null)
         {
-            var exists = await _context.UserRoles
-                .AnyAsync(ur => ur.UserID == userId && ur.RoleID == roleId);
-            if (!exists)
-                await _context.UserRoles.AddAsync(new UserRole { UserID = userId, RoleID = roleId });
+            var existing = await _context.UserRoles
+                .FirstOrDefaultAsync(ur => ur.UserID == userId && ur.RoleID == roleId);
+            if (existing != null)
+            {
+                // Cập nhật ngày hết hạn (gia hạn gói)
+                existing.ExpiresAt = expiresAt;
+            }
+            else
+            {
+                await _context.UserRoles.AddAsync(new UserRole
+                {
+                    UserID = userId,
+                    RoleID = roleId,
+                    ExpiresAt = expiresAt
+                });
+            }
         }
 
         public async Task RemoveRoleAsync(int userId, int roleId)
@@ -79,6 +91,27 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
                 .FirstOrDefaultAsync(ur => ur.UserID == userId && ur.RoleID == roleId);
             if (userRole != null)
                 _context.UserRoles.Remove(userRole);
+        }
+
+        public async Task<DateTime?> GetPaidRoleExpiryAsync(int userId, IEnumerable<string> paidRoleNames)
+        {
+            return await _context.UserRoles
+                .Where(ur => ur.UserID == userId
+                    && paidRoleNames.Contains(ur.Role.RoleName)
+                    && ur.ExpiresAt != null)
+                .OrderByDescending(ur => ur.ExpiresAt)
+                .Select(ur => ur.ExpiresAt)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<IEnumerable<string>> GetActiveRoleNamesAsync(int userId, IEnumerable<string> roleNames)
+        {
+            return await _context.UserRoles
+                .Where(ur => ur.UserID == userId
+                    && roleNames.Contains(ur.Role.RoleName)
+                    && (ur.ExpiresAt == null || ur.ExpiresAt > DateTime.UtcNow))
+                .Select(ur => ur.Role.RoleName)
+                .ToListAsync();
         }
     }
 }

@@ -80,6 +80,10 @@ namespace LearningDocumentSystem.Data.DbContexts
                 entity.ToTable("UserRoles");
                 entity.HasKey(ur => new { ur.UserID, ur.RoleID }); // Composite PK
 
+                entity.Property(ur => ur.ExpiresAt)
+                    .HasColumnType("datetime2")
+                    .IsRequired(false);
+
                 entity.HasOne(ur => ur.User)
                     .WithMany(u => u.UserRoles)
                     .HasForeignKey(ur => ur.UserID)

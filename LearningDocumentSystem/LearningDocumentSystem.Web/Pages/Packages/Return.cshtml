@@ -55,6 +55,16 @@
                 <span class="receipt-label">Cổng thanh toán</span>
                 <span class="receipt-value">VNPay</span>
             </div>
+            @if (Model.PlanExpiresAt.HasValue)
+            {
+                <div class="receipt-row">
+                    <span class="receipt-label">Hạn sử dụng</span>
+                    <span class="receipt-value text-success">
+                        <i class="bi bi-calendar-check me-1"></i>
+                        đến @Model.PlanExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy")
+                    </span>
+                </div>
+            }
             <div class="receipt-row">
                 <span class="receipt-label">Trạng thái</span>
                 @if (Model.Result.IsValid && Model.Result.IsSuccess)
