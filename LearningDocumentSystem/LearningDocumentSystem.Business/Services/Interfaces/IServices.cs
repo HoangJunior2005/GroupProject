@@ -99,14 +99,11 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
 
     public interface IChunkSettingsService
     {
-        /// <summary>Lấy cấu hình chunking của teacher (fallback về default nếu chưa cấu hình)</summary>
-        Task<ChunkSettingsDto> GetSettingsAsync(int teacherId);
-
         /// <summary>Lấy cấu hình chunking chung toàn hệ thống (do Admin thiết lập)</summary>
         Task<ChunkSettingsDto> GetGlobalSettingsAsync();
 
-        /// <summary>Lưu cấu hình chunking cho teacher</summary>
-        Task SaveSettingsAsync(int teacherId, string strategy, int chunkSize, int chunkOverlap, int minChunkLength);
+        /// <summary>Lưu cấu hình chunking chung hệ thống (do Admin thiết lập)</summary>
+        Task SaveSettingsAsync(int adminId, string strategy, int chunkSize, int chunkOverlap, int minChunkLength);
     }
 
     public interface IPackageService
@@ -119,6 +116,8 @@ namespace LearningDocumentSystem.Business.Services.Interfaces
         Task CreatePlanAsync(PackagePlanDto plan);
         Task UpdatePlanAsync(PackagePlanDto plan);
         Task DeletePlanAsync(string planCode);
+        Task RecordTransactionAsync(int userId, string planCode, decimal amount, string txnRef, bool isSuccess);
+        Task<RevenueDashboardDto> GetRevenueStatsAsync(int? year = null, int? month = null);
     }
 
     public interface IVnpayService

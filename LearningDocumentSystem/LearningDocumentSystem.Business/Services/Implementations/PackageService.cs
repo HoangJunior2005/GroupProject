@@ -1,6 +1,8 @@
+using AutoMapper;
 using LearningDocumentSystem.Business.DTOs;
 using LearningDocumentSystem.Business.Services.Interfaces;
 using LearningDocumentSystem.Data.Repositories.Interfaces;
+using LearningDocumentSystem.Entities.Models;
 using Microsoft.Extensions.Hosting;
 using System.Text.Json;
 
@@ -20,11 +22,15 @@ namespace LearningDocumentSystem.Business.Services.Implementations
         private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
         private readonly IUnitOfWork _uow;
+        private readonly IMapper _mapper;
+        private readonly INotificationService _notificationService;
         private readonly string _catalogPath;
 
-        public PackageService(IUnitOfWork uow, IHostEnvironment environment)
+        public PackageService(IUnitOfWork uow, IMapper mapper, INotificationService notificationService, IHostEnvironment environment)
         {
             _uow = uow;
+            _mapper = mapper;
+            _notificationService = notificationService;
             _catalogPath = Path.Combine(environment.ContentRootPath, "App_Data", "package-plans.json");
         }
 
@@ -132,6 +138,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 await SavePlansAsync(plans);
             }
             finally { CatalogLock.Release(); }
+
+            await _notificationService.SendNotificationAsync("PlanChanged", new { action = "Create", code = plan.Code });
         }
 
         public async Task UpdatePlanAsync(PackagePlanDto plan)
@@ -147,6 +155,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 await SavePlansAsync(plans);
             }
             finally { CatalogLock.Release(); }
+
+            await _notificationService.SendNotificationAsync("PlanChanged", new { action = "Update", code = plan.Code });
         }
 
         public async Task DeletePlanAsync(string planCode)
@@ -163,6 +173,8 @@ namespace LearningDocumentSystem.Business.Services.Implementations
                 await SavePlansAsync(plans);
             }
             finally { CatalogLock.Release(); }
+
+            await _notificationService.SendNotificationAsync("PlanChanged", new { action = "Delete", code = planCode });
         }
 
         private async Task<string> GetCurrentPlanCodeAsync(int userId, IReadOnlyList<PackagePlanDto> plans)
@@ -243,5 +255,103 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             IsCurrent = isCurrent,
             IsActive = plan.IsActive
         };
+
+        public async Task RecordTransactionAsync(int userId, string planCode, decimal amount, string txnRef, bool isSuccess)
+        {
+            var exists = await _uow.PaymentTransactions.AnyAsync(t => t.TransactionReference == txnRef);
+            if (exists)
+            {
+                return; // Already processed
+            }
+
+            var transaction = new PaymentTransaction
+            {
+                UserID = userId,
+                PlanCode = planCode,
+                Amount = amount,
+                TransactionReference = txnRef,
+                IsSuccess = isSuccess,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _uow.PaymentTransactions.AddAsync(transaction);
+            await _uow.SaveChangesAsync();
+
+            if (isSuccess)
+            {
+                await _notificationService.SendNotificationAsync("RevenueUpdated", new { userId, planCode, amount, txnRef });
+            }
+        }
+
+        public async Task<RevenueDashboardDto> GetRevenueStatsAsync(int? year = null, int? month = null)
+        {
+            var selectYear = year ?? DateTime.UtcNow.Year;
+            var selectMonth = month ?? DateTime.UtcNow.Month;
+
+            var transactions = await _uow.PaymentTransactions.GetSuccessfulTransactionsAsync();
+            var txList = transactions.ToList();
+
+            var totalRevenue = txList.Sum(t => t.Amount);
+            var totalTx = txList.Count;
+
+            // Yearly stats
+            var yearlyRevenue = txList
+                .GroupBy(t => t.CreatedAt.Year)
+                .Select(g => new RevenueStatDto
+                {
+                    Label = g.Key.ToString(),
+                    Revenue = g.Sum(t => t.Amount),
+                    TransactionCount = g.Count()
+                })
+                .OrderBy(s => s.Label)
+                .ToList();
+
+            // Monthly stats
+            var monthlyRevenue = new List<RevenueStatDto>();
+            var monthlyGroup = txList
+                .Where(t => t.CreatedAt.Year == selectYear)
+                .GroupBy(t => t.CreatedAt.Month)
+                .ToDictionary(g => g.Key, g => new { Revenue = g.Sum(t => t.Amount), Count = g.Count() });
+
+            for (int m = 1; m <= 12; m++)
+            {
+                var label = $"Tháng {m:D2}";
+                var revenue = monthlyGroup.ContainsKey(m) ? monthlyGroup[m].Revenue : 0;
+                var count = monthlyGroup.ContainsKey(m) ? monthlyGroup[m].Count : 0;
+                monthlyRevenue.Add(new RevenueStatDto { Label = label, Revenue = revenue, TransactionCount = count });
+            }
+
+            // Daily stats
+            var dailyRevenue = new List<RevenueStatDto>();
+            var daysInMonth = DateTime.DaysInMonth(selectYear, selectMonth);
+            var dailyGroup = txList
+                .Where(t => t.CreatedAt.Year == selectYear && t.CreatedAt.Month == selectMonth)
+                .GroupBy(t => t.CreatedAt.Day)
+                .ToDictionary(g => g.Key, g => new { Revenue = g.Sum(t => t.Amount), Count = g.Count() });
+
+            for (int d = 1; d <= daysInMonth; d++)
+            {
+                var label = $"{d:D2}/{selectMonth:D2}";
+                var revenue = dailyGroup.ContainsKey(d) ? dailyGroup[d].Revenue : 0;
+                var count = dailyGroup.ContainsKey(d) ? dailyGroup[d].Count : 0;
+                dailyRevenue.Add(new RevenueStatDto { Label = label, Revenue = revenue, TransactionCount = count });
+            }
+
+            // Recent transactions filtered by selected month & year
+            var recentTx = txList
+                .Where(t => t.CreatedAt.Year == selectYear && t.CreatedAt.Month == selectMonth)
+                .OrderByDescending(t => t.CreatedAt)
+                .Select(t => _mapper.Map<PaymentTransactionDto>(t))
+                .ToList();
+
+            return new RevenueDashboardDto
+            {
+                TotalRevenue = totalRevenue,
+                TotalTransactions = totalTx,
+                YearlyRevenue = yearlyRevenue,
+                MonthlyRevenue = monthlyRevenue,
+                DailyRevenue = dailyRevenue,
+                RecentTransactions = recentTx
+            };
+        }
     }
 }

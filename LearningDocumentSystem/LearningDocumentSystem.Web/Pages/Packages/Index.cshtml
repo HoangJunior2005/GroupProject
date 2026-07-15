@@ -101,3 +101,14 @@
 </div>
 
 <div class="vnpay-note"><i class="bi bi-shield-lock me-1"></i>G&#243;i ch&#7881; &#273;&#432;&#7907;c k&#237;ch ho&#7841;t sau khi VNPAY x&#225;c nh&#7853;n ch&#7919; k&#253; v&#224; s&#7889; ti&#7873;n giao d&#7883;ch.</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("realtimeUpdate", function(e) {
+            if (e.detail.messageType === "PlanChanged") {
+                console.log("Plans changed in real-time, reloading package page...");
+                window.location.reload();
+            }
+        });
+    </script>
+}

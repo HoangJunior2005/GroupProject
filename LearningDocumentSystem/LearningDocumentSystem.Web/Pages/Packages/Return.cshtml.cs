@@ -22,8 +22,17 @@ namespace LearningDocumentSystem.Web.Pages.Packages
         public async Task OnGetAsync()
         {
             Result = _vnpayService.ValidatePayment(Request.Query);
-            if (Result.IsValid && Result.IsSuccess)
-                await _packageService.SetPlanAsync(Result.UserId, Result.PlanCode);
+            if (Result.IsValid)
+            {
+                var plan = _packageService.FindPlan(Result.PlanCode);
+                decimal amount = plan?.Price ?? 0;
+                await _packageService.RecordTransactionAsync(Result.UserId, Result.PlanCode, amount, Result.TransactionReference, Result.IsSuccess);
+
+                if (Result.IsSuccess)
+                {
+                    await _packageService.SetPlanAsync(Result.UserId, Result.PlanCode);
+                }
+            }
         }
     }
 }

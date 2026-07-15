@@ -26,43 +26,12 @@ namespace LearningDocumentSystem.Business.Services.Implementations
         }
 
         /// <summary>
-        /// Lấy cấu hình chunking của teacher. Nếu chưa có bản ghi trong DB,
-        /// fallback về default từ appsettings.json.
-        /// </summary>
-        public async Task<ChunkSettingsDto> GetSettingsAsync(int teacherId)
-        {
-            var setting = await _uow.TeacherChunkSettings.GetByTeacherIdAsync(teacherId);
-
-            if (setting != null)
-            {
-                return new ChunkSettingsDto
-                {
-                    Strategy       = setting.Strategy,
-                    ChunkSize      = setting.ChunkSize,
-                    ChunkOverlap   = setting.ChunkOverlap,
-                    MinChunkLength = setting.MinChunkLength,
-                    UpdatedAt      = setting.UpdatedAt
-                };
-            }
-
-            // Fallback: default từ appsettings.json
-            return new ChunkSettingsDto
-            {
-                Strategy       = _config.GetValue<string>("AppSettings:ChunkStrategy", "Recursive") ?? "Recursive",
-                ChunkSize      = _config.GetValue<int>("AppSettings:ChunkSize", 800),
-                ChunkOverlap   = _config.GetValue<int>("AppSettings:ChunkOverlap", 100),
-                MinChunkLength = _config.GetValue<int>("AppSettings:MinChunkLength", 50),
-                UpdatedAt      = null
-            };
-        }
-
-        /// <summary>
         /// Lấy cấu hình chunking chung toàn hệ thống (do Admin thiết lập).
         /// </summary>
         public async Task<ChunkSettingsDto> GetGlobalSettingsAsync()
         {
-            var setting = await _uow.TeacherChunkSettings.FirstOrDefaultAsync(
-                s => s.Teacher.UserRoles.Any(ur => ur.Role.RoleName == AppConstants.RoleAdmin));
+            var setting = await _uow.SystemChunkSettings.FirstOrDefaultAsync(
+                s => s.User.UserRoles.Any(ur => ur.Role.RoleName == AppConstants.RoleAdmin));
 
             if (setting != null)
             {
@@ -88,11 +57,10 @@ namespace LearningDocumentSystem.Business.Services.Implementations
         }
 
         /// <summary>
-        /// Lưu (hoặc cập nhật) cấu hình chunking cho teacher.
-        /// Nếu người lưu là Admin, sẽ cập nhật vào cấu hình hệ thống chung (Admin).
+        /// Lưu (hoặc cập nhật) cấu hình chunking hệ thống (do Admin thiết lập).
         /// </summary>
         public async Task SaveSettingsAsync(
-            int teacherId, string strategy, int chunkSize, int chunkOverlap, int minChunkLength)
+            int adminId, string strategy, int chunkSize, int chunkOverlap, int minChunkLength)
         {
             // Validate strategy
             if (!ValidStrategies.Contains(strategy))
@@ -106,47 +74,43 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             if (minChunkLength < 10 || minChunkLength > chunkSize)
                 throw new ArgumentOutOfRangeException(nameof(minChunkLength), "Min Chunk Length phải từ 10 đến Chunk Size.");
 
-            // Kiểm tra xem người lưu có phải là Admin hay không
-            var isAdmin = await _uow.UserRoles.HasRoleAsync(teacherId, AppConstants.RoleAdmin);
-            if (isAdmin)
+            var existingSetting = await _uow.SystemChunkSettings.FirstOrDefaultAsync(
+                s => s.User.UserRoles.Any(ur => ur.Role.RoleName == AppConstants.RoleAdmin));
+
+            if (existingSetting != null)
             {
-                var existingAdminSetting = await _uow.TeacherChunkSettings.FirstOrDefaultAsync(
-                    s => s.Teacher.UserRoles.Any(ur => ur.Role.RoleName == AppConstants.RoleAdmin));
+                existingSetting.Strategy       = strategy;
+                existingSetting.ChunkSize      = chunkSize;
+                existingSetting.ChunkOverlap   = chunkOverlap;
+                existingSetting.MinChunkLength = minChunkLength;
+                existingSetting.UpdatedAt      = DateTime.UtcNow;
 
-                if (existingAdminSetting != null)
-                {
-                    existingAdminSetting.Strategy       = strategy;
-                    existingAdminSetting.ChunkSize      = chunkSize;
-                    existingAdminSetting.ChunkOverlap   = chunkOverlap;
-                    existingAdminSetting.MinChunkLength = minChunkLength;
-                    existingAdminSetting.UpdatedAt      = DateTime.UtcNow;
+                _uow.SystemChunkSettings.Update(existingSetting);
+                await _uow.SaveChangesAsync();
 
-                    _uow.TeacherChunkSettings.Update(existingAdminSetting);
-                    await _uow.SaveChangesAsync();
-
-                    _logger.LogInformation(
-                        "Admin updated global chunk settings: strategy={Strategy}, size={Size}, overlap={Overlap}, min={Min}",
-                        strategy, chunkSize, chunkOverlap, minChunkLength);
-                    return;
-                }
+                _logger.LogInformation(
+                    "Admin updated global chunk settings: strategy={Strategy}, size={Size}, overlap={Overlap}, min={Min}",
+                    strategy, chunkSize, chunkOverlap, minChunkLength);
             }
-
-            var setting = new TeacherChunkSetting
+            else
             {
-                TeacherId      = teacherId,
-                Strategy       = strategy,
-                ChunkSize      = chunkSize,
-                ChunkOverlap   = chunkOverlap,
-                MinChunkLength = minChunkLength,
-                UpdatedAt      = DateTime.UtcNow
-            };
+                var setting = new SystemChunkSetting
+                {
+                    UserId         = adminId,
+                    Strategy       = strategy,
+                    ChunkSize      = chunkSize,
+                    ChunkOverlap   = chunkOverlap,
+                    MinChunkLength = minChunkLength,
+                    UpdatedAt      = DateTime.UtcNow
+                };
 
-            await _uow.TeacherChunkSettings.UpsertAsync(setting);
-            await _uow.SaveChangesAsync();
+                await _uow.SystemChunkSettings.UpsertAsync(setting);
+                await _uow.SaveChangesAsync();
 
-            _logger.LogInformation(
-                "Teacher {TeacherId} saved chunk settings: strategy={Strategy}, size={Size}, overlap={Overlap}, min={Min}",
-                teacherId, strategy, chunkSize, chunkOverlap, minChunkLength);
+                _logger.LogInformation(
+                    "Admin created global chunk settings: strategy={Strategy}, size={Size}, overlap={Overlap}, min={Min}",
+                    strategy, chunkSize, chunkOverlap, minChunkLength);
+            }
         }
     }
 }

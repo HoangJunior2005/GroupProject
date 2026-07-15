@@ -22,7 +22,8 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
         private IAllowedEmailRepository? _allowedEmails;
         private IChatSessionRepository? _chatSessions;
         private IDocumentConflictRepository? _documentConflicts;
-        private ITeacherChunkSettingRepository? _teacherChunkSettings;
+        private ISystemChunkSettingRepository? _systemChunkSettings;
+        private IPaymentTransactionRepository? _paymentTransactions;
 
         public UnitOfWork(AppDbContext context)
         {
@@ -40,7 +41,8 @@ namespace LearningDocumentSystem.Data.Repositories.Implementations
         public IAllowedEmailRepository AllowedEmails => _allowedEmails ??= new AllowedEmailRepository(_context);
         public IChatSessionRepository ChatSessions => _chatSessions ??= new ChatSessionRepository(_context);
         public IDocumentConflictRepository DocumentConflicts => _documentConflicts ??= new DocumentConflictRepository(_context);
-        public ITeacherChunkSettingRepository TeacherChunkSettings => _teacherChunkSettings ??= new TeacherChunkSettingRepository(_context);
+        public ISystemChunkSettingRepository SystemChunkSettings => _systemChunkSettings ??= new SystemChunkSettingRepository(_context);
+        public IPaymentTransactionRepository PaymentTransactions => _paymentTransactions ??= new PaymentTransactionRepository(_context);
 
         public async Task<int> SaveChangesAsync() => await _context.SaveChangesAsync();
 

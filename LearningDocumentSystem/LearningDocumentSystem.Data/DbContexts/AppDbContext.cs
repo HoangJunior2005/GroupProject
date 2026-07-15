@@ -20,7 +20,8 @@ namespace LearningDocumentSystem.Data.DbContexts
         public DbSet<ChatSession> ChatSessions { get; set; } = null!;
         public DbSet<ChatMessage> ChatMessages { get; set; } = null!;
         public DbSet<DocumentConflict> DocumentConflicts { get; set; } = null!;
-        public DbSet<TeacherChunkSetting> TeacherChunkSettings { get; set; } = null!;
+        public DbSet<SystemChunkSetting> SystemChunkSettings { get; set; } = null!;
+        public DbSet<PaymentTransaction> PaymentTransactions { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -261,21 +262,21 @@ namespace LearningDocumentSystem.Data.DbContexts
             });
 
             // ============================================================
-            // BẢNG TeacherChunkSettings
+            // BẢNG SystemChunkSettings
             // ============================================================
-            modelBuilder.Entity<TeacherChunkSetting>(entity =>
+            modelBuilder.Entity<SystemChunkSetting>(entity =>
             {
-                entity.ToTable("TeacherChunkSettings");
-                entity.HasKey(t => t.TeacherId);
+                entity.ToTable("SystemChunkSettings");
+                entity.HasKey(t => t.UserId);
                 entity.Property(t => t.Strategy).IsRequired().HasMaxLength(50).HasDefaultValue("Recursive");
                 entity.Property(t => t.ChunkSize).HasDefaultValue(800);
                 entity.Property(t => t.ChunkOverlap).HasDefaultValue(100);
                 entity.Property(t => t.MinChunkLength).HasDefaultValue(50);
                 entity.Property(t => t.UpdatedAt).HasDefaultValueSql("GETDATE()");
 
-                entity.HasOne(t => t.Teacher)
+                entity.HasOne(t => t.User)
                     .WithOne()
-                    .HasForeignKey<TeacherChunkSetting>(t => t.TeacherId)
+                    .HasForeignKey<SystemChunkSetting>(t => t.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
@@ -316,6 +317,30 @@ namespace LearningDocumentSystem.Data.DbContexts
 
                 entity.HasIndex(dc => dc.DocumentID).HasDatabaseName("IX_DocumentConflicts_DocumentID");
                 entity.HasIndex(dc => dc.ConflictingDocumentID).HasDatabaseName("IX_DocumentConflicts_ConflictingDocumentID");
+            });
+
+            // ============================================================
+            // BẢNG PaymentTransactions
+            // ============================================================
+            modelBuilder.Entity<PaymentTransaction>(entity =>
+            {
+                entity.ToTable("PaymentTransactions");
+                entity.HasKey(pt => pt.TransactionID);
+                entity.Property(pt => pt.TransactionID).UseIdentityColumn();
+                entity.Property(pt => pt.PlanCode).IsRequired().HasMaxLength(50);
+                entity.Property(pt => pt.Amount).IsRequired().HasColumnType("decimal(18,2)");
+                entity.Property(pt => pt.TransactionReference).IsRequired().HasMaxLength(100);
+                entity.Property(pt => pt.IsSuccess).IsRequired();
+                entity.Property(pt => pt.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+                // FK -> Users (CASCADE DELETE - if user is deleted, their payments are deleted)
+                entity.HasOne(pt => pt.User)
+                    .WithMany()
+                    .HasForeignKey(pt => pt.UserID)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(pt => pt.UserID).HasDatabaseName("IX_PaymentTransactions_UserID");
+                entity.HasIndex(pt => pt.TransactionReference).IsUnique().HasDatabaseName("IX_PaymentTransactions_TransactionReference");
             });
         }
     }

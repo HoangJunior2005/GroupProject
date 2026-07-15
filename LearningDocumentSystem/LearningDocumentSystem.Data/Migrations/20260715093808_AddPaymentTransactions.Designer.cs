@@ -4,6 +4,7 @@ using LearningDocumentSystem.Data.DbContexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LearningDocumentSystem.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260715093808_AddPaymentTransactions")]
+    partial class AddPaymentTransactions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -468,9 +471,9 @@ namespace LearningDocumentSystem.Data.Migrations
                     b.ToTable("Subjects", (string)null);
                 });
 
-            modelBuilder.Entity("LearningDocumentSystem.Entities.Models.SystemChunkSetting", b =>
+            modelBuilder.Entity("LearningDocumentSystem.Entities.Models.TeacherChunkSetting", b =>
                 {
-                    b.Property<int>("UserId")
+                    b.Property<int>("TeacherId")
                         .HasColumnType("int");
 
                     b.Property<int>("ChunkOverlap")
@@ -500,9 +503,9 @@ namespace LearningDocumentSystem.Data.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
-                    b.HasKey("UserId");
+                    b.HasKey("TeacherId");
 
-                    b.ToTable("SystemChunkSettings", (string)null);
+                    b.ToTable("TeacherChunkSettings", (string)null);
                 });
 
             modelBuilder.Entity("LearningDocumentSystem.Entities.Models.User", b =>
@@ -709,15 +712,15 @@ namespace LearningDocumentSystem.Data.Migrations
                     b.Navigation("SubjectLeader");
                 });
 
-            modelBuilder.Entity("LearningDocumentSystem.Entities.Models.SystemChunkSetting", b =>
+            modelBuilder.Entity("LearningDocumentSystem.Entities.Models.TeacherChunkSetting", b =>
                 {
-                    b.HasOne("LearningDocumentSystem.Entities.Models.User", "User")
+                    b.HasOne("LearningDocumentSystem.Entities.Models.User", "Teacher")
                         .WithOne()
-                        .HasForeignKey("LearningDocumentSystem.Entities.Models.SystemChunkSetting", "UserId")
+                        .HasForeignKey("LearningDocumentSystem.Entities.Models.TeacherChunkSetting", "TeacherId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("User");
+                    b.Navigation("Teacher");
                 });
 
             modelBuilder.Entity("LearningDocumentSystem.Entities.Models.UserRole", b =>

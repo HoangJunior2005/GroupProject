@@ -29,6 +29,7 @@ namespace LearningDocumentSystem.Data.Seeders
                 await SeedSubjectsAsync();
                 await SeedDocumentsAsync();
                 await SeedChatSessionsAndMessagesAsync();
+                await SeedPaymentTransactionsAsync();
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("✅ Database seeded successfully.");
@@ -427,6 +428,70 @@ namespace LearningDocumentSystem.Data.Seeders
             await _context.ChatMessages.AddRangeAsync(chatMessages);
             await _context.SaveChangesAsync();
             _logger.LogInformation("✅ Seeded {SessionCount} ChatSessions and {MessageCount} ChatMessages successfully.", chatSessions.Count, chatMessages.Count);
+        }
+
+        private async Task SeedPaymentTransactionsAsync()
+        {
+            var existing = await _context.PaymentTransactions.ToListAsync();
+            if (existing.Any())
+            {
+                _context.PaymentTransactions.RemoveRange(existing);
+                await _context.SaveChangesAsync();
+            }
+
+            _logger.LogInformation("Seeding successful payment transactions...");
+
+            var students = await _context.Users
+                .Where(u => u.UserRoles.Any(ur => ur.Role.RoleName == "Student"))
+                .ToListAsync();
+
+            if (!students.Any()) return;
+
+            var random = new Random(2026);
+            var now = DateTime.UtcNow;
+            var planCodes = new[] { "Plus", "Pro" };
+            var planPrices = new Dictionary<string, decimal> { { "Plus", 99000 }, { "Pro", 199000 } };
+
+            var transactions = new List<PaymentTransaction>();
+
+            // Seed about 80 transactions distributed over the last 12 months
+            for (int i = 0; i < 80; i++)
+            {
+                var student = students[random.Next(students.Count)];
+                var monthsAgo = random.Next(0, 12);
+                var hoursAgo = random.Next(0, 24);
+                
+                var dayLimit = (monthsAgo == 0) ? Math.Max(1, now.Day) : 28;
+                var daysAgo = random.Next(1, dayLimit + 1);
+
+                var createdDate = new DateTime(now.Year, now.Month, 1)
+                    .AddMonths(-monthsAgo)
+                    .AddDays(daysAgo - 1)
+                    .AddHours(hoursAgo);
+
+                if (createdDate > now)
+                {
+                    createdDate = now.AddMinutes(-random.Next(5, 120));
+                }
+
+                var plan = planCodes[random.Next(planCodes.Length)];
+                var amount = planPrices[plan];
+                var txnRef = $"LDS{student.UserID}{plan}{createdDate:yyyyMMddHHmmssfff}";
+
+                transactions.Add(new PaymentTransaction
+                {
+                    UserID = student.UserID,
+                    PlanCode = plan,
+                    Amount = amount,
+                    TransactionReference = txnRef,
+                    IsSuccess = true,
+                    CreatedAt = createdDate
+                });
+            }
+
+            await _context.PaymentTransactions.AddRangeAsync(transactions);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("✅ Seeded {Count} successful payment transactions successfully.", transactions.Count);
         }
     }
 }

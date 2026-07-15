@@ -22,6 +22,11 @@ namespace LearningDocumentSystem.Web.Pages.Packages
             var result = _vnpayService.ValidatePayment(Request.Query);
             if (!result.IsValid)
                 return new JsonResult(new { RspCode = "97", Message = "Invalid signature" });
+
+            var plan = _packageService.FindPlan(result.PlanCode);
+            decimal amount = plan?.Price ?? 0;
+            await _packageService.RecordTransactionAsync(result.UserId, result.PlanCode, amount, result.TransactionReference, result.IsSuccess);
+
             if (!result.IsSuccess)
                 return new JsonResult(new { RspCode = "01", Message = "Transaction failed" });
 

@@ -1,15 +1,16 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LearningDocumentSystem.Entities.Models
 {
     /// <summary>
-    /// Lưu cấu hình chunking riêng cho từng Giảng viên.
+    /// Lưu cấu hình chunking toàn hệ thống (do Admin thiết lập).
     /// </summary>
-    public class TeacherChunkSetting
+    public class SystemChunkSetting
     {
         [Key]
-        public int TeacherId { get; set; }
+        public int UserId { get; set; }
 
         /// <summary>
         /// Chiến lược phân mảnh: "FixedSize" | "Paragraph" | "Recursive"
@@ -30,7 +31,7 @@ namespace LearningDocumentSystem.Entities.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation property
-        [ForeignKey(nameof(TeacherId))]
-        public virtual User Teacher { get; set; } = null!;
+        [ForeignKey(nameof(UserId))]
+        public virtual User User { get; set; } = null!;
     }
 }
