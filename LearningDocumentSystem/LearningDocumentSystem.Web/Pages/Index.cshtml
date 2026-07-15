@@ -119,15 +119,26 @@
 <!-- Page Header -->
 <div class="page-header">
     <div>
-        <h1 class="page-title"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h1>
-        <p class="page-subtitle">Tổng quan hệ thống tài liệu học tập</p>
+        @if (User.IsInRole("Admin"))
+        {
+            <h1 class="page-title"><i class="bi bi-cash-coin me-2"></i>Thống kê doanh thu mua gói</h1>
+            <p class="page-subtitle">Tổng quan tình hình doanh thu hệ thống</p>
+        }
+        else
+        {
+            <h1 class="page-title"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h1>
+            <p class="page-subtitle">Tổng quan hệ thống tài liệu học tập</p>
+        }
     </div>
 </div>
 
-<!-- Stats Cards -->
 @{
     var cardClass = User.IsInRole("Teacher") ? "col-xl-6 col-md-6" : "col-xl-4 col-md-4";
 }
+
+@if (!User.IsInRole("Admin"))
+{
+<!-- Stats Cards -->
 <div class="row g-4 mb-4" id="dashboard-stats-panel">
     <div class="@cardClass">
         <div class="stat-card stat-card-primary">
@@ -194,8 +205,6 @@
     }
 </div>
 
-@if (!User.IsInRole("Admin"))
-{
     <!-- Index Status + Recent Docs -->
     <div class="row g-4" id="dashboard-status-docs-panel">
         <div class="col-lg-5">
@@ -304,8 +313,7 @@
 else
 {
     <!-- Admin Revenue Section integrated directly into Dashboard -->
-    <div id="revenue-section" class="mt-4 pt-2">
-        <h4 class="mb-3 fw-bold text-dark"><i class="bi bi-cash-coin me-2 text-primary"></i>Thống kê doanh thu mua gói</h4>
+    <div id="revenue-section">
         
         <!-- KPI Cards -->
         <div class="rev-kpi-grid">
@@ -438,9 +446,14 @@ else
 
         <!-- Recent Transactions Table -->
         <div class="rev-table-panel mb-4">
-            <div class="admin-panel-header px-4 py-3 border-bottom d-flex justify-content-between align-items-center">
+            <div class="admin-panel-header px-4 py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <strong class="fs-5"><i class="bi bi-clock-history me-2 text-secondary"></i>Các giao dịch thành công trong tháng @Model.SelectedMonth.Value.ToString("D2")/@Model.SelectedYear</strong>
-                <span class="badge bg-success-subtle text-success border">Bộ lọc áp dụng</span>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="input-group input-group-sm" style="width: 280px;">
+                        <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" id="txSearchInput" class="form-control" placeholder="Tìm theo tên hoặc tài khoản..." />
+                    </div>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table align-middle mb-0 table-hover">
@@ -455,12 +468,12 @@ else
                             <th class="pe-4 text-end">Trạng thái</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="txTableBody">
                         @if (Model.RevenueDashboard.RecentTransactions.Any())
                         {
                             foreach (var tx in Model.RevenueDashboard.RecentTransactions)
                             {
-                                <tr>
+                                <tr class="tx-row" data-fullname="@tx.UserFullName" data-username="@tx.Username">
                                     <td class="ps-4"><code class="small text-dark fw-bold">@tx.TransactionReference</code></td>
                                     <td>
                                         <div class="d-flex align-items-center gap-2">
@@ -495,15 +508,32 @@ else
                         }
                         else
                         {
-                            <tr>
+                            <tr id="txEmptyRow">
                                 <td colspan="7" class="text-center py-4 text-muted">
                                     <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                                     Không có giao dịch thành công nào trong tháng này.
                                 </td>
                             </tr>
                         }
+                        <tr id="txNoResultsRow" style="display: none;">
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="bi bi-search fs-2 d-block mb-2"></i>
+                                Không tìm thấy giao dịch nào khớp với từ khóa tìm kiếm.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
+            </div>
+            
+            <!-- Pagination Footer -->
+            <div id="txPaginationPanel" class="d-flex justify-content-between align-items-center px-4 py-3 border-top bg-light" style="display: none;">
+                <div class="text-muted small">
+                    Hiển thị <span id="txPageStart">1</span>-<span id="txPageEnd">10</span> trong số <span id="txTotalCount">0</span> giao dịch
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0" id="txPaginationList">
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>
@@ -523,9 +553,11 @@ else
                 }
             }
 
-            const ctx = document.getElementById('monthlyUploadChart').getContext('2d');
+            const uploadCanvas = document.getElementById('monthlyUploadChart');
+            if (uploadCanvas) {
+                const ctx = uploadCanvas.getContext('2d');
 
-            const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Dashboard.MonthlyUploads.Select(m => m.Label)));
+                const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Dashboard.MonthlyUploads.Select(m => m.Label)));
             const data = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Dashboard.MonthlyUploads.Select(m => m.Count)));
 
             // Create gradient
@@ -597,6 +629,7 @@ else
                     }
                 }
             });
+            }
 
             // Monthly Registration Chart (Admin only)
             const regCanvas = document.getElementById('monthlyRegistrationChart');
@@ -882,6 +915,118 @@ else
                     }, 1000);
                 }
             });
+
+            // Client-side search and pagination for transactions
+            const txSearchInput = document.getElementById('txSearchInput');
+            const txTableBody = document.getElementById('txTableBody');
+            if (txTableBody) {
+                const txRows = Array.from(txTableBody.querySelectorAll('.tx-row'));
+                const txNoResultsRow = document.getElementById('txNoResultsRow');
+                const txEmptyRow = document.getElementById('txEmptyRow');
+                const txPaginationPanel = document.getElementById('txPaginationPanel');
+                const txPageStart = document.getElementById('txPageStart');
+                const txPageEnd = document.getElementById('txPageEnd');
+                const txTotalCount = document.getElementById('txTotalCount');
+                const txPaginationList = document.getElementById('txPaginationList');
+
+                const itemsPerPage = 10;
+                let currentPage = 1;
+                let filteredRows = [...txRows];
+
+                function updateTxTable() {
+                    const totalCount = filteredRows.length;
+                    txTotalCount.textContent = totalCount;
+
+                    if (totalCount === 0) {
+                        txNoResultsRow.style.display = '';
+                        txPaginationPanel.style.display = 'none';
+                        txRows.forEach(row => row.style.display = 'none');
+                        if (txEmptyRow) txEmptyRow.style.display = 'none';
+                        return;
+                    }
+
+                    txNoResultsRow.style.display = 'none';
+                    if (txEmptyRow) txEmptyRow.style.display = 'none';
+
+                    if (totalCount > itemsPerPage) {
+                        txPaginationPanel.style.display = 'flex';
+                    } else {
+                        txPaginationPanel.style.display = 'none';
+                    }
+
+                    const totalPages = Math.ceil(totalCount / itemsPerPage);
+                    if (currentPage > totalPages) currentPage = totalPages;
+                    if (currentPage < 1) currentPage = 1;
+
+                    const startIdx = (currentPage - 1) * itemsPerPage;
+                    const endIdx = Math.min(startIdx + itemsPerPage, totalCount);
+
+                    txPageStart.textContent = startIdx + 1;
+                    txPageEnd.textContent = endIdx;
+
+                    txRows.forEach(row => row.style.display = 'none');
+                    for (let i = startIdx; i < endIdx; i++) {
+                        filteredRows[i].style.display = '';
+                    }
+
+                    // Render pagination buttons
+                    txPaginationList.innerHTML = '';
+                    
+                    // Previous button
+                    const prevLi = document.createElement('li');
+                    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+                    prevLi.innerHTML = `<button class="page-link" type="button"><i class="bi bi-chevron-left"></i></button>`;
+                    if (currentPage > 1) {
+                        prevLi.querySelector('button').addEventListener('click', () => {
+                            currentPage--;
+                            updateTxTable();
+                        });
+                    }
+                    txPaginationList.appendChild(prevLi);
+
+                    // Page number buttons
+                    for (let p = 1; p <= totalPages; p++) {
+                        const li = document.createElement('li');
+                        li.className = `page-item ${p === currentPage ? 'active' : ''}`;
+                        li.innerHTML = `<button class="page-link" type="button">${p}</button>`;
+                        li.querySelector('button').addEventListener('click', () => {
+                            currentPage = p;
+                            updateTxTable();
+                        });
+                        txPaginationList.appendChild(li);
+                    }
+
+                    // Next button
+                    const nextLi = document.createElement('li');
+                    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+                    nextLi.innerHTML = `<button class="page-link" type="button"><i class="bi bi-chevron-right"></i></button>`;
+                    if (currentPage < totalPages) {
+                        nextLi.querySelector('button').addEventListener('click', () => {
+                            currentPage++;
+                            updateTxTable();
+                        });
+                    }
+                    txPaginationList.appendChild(nextLi);
+                }
+
+                if (txSearchInput) {
+                    txSearchInput.addEventListener('input', function () {
+                        const query = this.value.toLowerCase().trim();
+                        filteredRows = txRows.filter(row => {
+                            const fullname = (row.getAttribute('data-fullname') || '').toLowerCase();
+                            const username = (row.getAttribute('data-username') || '').toLowerCase();
+                            return fullname.includes(query) || username.includes(query);
+                        });
+                        currentPage = 1;
+                        updateTxTable();
+                    });
+                }
+
+                // Initialize table
+                if (txRows.length > 0) {
+                    updateTxTable();
+                }
+            }
         });
     </script>
 }

@@ -1,12 +1,13 @@
 using LearningDocumentSystem.Business.DTOs;
 using LearningDocumentSystem.Business.Services.Interfaces;
+using LearningDocumentSystem.Common.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace LearningDocumentSystem.Web.Pages.Admin
 {
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Roles = AppConstants.RoleAdmin)]
     public class PackagesModel : PageModel
     {
         private readonly IPackageService _packageService;

@@ -334,7 +334,6 @@ namespace LearningDocumentSystem.Business.Services.Implementations
             var recentTx = txList
                 .Where(t => t.CreatedAt.Year == selectYear && t.CreatedAt.Month == selectMonth)
                 .OrderByDescending(t => t.CreatedAt)
-                .Take(10)
                 .Select(t => _mapper.Map<PaymentTransactionDto>(t))
                 .ToList();
 
