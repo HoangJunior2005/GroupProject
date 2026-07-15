@@ -81,6 +81,11 @@
                             <i class="bi bi-box-seam-fill"></i> Qu&#7843;n l&#253; g&#243;i
                         </a>
                     </li>
+                    <li class="@(activePage == "/Admin/ChunkSettings" ? "active" : "")">
+                        <a asp-page="/Admin/ChunkSettings">
+                            <i class="bi bi-sliders"></i> Cấu hình Chunking
+                        </a>
+                    </li>
 
                     <li class="@(activePage.StartsWith("/Admin/Benchmarks") ? "active" : "")">
                         <a asp-page="/Admin/Benchmarks">

@@ -1,0 +1,69 @@
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace LearningDocumentSystem.Data.Migrations
+{
+    /// <inheritdoc />
+    public partial class RenameTeacherChunkSettingsToSystemChunkSettings : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "TeacherChunkSettings");
+
+            migrationBuilder.CreateTable(
+                name: "SystemChunkSettings",
+                columns: table => new
+                {
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    Strategy = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false, defaultValue: "Recursive"),
+                    ChunkSize = table.Column<int>(type: "int", nullable: false, defaultValue: 800),
+                    ChunkOverlap = table.Column<int>(type: "int", nullable: false, defaultValue: 100),
+                    MinChunkLength = table.Column<int>(type: "int", nullable: false, defaultValue: 50),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SystemChunkSettings", x => x.UserId);
+                    table.ForeignKey(
+                        name: "FK_SystemChunkSettings_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "UserID",
+                        onDelete: ReferentialAction.Cascade);
+                });
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "SystemChunkSettings");
+
+            migrationBuilder.CreateTable(
+                name: "TeacherChunkSettings",
+                columns: table => new
+                {
+                    TeacherId = table.Column<int>(type: "int", nullable: false),
+                    ChunkOverlap = table.Column<int>(type: "int", nullable: false, defaultValue: 100),
+                    ChunkSize = table.Column<int>(type: "int", nullable: false, defaultValue: 800),
+                    MinChunkLength = table.Column<int>(type: "int", nullable: false, defaultValue: 50),
+                    Strategy = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false, defaultValue: "Recursive"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TeacherChunkSettings", x => x.TeacherId);
+                    table.ForeignKey(
+                        name: "FK_TeacherChunkSettings_Users_TeacherId",
+                        column: x => x.TeacherId,
+                        principalTable: "Users",
+                        principalColumn: "UserID",
+                        onDelete: ReferentialAction.Cascade);
+                });
+        }
+    }
+}

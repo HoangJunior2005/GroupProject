@@ -1,5 +1,6 @@
 using LearningDocumentSystem.Business.DTOs;
 using LearningDocumentSystem.Business.Services.Interfaces;
+using LearningDocumentSystem.Common.Constants;
 using LearningDocumentSystem.Web.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,9 +9,9 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 
-namespace LearningDocumentSystem.Web.Pages.Documents
+namespace LearningDocumentSystem.Web.Pages.Admin
 {
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Roles = AppConstants.RoleAdmin)]
     public class ChunkSettingsModel : PageModel
     {
         private readonly IChunkSettingsService _chunkSettingsService;

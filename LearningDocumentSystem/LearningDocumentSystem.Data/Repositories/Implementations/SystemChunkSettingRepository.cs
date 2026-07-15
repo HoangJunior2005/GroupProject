@@ -5,16 +5,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LearningDocumentSystem.Data.Repositories.Implementations
 {
-    public class TeacherChunkSettingRepository : GenericRepository<TeacherChunkSetting>, ITeacherChunkSettingRepository
+    public class SystemChunkSettingRepository : GenericRepository<SystemChunkSetting>, ISystemChunkSettingRepository
     {
-        public TeacherChunkSettingRepository(AppDbContext context) : base(context) { }
+        public SystemChunkSettingRepository(AppDbContext context) : base(context) { }
 
-        public async Task<TeacherChunkSetting?> GetByTeacherIdAsync(int teacherId)
-            => await _dbSet.FirstOrDefaultAsync(s => s.TeacherId == teacherId);
+        public async Task<SystemChunkSetting?> GetByUserIdAsync(int userId)
+            => await _dbSet.FirstOrDefaultAsync(s => s.UserId == userId);
 
-        public async Task UpsertAsync(TeacherChunkSetting setting)
+        public async Task UpsertAsync(SystemChunkSetting setting)
         {
-            var existing = await _dbSet.FindAsync(setting.TeacherId);
+            var existing = await _dbSet.FindAsync(setting.UserId);
             if (existing == null)
             {
                 await _dbSet.AddAsync(setting);
