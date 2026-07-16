@@ -1,268 +1,279 @@
-# 📚 Hệ Thống Quản Lý Tài Liệu Học Tập (Learning Document System - LDS)
+# Learning Document System (LDS)
 
-Chào mừng bạn đến với **Learning Document System (LDS)**, giải pháp quản lý tài liệu thông minh kết hợp trợ lý ảo AI hỗ trợ học tập theo thời gian thực. Hệ thống được xây dựng trên nền tảng **ASP.NET Core (Razor Pages)** và ứng dụng kỹ thuật **RAG (Retrieval-Augmented Generation)** để phân tích, tìm kiếm thông tin ngữ nghĩa và trả lời câu hỏi trực tiếp dựa trên tài liệu bài giảng.
+Learning Document System là hệ thống quản lý tài liệu học tập xây dựng bằng ASP.NET Core Razor Pages. Ứng dụng hỗ trợ quản lý môn học, chương học, tài liệu giảng dạy, chat AI theo tài liệu đã upload, phân quyền người dùng và thanh toán gói sử dụng qua VNPay sandbox.
 
----
+> Lưu ý bảo mật: không commit `appsettings.json` chứa connection string, API key hoặc VNPay secret thật lên GitHub. README này chỉ dùng placeholder để hướng dẫn cấu hình.
 
-## 🗺️ Sơ Đồ Kiến Trúc Hệ Thống (Architecture)
+## Chức năng chính
 
-Dự án được thiết kế theo mô hình kiến trúc **3 lớp (3-Tier Architecture)** phân tách rõ ràng trách nhiệm để dễ bảo trì và nâng cấp:
+- Đăng ký, đăng nhập bằng Cookie Authentication.
+- Phân quyền `Admin`, `Teacher`, `Student`, kèm các gói `Free`, `Plus`, `Pro`.
+- Admin quản lý người dùng, email được phép đăng ký, cấu hình chunking, gói dịch vụ và benchmark AI.
+- Teacher quản lý môn học, chương học, upload tài liệu `.pdf`, `.docx`, `.pptx`.
+- Hệ thống tách tài liệu thành chunks, sinh embedding nội bộ và lưu nguồn tham chiếu.
+- Student chat hỏi đáp theo tài liệu học tập bằng RAG.
+- Hỗ trợ nhiều provider AI: Gemini, Groq và OpenAI-compatible endpoint.
+- SignalR đẩy cập nhật thời gian thực khi tài liệu, dashboard hoặc chat thay đổi.
+- VNPay sandbox cho thanh toán nâng cấp gói.
 
-<img width="1271" height="692" alt="ASS2 drawio" src="https://github.com/user-attachments/assets/81eff58d-2a4c-4c89-ab86-d3fd45ee05bc" />
+## Công nghệ sử dụng
 
+- .NET 8
+- ASP.NET Core Razor Pages
+- Entity Framework Core 8
+- SQL Server
+- SignalR
+- AutoMapper
+- iText 7, OpenXML
+- Bootstrap, jQuery
+- Gemini / Groq / OpenAI-compatible APIs
 
-### 1. Tầng Dữ Liệu (LearningDocumentSystem.Data)
-*   **Entities**: Định nghĩa cấu trúc các bảng trong cơ sở dữ liệu.
-*   **AppDbContext**: Cấu hình các mối quan hệ (1-1, 1-n, n-n), ràng buộc dữ liệu nâng cao (Composite PK, Cascade Delete, Index tối ưu hóa) bằng Fluent API.
-*   **Repositories & Unit of Work**: Đóng gói các tác vụ truy xuất dữ liệu giúp giảm sự phụ thuộc trực tiếp vào DbContext.
-*   **Migrations**: Lưu vết các thay đổi cấu trúc Database.
-*   **Seeders (DataSeeder)**: Tự động khởi tạo dữ liệu mẫu khi ứng dụng khởi chạy lần đầu.
-
-### 2. Tầng Nghiệp Vụ (LearningDocumentSystem.Business)
-*   **Services**: Xử lý logic nghiệp vụ chính (Đăng nhập/đăng ký, quản lý môn học, chương học, upload file).
-*   **Document Chunking**: Trích xuất văn bản từ tài liệu (`.pdf`, `.docx`, `.pptx`) và chia nhỏ thành các phân đoạn (`DocumentChunk`) có kèm số trang.
-*   **Feature Hashing & TF-IDF Vectorization**: Tự sinh các vector embedding nội bộ từ các phân đoạn tài liệu nhằm mục đích so khớp độ tương đồng ngữ nghĩa bằng thuật toán Cosine Similarity.
-*   **Gemini AI Integration**: Tích hợp API Gemini để trả lời câu hỏi dựa trên các phân đoạn tài liệu phù hợp nhất được tìm thấy (quy trình **RAG**).
-
-### 3. Tầng Giao Diện (LearningDocumentSystem.Web)
-*   **Razor Pages**: Giao diện người dùng động.
-*   **ViewModels**: Chuẩn hóa dữ liệu đầu vào và đầu ra cho View.
-*   **SignalR Hubs (NotificationHub)**: Đẩy thông báo thời gian thực đến người dùng (ví dụ: thông báo khi tài liệu được băm/nhúng vector thành công hoặc phát hiện xung đột).
-*   **Cookie Authentication**: Cơ chế bảo mật và phân quyền vai trò (Admin, Teacher, Student) bằng Cookie.
-
-💡 *Bạn cũng có thể xem sơ đồ kiến trúc chi tiết được vẽ sẵn trong tệp [ASS2.drawio.png](file:///c:/Users/Administrator/Desktop/Assignment_2/ASS2.drawio.png) tại thư mục gốc.*
-
----
-
-## 📁 Cấu Trúc Thư Mục Dự Án (Repository Structure)
-
-Cấu trúc cây thư mục tổ chức mã nguồn của hệ thống như sau:
+## Cấu trúc source code
 
 ```text
-Assignment_2/
-├── .github/                         # Cấu hình GitHub (Workflow, CI/CD...)
-├── LearningDocumentSystem/          # Thư mục chính chứa mã nguồn dự án
-│   ├── LearningDocumentSystem.Data/ # Tầng dữ liệu (Data Access Layer - DAL)
-│   │   ├── DbContexts/              # Quản lý DbContext kết nối cơ sở dữ liệu
-│   │   ├── Entities/                # Chứa các Model ánh xạ trực tiếp vào các bảng database
-│   │   ├── Repositories/            # Giao diện và triển khai mẫu thiết kế Repository / Unit of Work
-│   │   ├── Migrations/              # Quản lý lịch sử và các bản nâng cấp cấu trúc Database
-│   │   ├── Seeders/                 # Chứa mã nguồn tự động khởi tạo dữ liệu mẫu (DataSeeder)
-│   │   ├── Constants/               # Chứa các hằng số dùng chung của hệ thống (AppConstants, AppMessages)
-│   │   ├── Helpers/                 # Chứa các lớp tiện ích bổ trợ (Mã hóa mật khẩu, xử lý File, DateTime)
-│   │   └── Exceptions/              # Định nghĩa các Exception tùy chỉnh dùng để bắt lỗi hệ thống
-│   ├── LearningDocumentSystem.Business/ # Tầng nghiệp vụ (Business Logic Layer - BLL)
-│   │   ├── Services/                # Triển khai các xử lý logic (Auth, Chat, Document, Embedding, Gemini AI...)
-│   │   ├── DTOs/                    # Data Transfer Objects truyền dữ liệu sạch giữa các tầng
-│   │   └── Mapping/                 # Cấu hình ánh xạ tự động AutoMapper (giữa Entities và DTOs)
-│   └── LearningDocumentSystem.Web/  # Tầng giao diện (Presentation Layer - PL)
-│       ├── Pages/                   # Các trang giao diện Razor Pages & logic Code-behind
-│       ├── ViewModels/              # Chứa các mô hình dữ liệu đầu vào/ra phục vụ trực tiếp cho hiển thị UI
-│       ├── Hubs/                    # SignalR Hubs dùng cho truyền thông thời gian thực (Real-time)
-│       ├── Services/                # Chứa các Service bổ trợ riêng cho giao diện (Notification)
-│       ├── wwwroot/                 # Chứa các tệp tĩnh công khai (CSS, JS, thư viện giao diện, file tải lên)
-│       ├── appsettings.json         # Tệp cấu hình môi trường ứng dụng (Connection String, Gemini API Key)
-│       └── Program.cs               # Điểm khởi chạy của ứng dụng, thiết lập DI, Auth và Middleware
-├── ASS2.drawio.png                  # File sơ đồ kiến trúc hệ thống (dưới dạng ảnh chụp)
-├── .gitignore                       # Danh sách các tệp tin/thư mục Git bỏ qua không theo dõi
-└── README.md                        # Tài liệu hướng dẫn sử dụng và mô tả dự án này
+FinalPRN222/
+├── ASS2.drawio.png
+├── README.md
+└── LearningDocumentSystem/
+    ├── LearningDocumentSystem.slnx
+    ├── LearningDocumentSystem.Web/
+    │   ├── Pages/
+    │   ├── Hubs/
+    │   ├── Services/
+    │   ├── ViewModels/
+    │   ├── wwwroot/
+    │   ├── App_Data/package-plans.json
+    │   └── Program.cs
+    ├── LearningDocumentSystem.Business/
+    │   ├── DTOs/
+    │   ├── Mapping/
+    │   └── Services/
+    └── LearningDocumentSystem.Data/
+        ├── DbContexts/
+        ├── Entities/
+        ├── Migrations/
+        ├── Repositories/
+        └── Seeders/
 ```
 
----
+### Vai trò từng project
 
-## 💾 Cấu Hình Cơ Sở Dữ Liệu (Database Configuration)
+`LearningDocumentSystem.Web` là tầng giao diện Razor Pages, cấu hình middleware, authentication, SignalR hub và dependency injection.
 
-Hệ thống sử dụng **Microsoft SQL Server** làm hệ quản trị cơ sở dữ liệu chính.
+`LearningDocumentSystem.Business` chứa logic nghiệp vụ như auth, document upload, chunking, embedding, chat RAG, package, benchmark và VNPay.
 
-### 1. Sơ đồ các bảng dữ liệu
-Dưới đây là các bảng chính trong Database:
-*   `Users` & `Roles` & `UserRoles`: Quản lý tài khoản, vai trò và phân quyền.
-*   `AllowedEmails`: Danh sách email của giảng viên được phép đăng ký tài khoản.
-*   `Subjects` & `Chapters`: Quản lý môn học và các chương tương ứng.
-*   `Documents`: Lưu thông tin file tài liệu tải lên (Đường dẫn, mã băm MD5, kích thước, trạng thái index).
-*   `DocumentChunks` & `Embeddings`: Lưu trữ nội dung tài liệu sau khi băm nhỏ và vector embedding tương ứng của từng đoạn.
-*   `ChatSessions` & `ChatMessages`: Lưu trữ phiên chat và lịch sử hội thoại giữa người dùng với trợ lý ảo AI.
-*   `DocumentConflicts`: Lưu thông tin các đoạn tài liệu bị trùng lặp hoặc xung đột nội dung.
+`LearningDocumentSystem.Data` chứa entity, DbContext, migration, repository, unit of work, helper và seeder dữ liệu mẫu.
 
-### 2. Hướng dẫn cấu hình `appsettings.json`
+## Yêu cầu trước khi chạy
 
-Tệp `appsettings.json` nằm trong thư mục `LearningDocumentSystem.Web/` là nơi chứa toàn bộ cấu hình ứng dụng. Dưới đây là cấu trúc đầy đủ và hướng dẫn chỉnh sửa từng mục:
+1. Cài .NET 8 SDK.
+2. Cài SQL Server Developer/Express hoặc dùng SQL Server local có sẵn.
+3. Cài Visual Studio 2022 hoặc Visual Studio Code.
+4. Chuẩn bị API key cho provider AI muốn dùng:
+   - Gemini: Google AI Studio.
+   - Groq: Groq Console.
+   - OpenAI-compatible: endpoint tương thích `/v1/chat/completions`.
+5. Nếu test thanh toán, chuẩn bị thông tin VNPay sandbox.
+
+## Cấu hình `appsettings.json`
+
+Tạo hoặc cập nhật file:
+
+```text
+LearningDocumentSystem/LearningDocumentSystem.Web/appsettings.json
+```
+
+Mẫu cấu hình:
 
 ```json
 {
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=LearningDocumentSystemDataBase;user id=sa;password=MẬT_KHẨU_SQL_CỦA_BẠN;MultipleActiveResultSets=true;TrustServerCertificate=True"
+    "DefaultConnection": "Server=localhost;Database=LearningDocumentSystemDataBase;user id=sa;password=YOUR_SQL_PASSWORD;MultipleActiveResultSets=true;TrustServerCertificate=True"
   },
   "AppSettings": {
     "UploadFolder": "uploads",
     "MaxFileSizeMB": 50,
     "AllowedFileTypes": [ "pdf", "docx", "pptx" ],
+    "ChunkStrategy": "Recursive",
     "ChunkSize": 800,
     "ChunkOverlap": 100,
     "MinChunkLength": 50,
     "DefaultPageSize": 10
   },
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning",
-      "Microsoft.EntityFrameworkCore": "Warning"
-    }
-  },
-  "AllowedHosts": "*",
   "Gemini": {
-    "ApiKey": "GEMINI_API_KEY_CỦA_BẠN",
-    "ModelName": "gemini-3.1-flash-lite"
+    "ApiKey": "YOUR_GEMINI_API_KEY",
+    "ModelName": "gemini-2.5-flash"
+  },
+  "OpenAI": {
+    "ApiKey": "YOUR_OPENAI_COMPATIBLE_API_KEY",
+    "ModelName": "gpt-oss-120b",
+    "BaseUrl": "https://api.example.com/v1/chat/completions"
+  },
+  "Groq": {
+    "ApiKey": "YOUR_GROQ_API_KEY",
+    "ModelName": "llama-3.1-8b-instant"
+  },
+  "Vnpay": {
+    "TmnCode": "YOUR_VNPAY_TMN_CODE",
+    "HashSecret": "YOUR_VNPAY_HASH_SECRET",
+    "PaymentUrl": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+    "Version": "2.1.0",
+    "Command": "pay"
   }
 }
 ```
 
-#### 📌 Giải thích từng phần cấu hình:
+Nếu dùng Windows Authentication cho SQL Server, đổi connection string thành:
 
-**🔌 `ConnectionStrings`**
-
-| Thuộc tính | Mô tả |
-| :--- | :--- |
-| `DefaultConnection` | Chuỗi kết nối đến SQL Server. Thay `MẬT_KHẨU_SQL_CỦA_BẠN` bằng mật khẩu tài khoản `sa` trên máy bạn. |
-
-> [!IMPORTANT]
-> Nếu bạn dùng **Windows Authentication** (không dùng tài khoản `sa`), hãy đổi chuỗi kết nối thành:
-> `"Server=localhost;Database=LearningDocumentSystemDataBase;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"`
-
----
-
-**⚙️ `AppSettings`**
-
-| Thuộc tính | Mặc định | Mô tả |
-| :--- | :---: | :--- |
-| `UploadFolder` | `"uploads"` | Tên thư mục (trong `wwwroot`) dùng để lưu các tệp tài liệu do người dùng tải lên. |
-| `MaxFileSizeMB` | `50` | Dung lượng tối đa cho mỗi tệp được tải lên, tính bằng **Megabyte (MB)**. |
-| `AllowedFileTypes` | `["pdf","docx","pptx"]` | Danh sách các định dạng tệp được phép tải lên. Hệ thống từ chối các định dạng nằm ngoài danh sách này. |
-| `ChunkSize` | `800` | Số ký tự tối đa của mỗi đoạn văn bản (chunk) sau khi chia nhỏ tài liệu để tạo embedding. |
-| `ChunkOverlap` | `100` | Số ký tự chồng lấp giữa hai chunk liền kề, giúp giữ nguyên ngữ cảnh khi tìm kiếm. |
-| `MinChunkLength` | `50` | Độ dài ký tự tối thiểu của một chunk; các đoạn ngắn hơn sẽ bị bỏ qua để tránh nhiễu dữ liệu. |
-| `DefaultPageSize` | `10` | Số lượng bản ghi hiển thị mặc định trên mỗi trang trong các danh sách (phân trang). |
-
----
-
-**🪵 `Logging`**
-
-| Thuộc tính | Mặc định | Mô tả |
-| :--- | :---: | :--- |
-| `Default` | `"Information"` | Mức log mặc định cho toàn ứng dụng. |
-| `Microsoft.AspNetCore` | `"Warning"` | Chỉ ghi log từ mức Warning trở lên đối với các thành phần nội bộ của ASP.NET Core. |
-| `Microsoft.EntityFrameworkCore` | `"Warning"` | Chỉ ghi log từ mức Warning trở lên đối với Entity Framework Core (tránh log SQL query ồn ào). |
-
-> [!TIP]
-> Để xem toàn bộ câu lệnh SQL mà EF Core tạo ra trong quá trình debug, đổi `"Microsoft.EntityFrameworkCore"` thành `"Information"`.
-
----
-
-**🤖 `Gemini`**
-
-| Thuộc tính | Mô tả |
-| :--- | :--- |
-| `ApiKey` | **API Key** của bạn từ Google AI Studio. Truy cập [aistudio.google.com](https://aistudio.google.com) để tạo key miễn phí. |
-| `ModelName` | Tên model Gemini được sử dụng. Mặc định là `gemini-2.0-flash-lite`. Có thể đổi sang các model khác như `gemini-1.5-pro`. |
-
-> [!CAUTION]
-> **Không bao giờ** commit `appsettings.json` chứa `ApiKey` thực của bạn lên Git/GitHub. Tệp này đã được thêm vào `.gitignore`. Hãy đảm bảo bạn chỉ điền key trên máy cục bộ của mình.
-
----
-
-### 3. Tự động Khởi tạo Cơ sở dữ liệu (Database Seeding)
-Khi bạn chạy dự án lần đầu tiên, hệ thống sẽ **tự động chạy Migrations** để tạo cơ sở dữ liệu trên SQL Server và thực thi **DataSeeder** để nạp sẵn dữ liệu thử nghiệm.
-
-**Danh sách tài khoản mẫu để bạn đăng nhập thử nghiệm:**
-
-| Tên Đăng Nhập | Mật Khẩu | Vai Trò (Role) | Chức Năng |
-| :--- | :--- | :--- | :--- |
-| **`admin@university.edu.vn`** | `Admin@123` | **Quản Trị Viên (Admin)** | Quản lý người dùng, duyệt email giảng viên, xem biểu đồ thống kê hệ thống |
-| **`teacher@university.edu.vn`** | `Teacher@123` | **Giảng Viên (Teacher)** | Quản lý môn học, chương học, upload tài liệu học tập, xem tài liệu bị trùng lặp |
-| **`student@student.edu.vn`** | `Student@123` | **Sinh Viên (Student)** | Chat với trợ lý ảo AI để hỏi đáp dựa trên tài liệu của môn học/chương |
-
----
-
-## 🛠️ Hướng Dẫn Chạy Dự Án (How to Run)
-
-### Điều kiện cần có trên máy tính:
-1.  **.NET 8 SDK** (Tải từ trang chủ Microsoft).
-2.  **SQL Server** (Bản Developer hoặc Express) + **SSMS (SQL Server Management Studio)** để quản lý DB.
-3.  Một công cụ lập trình như **Visual Studio 2022** (khuyên dùng) hoặc **Visual Studio Code**.
-
-### Các bước khởi chạy:
-1.  Mở Solution bằng Visual Studio: Nhấp đúp chuột vào tệp [LearningDocumentSystem.slnx](file:///c:/Users/Administrator/Desktop/Assignment_2/LearningDocumentSystem/LearningDocumentSystem.slnx).
-2.  Cấu hình Connection String trong `appsettings.json` (như hướng dẫn ở mục trên).
-3.  Nhấp nút **Start** (hoặc phím **F5**) trên Visual Studio để chạy dự án. Dự án khởi chạy mặc định sẽ mở trang web trên trình duyệt.
-
-*(Nếu chạy bằng dòng lệnh CLI: Mở terminal tại thư mục `LearningDocumentSystem` và gõ lệnh `dotnet run --project LearningDocumentSystem.Web`)*
-
----
-
-## 🤝 Hướng Dẫn Sử Dụng Git Cho Người Mới Bắt Đầu (Git Guide)
-
-Nếu bạn chưa từng làm việc với Git, đừng lo lắng! Dưới đây là các hướng dẫn trực quan nhất để bạn có thể tải mã nguồn về và bắt đầu làm việc.
-
-### Git là gì?
-Git giống như một "cỗ máy thời gian" lưu trữ lịch sử mã nguồn của bạn. Mỗi lần bạn lưu code (gọi là **Commit**), Git sẽ chụp lại một bức ảnh trạng thái của toàn bộ dự án để bạn có thể khôi phục lại bất kỳ lúc nào nếu xảy ra lỗi.
-
----
-
-### CÁCH 1: Sử Dụng GitHub Desktop (Dễ nhất - Khuyên dùng)
-Bạn không cần gõ lệnh, chỉ cần nhấn chuột trên giao diện đồ họa trực quan.
-
-#### Bước 1: Cài đặt công cụ
-1.  Tải và cài đặt [GitHub Desktop](https://desktop.github.com/).
-2.  Đăng nhập tài khoản GitHub của bạn (nếu có).
-
-#### Bước 2: Tải dự án về máy (Clone)
-1.  Mở GitHub Desktop, chọn **File** -> **Clone Repository**.
-2.  Chọn tab **URL**, dán đường dẫn repository của bạn vào.
-3.  Chọn thư mục trên máy tính muốn lưu dự án ở mục **Local Path**.
-4.  Nhấn nút **Clone**.
-
-#### Bước 3: Cập nhật code mới nhất từ nhóm về máy (Pull)
-*   Trước khi bắt đầu sửa code, hãy luôn nhấn nút **Fetch origin** (ở góc trên cùng bên phải giao diện GitHub Desktop). Nếu có code mới từ người khác tải lên, nút này sẽ chuyển thành **Pull origin**. Hãy bấm vào đó để lấy code mới về máy.
-
-#### Bước 4: Lưu thay đổi và gửi lên server (Commit & Push)
-1.  Sau khi bạn sửa code, quay lại GitHub Desktop. Bạn sẽ thấy danh sách các tệp bị thay đổi ở cột bên trái.
-2.  Ở góc dưới bên trái, điền tiêu đề mô tả thay đổi ở ô **Summary** (ví dụ: `Cập nhật cấu hình appsettings`).
-3.  Bấm nút **Commit to main** (hoặc master).
-4.  Nhấp nút **Push origin** ở trên cùng để gửi các thay đổi đó lên mạng cho mọi người cùng thấy.
-
----
-
-### CÁCH 2: Sử Dụng Git Bằng Dòng Lệnh (Dành cho ai muốn học thêm)
-Mở cửa sổ Command Prompt (CMD) hoặc PowerShell tại thư mục làm việc của bạn và gõ các câu lệnh sau:
-
-#### 1. Lấy mã nguồn về máy lần đầu tiên (Clone)
-```bash
-git clone <ĐƯỜNG_DẪN_REPOSITORY>
+```json
+"DefaultConnection": "Server=localhost;Database=LearningDocumentSystemDataBase;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
 ```
 
-#### 2. Cập nhật mã nguồn mới nhất từ trên mạng về (Pull)
-*Hãy chạy lệnh này mỗi khi bạn bắt đầu làm việc trong ngày:*
+## Chạy dự án
+
+### Cách 1: chạy bằng CLI
+
+Mở terminal tại thư mục gốc repository và chạy:
+
 ```bash
-git pull
+dotnet restore LearningDocumentSystem/LearningDocumentSystem.slnx
+dotnet run --project LearningDocumentSystem/LearningDocumentSystem.Web/LearningDocumentSystem.Web.csproj
 ```
 
-#### 3. Kiểm tra các tệp bạn vừa sửa đổi (Status)
-```bash
-git status
-```
-*Lệnh này sẽ hiển thị các tệp màu đỏ (chưa được Git theo dõi) hoặc màu xanh (đã sẵn sàng).*
+Ứng dụng mặc định chạy tại:
 
-#### 4. Thêm các tệp đã sửa đổi vào hàng chờ (Add)
-```bash
-git add .
-```
-*(Dấu chấm đại diện cho việc thêm tất cả các tệp có thay đổi).*
+- HTTP: `http://localhost:5107`
+- HTTPS: `https://localhost:7059`
 
-#### 5. Lưu lại lịch sử kèm theo lời nhắn (Commit)
+### Cách 2: chạy bằng Visual Studio
+
+1. Mở `LearningDocumentSystem/LearningDocumentSystem.slnx`.
+2. Chọn startup project là `LearningDocumentSystem.Web`.
+3. Kiểm tra lại `appsettings.json`.
+4. Bấm F5 hoặc chọn profile `https`.
+
+## Database và dữ liệu mẫu
+
+Khi ứng dụng khởi động, `DataSeeder` sẽ tự chạy:
+
+- Apply EF Core migrations vào SQL Server.
+- Tạo roles: `Admin`, `Teacher`, `Student`, `Plus`, `Pro`.
+- Tạo user mẫu, môn học, chương học, tài liệu demo, lịch sử chat, package plan và payment transaction mẫu.
+
+Tài khoản đăng nhập mẫu:
+
+| Vai trò | Username | Email | Mật khẩu |
+| --- | --- | --- | --- |
+| Admin | `admin` | `admin@university.edu.vn` | `Admin@123` |
+| Teacher | `nguyenvan_gv` | `teacher@university.edu.vn` | `Teacher@123` |
+| Student | `tranmanh_sv` | `student@student.edu.vn` | `Student@123` |
+
+## Hướng dẫn sử dụng nhanh
+
+### Admin
+
+1. Đăng nhập bằng tài khoản admin.
+2. Vào khu vực quản trị để quản lý user, email được phép đăng ký và gói dịch vụ.
+3. Cấu hình chunking tại trang admin nếu muốn đổi strategy, chunk size, overlap hoặc độ dài tối thiểu.
+4. Theo dõi benchmark AI và dashboard hệ thống.
+
+### Teacher
+
+1. Đăng nhập bằng tài khoản teacher.
+2. Tạo môn học và chương học.
+3. Upload tài liệu vào chương tương ứng.
+4. Hệ thống lưu file vào `wwwroot/uploads`, tách nội dung, tạo embedding và chuyển trạng thái tài liệu sang `Indexed`.
+5. Có thể xem danh sách, chi tiết, download hoặc xóa tài liệu đã upload.
+
+### Student
+
+1. Đăng nhập bằng tài khoản student.
+2. Vào trang chat.
+3. Chọn môn học hoặc chương học nếu muốn giới hạn phạm vi hỏi đáp.
+4. Đặt câu hỏi dựa trên tài liệu đã được index.
+5. Xem câu trả lời AI và nguồn tài liệu tham chiếu nếu hệ thống tìm thấy nội dung phù hợp.
+
+### Gói dịch vụ
+
+Các gói mặc định được seed từ code và file `App_Data/package-plans.json`:
+
+| Gói | Giá | Giới hạn/ngày | Provider |
+| --- | ---: | --- | --- |
+| Free | 0 VND | 20 tin nhắn | Gemini |
+| Plus | 99,000 VND | 100 tin nhắn | Gemini, Groq |
+| Pro | 199,000 VND | Không giới hạn | Gemini, Groq, OpenAI |
+
+## Luồng xử lý tài liệu và chat
+
+1. Teacher upload tài liệu.
+2. `DocumentService` kiểm tra trùng title, tên file và hash nội dung.
+3. File được lưu vào thư mục upload.
+4. `ChunkingService` trích xuất nội dung theo cấu hình chunking.
+5. `EmbeddingService` sinh vector embedding cho từng chunk.
+6. Khi student hỏi, `ChatService` sinh embedding cho câu hỏi.
+7. Hệ thống tìm các chunk liên quan theo semantic score và keyword boost.
+8. Provider AI được chọn tạo câu trả lời dựa trên context tìm được.
+9. Chat session, message, token, latency, feedback và nguồn tham chiếu được lưu lại.
+
+## Lệnh thường dùng
+
+Restore package:
+
 ```bash
-git commit -m "Mô tả ngắn gọn những gì bạn đã sửa đổi"
+dotnet restore LearningDocumentSystem/LearningDocumentSystem.slnx
 ```
 
-#### 6. Gửi code đã lưu lên server trên mạng (Push)
+Build solution:
+
 ```bash
-git push
+dotnet build LearningDocumentSystem/LearningDocumentSystem.slnx
+```
+
+Chạy web app:
+
+```bash
+dotnet run --project LearningDocumentSystem/LearningDocumentSystem.Web/LearningDocumentSystem.Web.csproj
+```
+
+Tạo migration mới:
+
+```bash
+dotnet ef migrations add MigrationName \
+  --project LearningDocumentSystem/LearningDocumentSystem.Data \
+  --startup-project LearningDocumentSystem/LearningDocumentSystem.Web
+```
+
+Update database thủ công:
+
+```bash
+dotnet ef database update \
+  --project LearningDocumentSystem/LearningDocumentSystem.Data \
+  --startup-project LearningDocumentSystem/LearningDocumentSystem.Web
+```
+
+## Troubleshooting
+
+Nếu không kết nối được database, kiểm tra SQL Server đang chạy, database name đúng và tài khoản trong connection string có quyền tạo database.
+
+Nếu upload file bị lỗi, kiểm tra định dạng file có nằm trong `AllowedFileTypes`, dung lượng không vượt `MaxFileSizeMB`, và thư mục `wwwroot/uploads` có quyền ghi.
+
+Nếu chat không trả lời đúng tài liệu, kiểm tra tài liệu đã ở trạng thái `Indexed`, đã có chunk/embedding, và bạn đã chọn đúng môn học hoặc chương học.
+
+Nếu provider AI báo lỗi, kiểm tra API key, model name và base URL trong `appsettings.json`.
+
+Nếu thanh toán VNPay không hoạt động, kiểm tra `TmnCode`, `HashSecret`, `PaymentUrl` sandbox và return URL của ứng dụng.
+
+## Ghi chú cho nhóm phát triển
+
+- Không commit secret thật.
+- Không commit file upload sinh ra trong quá trình test.
+- Khi sửa entity, tạo migration trong project `LearningDocumentSystem.Data`.
+- Khi thêm service mới, đăng ký DI trong `LearningDocumentSystem.Web/Program.cs`.
+- Khi đổi logic upload/chunking/chat, nên kiểm tra lại luồng Teacher upload và Student chat end-to-end.
