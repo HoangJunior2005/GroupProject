@@ -1,89 +1,93 @@
-# Learning Document System (LDS)
+# 📚 Hệ Thống Quản Lý Tài Liệu Học Tập (Learning Document System - LDS)
 
-Learning Document System là hệ thống quản lý tài liệu học tập xây dựng bằng ASP.NET Core Razor Pages. Ứng dụng hỗ trợ quản lý môn học, chương học, tài liệu giảng dạy, chat AI theo tài liệu đã upload, phân quyền người dùng và thanh toán gói sử dụng qua VNPay sandbox.
+Chào mừng bạn đến với **Learning Document System (LDS)**, giải pháp quản lý tài liệu thông minh kết hợp trợ lý ảo AI hỗ trợ học tập theo thời gian thực. Hệ thống được xây dựng trên nền tảng **ASP.NET Core (Razor Pages)** và ứng dụng kỹ thuật **RAG (Retrieval-Augmented Generation)** để phân tích, tìm kiếm thông tin ngữ nghĩa và trả lời câu hỏi trực tiếp dựa trên tài liệu bài giảng.
 
-> Lưu ý bảo mật: không commit `appsettings.json` chứa connection string, API key hoặc VNPay secret thật lên GitHub. README này chỉ dùng placeholder để hướng dẫn cấu hình.
+> ⚠️ **Lưu ý bảo mật**: Không commit `appsettings.json` chứa connection string, API key hoặc VNPay secret thật lên GitHub. README này chỉ dùng placeholder để hướng dẫn cấu hình.
 
-## Chức năng chính
+---
 
-- Đăng ký, đăng nhập bằng Cookie Authentication.
-- Phân quyền `Admin`, `Teacher`, `Student`, kèm các gói `Free`, `Plus`, `Pro`.
-- Admin quản lý người dùng, email được phép đăng ký, cấu hình chunking, gói dịch vụ và benchmark AI.
-- Teacher quản lý môn học, chương học, upload tài liệu `.pdf`, `.docx`, `.pptx`.
-- Hệ thống tách tài liệu thành chunks, sinh embedding nội bộ và lưu nguồn tham chiếu.
-- Student chat hỏi đáp theo tài liệu học tập bằng RAG.
-- Hỗ trợ nhiều provider AI: Gemini, Groq và OpenAI-compatible endpoint.
-- SignalR đẩy cập nhật thời gian thực khi tài liệu, dashboard hoặc chat thay đổi.
-- VNPay sandbox cho thanh toán nâng cấp gói.
+## ✨ Chức Năng Chính
 
-## Công nghệ sử dụng
+- **Xác thực & Phân quyền**: Đăng ký, đăng nhập bằng Cookie Authentication. Phân quyền người dùng (`Admin`, `Teacher`, `Student`).
+- **Gói Dịch Vụ (Subscription)**: Hỗ trợ các gói `Free`, `Plus`, `Pro` với giới hạn số lượng tin nhắn khác nhau.
+- **Thanh Toán**: Tích hợp VNPay sandbox cho phép nâng cấp gói dịch vụ.
+- **Quản Trị (Admin)**: Quản lý người dùng, email được phép đăng ký, cấu hình chunking tài liệu, gói dịch vụ và benchmark AI.
+- **Giảng Viên (Teacher)**: Quản lý môn học, chương học, upload tài liệu giảng dạy (`.pdf`, `.docx`, `.pptx`).
+- **Xử Lý Tài Liệu (RAG)**: Hệ thống tự động tách tài liệu thành chunks, sinh vector embedding nội bộ và lưu nguồn tham chiếu.
+- **Trợ Lý Ảo (Student)**: Học sinh chat hỏi đáp theo tài liệu học tập bằng RAG. Hỗ trợ đa dạng provider AI: **Gemini**, **Groq** và **OpenAI-compatible**.
+- **Real-time**: Sử dụng SignalR đẩy thông báo cập nhật thời gian thực khi tài liệu, dashboard hoặc chat thay đổi.
 
-- .NET 8
-- ASP.NET Core Razor Pages
-- Entity Framework Core 8
-- SQL Server
-- SignalR
-- AutoMapper
-- iText 7, OpenXML
-- Bootstrap, jQuery
-- Gemini / Groq / OpenAI-compatible APIs
+---
 
-## Cấu trúc source code
+## 🗺️ Sơ Đồ Kiến Trúc Hệ Thống (Architecture)
+
+Dự án được thiết kế theo mô hình kiến trúc **3 lớp (3-Tier Architecture)** phân tách rõ ràng trách nhiệm để dễ bảo trì và nâng cấp:
+
+<img width="1271" height="692" alt="GroupProject" src="https://github.com/user-attachments/assets/81eff58d-2a4c-4c89-ab86-d3fd45ee05bc" />
+
+### 1. Tầng Dữ Liệu (LearningDocumentSystem.Data)
+*   **Entities**: Định nghĩa cấu trúc các bảng trong cơ sở dữ liệu.
+*   **AppDbContext**: Cấu hình các mối quan hệ, ràng buộc dữ liệu (Entity Framework Core 8).
+*   **Repositories & Unit of Work**: Đóng gói các tác vụ truy xuất dữ liệu.
+*   **Migrations**: Lưu vết các thay đổi cấu trúc Database.
+*   **Seeders (DataSeeder)**: Tự động khởi tạo dữ liệu mẫu khi ứng dụng khởi chạy lần đầu.
+
+### 2. Tầng Nghiệp Vụ (LearningDocumentSystem.Business)
+*   **Services**: Xử lý logic nghiệp vụ chính (Auth, Quản lý môn học/chương học, Upload, Thanh toán VNPay).
+*   **Document Chunking**: Trích xuất văn bản từ tài liệu và chia nhỏ theo chiến lược (Recursive, Fixed Size...).
+*   **Embedding & Vectorization**: Tự sinh các vector embedding nội bộ từ các phân đoạn tài liệu để so khớp độ tương đồng ngữ nghĩa.
+*   **AI Integration**: Tích hợp API Gemini, Groq, và OpenAI để trả lời câu hỏi dựa trên các phân đoạn tài liệu phù hợp nhất được tìm thấy (quy trình **RAG**).
+*   **AutoMapper**: Cấu hình ánh xạ tự động giữa Entities và DTOs.
+
+### 3. Tầng Giao Diện (LearningDocumentSystem.Web)
+*   **Razor Pages**: Giao diện người dùng động.
+*   **ViewModels**: Chuẩn hóa dữ liệu đầu vào và đầu ra cho View.
+*   **SignalR Hubs**: Đẩy thông báo thời gian thực đến người dùng.
+*   **Cookie Authentication**: Cơ chế bảo mật và phân quyền vai trò.
+
+---
+
+## 📁 Cấu Trúc Thư Mục Dự Án (Repository Structure)
+
+Cấu trúc cây thư mục tổ chức mã nguồn của hệ thống:
 
 ```text
-FinalPRN222/
-├── ASS2.drawio.png
-├── README.md
-└── LearningDocumentSystem/
+GroupProject/
+├── GroupProject.jpg                  # File sơ đồ kiến trúc hệ thống
+├── README.md                        # Tài liệu hướng dẫn sử dụng
+└── LearningDocumentSystem/          # Thư mục chính chứa mã nguồn
     ├── LearningDocumentSystem.slnx
-    ├── LearningDocumentSystem.Web/
-    │   ├── Pages/
-    │   ├── Hubs/
-    │   ├── Services/
-    │   ├── ViewModels/
-    │   ├── wwwroot/
-    │   ├── App_Data/package-plans.json
-    │   └── Program.cs
-    ├── LearningDocumentSystem.Business/
+    ├── LearningDocumentSystem.Data/ # Tầng dữ liệu (DAL)
+    │   ├── DbContexts/
+    │   ├── Entities/
+    │   ├── Migrations/
+    │   ├── Repositories/
+    │   └── Seeders/
+    ├── LearningDocumentSystem.Business/ # Tầng nghiệp vụ (BLL)
     │   ├── DTOs/
     │   ├── Mapping/
     │   └── Services/
-    └── LearningDocumentSystem.Data/
-        ├── DbContexts/
-        ├── Entities/
-        ├── Migrations/
-        ├── Repositories/
-        └── Seeders/
+    └── LearningDocumentSystem.Web/  # Tầng giao diện (PL)
+        ├── Pages/
+        ├── Hubs/
+        ├── Services/
+        ├── ViewModels/
+        ├── wwwroot/                 # CSS, JS, thư viện giao diện, thư mục uploads
+        ├── App_Data/
+        │   └── package-plans.json   # Cấu hình các gói dịch vụ mặc định
+        ├── appsettings.json         # Tệp cấu hình môi trường ứng dụng
+        └── Program.cs               # Điểm khởi chạy, thiết lập DI, Auth, Middleware
 ```
 
-### Vai trò từng project
+---
 
-`LearningDocumentSystem.Web` là tầng giao diện Razor Pages, cấu hình middleware, authentication, SignalR hub và dependency injection.
+## 💾 Cấu Hình Cơ Sở Dữ Liệu & Ứng Dụng
 
-`LearningDocumentSystem.Business` chứa logic nghiệp vụ như auth, document upload, chunking, embedding, chat RAG, package, benchmark và VNPay.
+Hệ thống sử dụng **Microsoft SQL Server** làm hệ quản trị cơ sở dữ liệu.
 
-`LearningDocumentSystem.Data` chứa entity, DbContext, migration, repository, unit of work, helper và seeder dữ liệu mẫu.
+### 1. Hướng dẫn cấu hình `appsettings.json`
 
-## Yêu cầu trước khi chạy
-
-1. Cài .NET 8 SDK.
-2. Cài SQL Server Developer/Express hoặc dùng SQL Server local có sẵn.
-3. Cài Visual Studio 2022 hoặc Visual Studio Code.
-4. Chuẩn bị API key cho provider AI muốn dùng:
-   - Gemini: Google AI Studio.
-   - Groq: Groq Console.
-   - OpenAI-compatible: endpoint tương thích `/v1/chat/completions`.
-5. Nếu test thanh toán, chuẩn bị thông tin VNPay sandbox.
-
-## Cấu hình `appsettings.json`
-
-Tạo hoặc cập nhật file:
-
-```text
-LearningDocumentSystem/LearningDocumentSystem.Web/appsettings.json
-```
-
-Mẫu cấu hình:
+Tạo hoặc cập nhật tệp cấu hình tại đường dẫn `LearningDocumentSystem/LearningDocumentSystem.Web/appsettings.json` như sau:
 
 ```json
 {
@@ -130,150 +134,92 @@ Mẫu cấu hình:
 }
 ```
 
-Nếu dùng Windows Authentication cho SQL Server, đổi connection string thành:
+> [!IMPORTANT]
+> Nếu dùng **Windows Authentication** cho SQL Server (không dùng tài khoản `sa`), hãy đổi chuỗi kết nối thành:
+> `"DefaultConnection": "Server=localhost;Database=LearningDocumentSystemDataBase;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"`
 
-```json
-"DefaultConnection": "Server=localhost;Database=LearningDocumentSystemDataBase;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
-```
+### 2. Tự động Khởi tạo Cơ sở dữ liệu (Database Seeding)
 
-## Chạy dự án
+Khi bạn chạy dự án lần đầu, hệ thống sẽ **tự động chạy Migrations** để tạo cơ sở dữ liệu và thực thi `DataSeeder` để nạp sẵn dữ liệu mẫu.
 
-### Cách 1: chạy bằng CLI
+**Danh sách tài khoản mẫu để bạn đăng nhập thử nghiệm:**
 
+| Vai Trò | Username | Email | Mật Khẩu |
+| --- | --- | --- | --- |
+| **Admin** | `admin` | `admin@university.edu.vn` | `Admin@123` |
+| **Teacher** | `nguyenvan_gv` | `teacher@university.edu.vn` | `Teacher@123` |
+| **Student** | `tranmanh_sv` | `student@student.edu.vn` | `Student@123` |
+
+---
+
+## 🚀 Hướng Dẫn Chạy Dự Án (How to Run)
+
+### Điều kiện cần
+1. **.NET 8 SDK**.
+2. **SQL Server** (Bản Developer/Express) hoặc LocalDB.
+3. API key cho provider AI (Gemini từ Google AI Studio, Groq Console, hoặc OpenAI).
+
+### Cách 1: Chạy bằng Visual Studio 2022
+1. Mở file `LearningDocumentSystem/LearningDocumentSystem.slnx`.
+2. Chọn startup project là `LearningDocumentSystem.Web`.
+3. Kiểm tra lại `appsettings.json`.
+4. Bấm **F5** hoặc chọn profile `https` để chạy.
+
+### Cách 2: Chạy bằng Dòng lệnh (CLI)
 Mở terminal tại thư mục gốc repository và chạy:
 
 ```bash
+# Phục hồi các gói nuget
 dotnet restore LearningDocumentSystem/LearningDocumentSystem.slnx
+
+# Chạy dự án
 dotnet run --project LearningDocumentSystem/LearningDocumentSystem.Web/LearningDocumentSystem.Web.csproj
 ```
+Ứng dụng sẽ chạy tại `http://localhost:5107` hoặc `https://localhost:7059`.
 
-Ứng dụng mặc định chạy tại:
+---
 
-- HTTP: `http://localhost:5107`
-- HTTPS: `https://localhost:7059`
+## 🎯 Hướng Dẫn Sử Dụng Nhanh
 
-### Cách 2: chạy bằng Visual Studio
+### Đối với Admin
+1. Quản lý user, duyệt email được phép đăng ký và cấu hình các gói dịch vụ (Packages).
+2. Cấu hình chunking (Chiến lược, chunk size, overlap) trực tiếp trên giao diện.
+3. Theo dõi hệ thống qua Dashboard và thực hiện Benchmark AI.
 
-1. Mở `LearningDocumentSystem/LearningDocumentSystem.slnx`.
-2. Chọn startup project là `LearningDocumentSystem.Web`.
-3. Kiểm tra lại `appsettings.json`.
-4. Bấm F5 hoặc chọn profile `https`.
+### Đối với Teacher (Giảng Viên)
+1. Tạo môn học và chương học.
+2. Upload tài liệu giảng dạy. Hệ thống tự động lưu vào `wwwroot/uploads`, tách nội dung, tạo embedding và chuyển trạng thái sang `Indexed`.
+3. Quản lý (xem, tải xuống, xóa) các tài liệu đã tải lên.
 
-## Database và dữ liệu mẫu
+### Đối với Student (Học Sinh)
+1. Chọn môn học hoặc chương học muốn học.
+2. Đặt câu hỏi trong cửa sổ Chat.
+3. Hệ thống tìm kiếm theo ngữ nghĩa và AI sẽ tổng hợp câu trả lời, đồng thời trích xuất nguồn tài liệu tham chiếu.
+4. Có thể nâng cấp gói dịch vụ (`Plus`, `Pro`) qua VNPay để mở rộng giới hạn tin nhắn/ngày và dùng nhiều provider AI hơn.
 
-Khi ứng dụng khởi động, `DataSeeder` sẽ tự chạy:
-
-- Apply EF Core migrations vào SQL Server.
-- Tạo roles: `Admin`, `Teacher`, `Student`, `Plus`, `Pro`.
-- Tạo user mẫu, môn học, chương học, tài liệu demo, lịch sử chat, package plan và payment transaction mẫu.
-
-Tài khoản đăng nhập mẫu:
-
-| Vai trò | Username | Email | Mật khẩu |
-| --- | --- | --- | --- |
-| Admin | `admin` | `admin@university.edu.vn` | `Admin@123` |
-| Teacher | `nguyenvan_gv` | `teacher@university.edu.vn` | `Teacher@123` |
-| Student | `tranmanh_sv` | `student@student.edu.vn` | `Student@123` |
-
-## Hướng dẫn sử dụng nhanh
-
-### Admin
-
-1. Đăng nhập bằng tài khoản admin.
-2. Vào khu vực quản trị để quản lý user, email được phép đăng ký và gói dịch vụ.
-3. Cấu hình chunking tại trang admin nếu muốn đổi strategy, chunk size, overlap hoặc độ dài tối thiểu.
-4. Theo dõi benchmark AI và dashboard hệ thống.
-
-### Teacher
-
-1. Đăng nhập bằng tài khoản teacher.
-2. Tạo môn học và chương học.
-3. Upload tài liệu vào chương tương ứng.
-4. Hệ thống lưu file vào `wwwroot/uploads`, tách nội dung, tạo embedding và chuyển trạng thái tài liệu sang `Indexed`.
-5. Có thể xem danh sách, chi tiết, download hoặc xóa tài liệu đã upload.
-
-### Student
-
-1. Đăng nhập bằng tài khoản student.
-2. Vào trang chat.
-3. Chọn môn học hoặc chương học nếu muốn giới hạn phạm vi hỏi đáp.
-4. Đặt câu hỏi dựa trên tài liệu đã được index.
-5. Xem câu trả lời AI và nguồn tài liệu tham chiếu nếu hệ thống tìm thấy nội dung phù hợp.
-
-### Gói dịch vụ
-
-Các gói mặc định được seed từ code và file `App_Data/package-plans.json`:
-
-| Gói | Giá | Giới hạn/ngày | Provider |
+### Gói Dịch Vụ Mặc Định
+| Gói | Giá (VND) | Giới hạn/ngày | Hỗ trợ Provider AI |
 | --- | ---: | --- | --- |
-| Free | 0 VND | 20 tin nhắn | Gemini |
-| Plus | 99,000 VND | 100 tin nhắn | Gemini, Groq |
-| Pro | 199,000 VND | Không giới hạn | Gemini, Groq, OpenAI |
+| **Free** | 0 | 20 tin nhắn | Gemini |
+| **Plus** | 99,000 | 100 tin nhắn | Gemini, Groq |
+| **Pro** | 199,000 | Không giới hạn | Gemini, Groq, OpenAI |
 
-## Luồng xử lý tài liệu và chat
+---
 
-1. Teacher upload tài liệu.
-2. `DocumentService` kiểm tra trùng title, tên file và hash nội dung.
-3. File được lưu vào thư mục upload.
-4. `ChunkingService` trích xuất nội dung theo cấu hình chunking.
-5. `EmbeddingService` sinh vector embedding cho từng chunk.
-6. Khi student hỏi, `ChatService` sinh embedding cho câu hỏi.
-7. Hệ thống tìm các chunk liên quan theo semantic score và keyword boost.
-8. Provider AI được chọn tạo câu trả lời dựa trên context tìm được.
-9. Chat session, message, token, latency, feedback và nguồn tham chiếu được lưu lại.
+## ⚙️ Các Lệnh Thường Dùng (Cho Nhóm Phát Triển)
 
-## Lệnh thường dùng
-
-Restore package:
-
+**Tạo migration mới:**
 ```bash
-dotnet restore LearningDocumentSystem/LearningDocumentSystem.slnx
+dotnet ef migrations add MigrationName --project LearningDocumentSystem/LearningDocumentSystem.Data --startup-project LearningDocumentSystem/LearningDocumentSystem.Web
 ```
 
-Build solution:
-
+**Cập nhật database thủ công:**
 ```bash
-dotnet build LearningDocumentSystem/LearningDocumentSystem.slnx
+dotnet ef database update --project LearningDocumentSystem/LearningDocumentSystem.Data --startup-project LearningDocumentSystem/LearningDocumentSystem.Web
 ```
 
-Chạy web app:
-
-```bash
-dotnet run --project LearningDocumentSystem/LearningDocumentSystem.Web/LearningDocumentSystem.Web.csproj
-```
-
-Tạo migration mới:
-
-```bash
-dotnet ef migrations add MigrationName \
-  --project LearningDocumentSystem/LearningDocumentSystem.Data \
-  --startup-project LearningDocumentSystem/LearningDocumentSystem.Web
-```
-
-Update database thủ công:
-
-```bash
-dotnet ef database update \
-  --project LearningDocumentSystem/LearningDocumentSystem.Data \
-  --startup-project LearningDocumentSystem/LearningDocumentSystem.Web
-```
-
-## Troubleshooting
-
-Nếu không kết nối được database, kiểm tra SQL Server đang chạy, database name đúng và tài khoản trong connection string có quyền tạo database.
-
-Nếu upload file bị lỗi, kiểm tra định dạng file có nằm trong `AllowedFileTypes`, dung lượng không vượt `MaxFileSizeMB`, và thư mục `wwwroot/uploads` có quyền ghi.
-
-Nếu chat không trả lời đúng tài liệu, kiểm tra tài liệu đã ở trạng thái `Indexed`, đã có chunk/embedding, và bạn đã chọn đúng môn học hoặc chương học.
-
-Nếu provider AI báo lỗi, kiểm tra API key, model name và base URL trong `appsettings.json`.
-
-Nếu thanh toán VNPay không hoạt động, kiểm tra `TmnCode`, `HashSecret`, `PaymentUrl` sandbox và return URL của ứng dụng.
-
-## Ghi chú cho nhóm phát triển
-
-- Không commit secret thật.
-- Không commit file upload sinh ra trong quá trình test.
-- Khi sửa entity, tạo migration trong project `LearningDocumentSystem.Data`.
-- Khi thêm service mới, đăng ký DI trong `LearningDocumentSystem.Web/Program.cs`.
-- Khi đổi logic upload/chunking/chat, nên kiểm tra lại luồng Teacher upload và Student chat end-to-end.
+**Troubleshooting:**
+- **Không kết nối được Database**: Kiểm tra SQL Server, Database Name, quyền của tài khoản.
+- **Lỗi Upload**: Kiểm tra định dạng `AllowedFileTypes`, dung lượng `MaxFileSizeMB`, và quyền ghi thư mục `wwwroot/uploads`.
+- **Lỗi AI Provider**: Đảm bảo API Key hợp lệ và Model Name chính xác trong `appsettings.json`.
+- **Thanh toán VNPay lỗi**: Kiểm tra thông tin Sandbox (`TmnCode`, `HashSecret`, `PaymentUrl`).
