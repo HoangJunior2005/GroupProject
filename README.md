@@ -23,7 +23,7 @@ Chào mừng bạn đến với **Learning Document System (LDS)**, giải pháp
 
 Dự án được thiết kế theo mô hình kiến trúc **3 lớp (3-Tier Architecture)** phân tách rõ ràng trách nhiệm để dễ bảo trì và nâng cấp:
 
-<img width="1271" height="692" alt="GroupProject" src="[https://github.com/user-attachments/assets/81eff58d-2a4c-4c89-ab86-d3fd45ee05bc]" />
+<img width="1271" height="692" alt="GroupProject" src="https://github.com/user-attachments/assets/81eff58d-2a4c-4c89-ab86-d3fd45ee05bc" />
 
 ### 1. Tầng Dữ Liệu (LearningDocumentSystem.Data)
 *   **Entities**: Định nghĩa cấu trúc các bảng trong cơ sở dữ liệu.
